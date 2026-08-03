@@ -20,8 +20,8 @@ Les composants et les routes ne font qu'appeler le moteur et persister le résul
 ## Conventions
 - Le domaine métier est en français (poule, tirage, classement, tableau), le code technique en anglais.
 - Aucun `any`. Types dérivés du schéma Supabase via `supabase gen types typescript --linked`,
-  générés dans `src/lib/supabase/database.types.ts` (à créer une fois le projet Supabase lié —
-  voir les `TODO` dans `src/lib/supabase/client.ts` et `server.ts`).
+  générés dans `src/lib/supabase/database.types.ts`. Régénère ce fichier après toute
+  migration SQL (`supabase db push` puis `supabase gen types typescript --linked > ...`).
 - Toute fonction du moteur a un test Vitest AVANT d'être branchée à l'interface.
 - Les scores ne sont jamais stockés en chaîne de caractères : table `match_sets`.
 - Aucune règle de départage codée en dur : elles viennent de `tournaments.tiebreak_rules`.
