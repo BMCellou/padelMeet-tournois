@@ -27,11 +27,16 @@ export default async function FicheTournoiPage({
     notFound();
   }
 
-  const { data: terrains } = await supabase
+  const { data: terrainsDuClub } = await supabase
     .from("courts")
     .select("id, nom, ordre")
     .eq("club_id", tournoi.club_id)
     .order("ordre");
+
+  const { data: terrainsSelectionnes } = await supabase
+    .from("tournament_courts")
+    .select("court_id")
+    .eq("tournament_id", tournoi.id);
 
   const { count: nbEquipes } = await supabase
     .from("teams")
@@ -81,6 +86,12 @@ export default async function FicheTournoiPage({
               </span>
               {nbEquipes ?? 0}
             </div>
+            <div>
+              <span className="text-muted-foreground">
+                Terrains sélectionnés :{" "}
+              </span>
+              {(terrainsSelectionnes ?? []).length}
+            </div>
           </CardContent>
         </Card>
 
@@ -89,7 +100,11 @@ export default async function FicheTournoiPage({
             <CardTitle className="text-base">Terrains</CardTitle>
           </CardHeader>
           <CardContent>
-            <TerrainForm tournamentId={tournoi.id} terrains={terrains ?? []} />
+            <TerrainForm
+              tournamentId={tournoi.id}
+              terrainsDuClub={terrainsDuClub ?? []}
+              terrainsSelectionnesIds={(terrainsSelectionnes ?? []).map((t) => t.court_id)}
+            />
           </CardContent>
         </Card>
 

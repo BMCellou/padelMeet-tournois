@@ -57,14 +57,20 @@ export async function genererCalendrier(
     };
   }
 
-  const { data: courts } = await supabase
-    .from("courts")
-    .select("id, ordre")
-    .eq("club_id", tournoi.club_id)
-    .order("ordre");
+  const { data: terrainsLies } = await supabase
+    .from("tournament_courts")
+    .select("courts(id, ordre)")
+    .eq("tournament_id", tournamentId);
 
-  if (!courts || courts.length === 0) {
-    return { error: "Ajoute au moins un terrain avant de générer le calendrier." };
+  const courts = (terrainsLies ?? [])
+    .map((t) => t.courts)
+    .filter((c): c is { id: string; ordre: number } => !!c)
+    .sort((a, b) => a.ordre - b.ordre);
+
+  if (courts.length === 0) {
+    return {
+      error: "Sélectionne au moins un terrain pour ce tournoi avant de générer le calendrier.",
+    };
   }
 
   const { data: groupes, error: groupesError } = await supabase

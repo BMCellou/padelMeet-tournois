@@ -539,6 +539,36 @@ export type Database = {
           },
         ]
       }
+      tournament_courts: {
+        Row: {
+          court_id: string
+          tournament_id: string
+        }
+        Insert: {
+          court_id: string
+          tournament_id: string
+        }
+        Update: {
+          court_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_courts_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_courts_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournaments: {
         Row: {
           club_id: string

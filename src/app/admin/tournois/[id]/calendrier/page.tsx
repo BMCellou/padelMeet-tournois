@@ -25,11 +25,15 @@ export default async function CalendrierPage({
     notFound();
   }
 
-  const { data: terrains } = await supabase
-    .from("courts")
-    .select("id, nom, ordre")
-    .eq("club_id", tournoi.club_id)
-    .order("ordre");
+  const { data: terrainsLies } = await supabase
+    .from("tournament_courts")
+    .select("courts(id, nom, ordre)")
+    .eq("tournament_id", tournamentId);
+
+  const terrains = (terrainsLies ?? [])
+    .map((t) => t.courts)
+    .filter((c): c is { id: string; nom: string; ordre: number } => !!c)
+    .sort((a, b) => a.ordre - b.ordre);
 
   const { data: groupes } = await supabase
     .from("groups")

@@ -41,22 +41,53 @@ export async function ajouterTerrain(
     .select("id", { count: "exact", head: true })
     .eq("club_id", tournoi.club_id);
 
-  const { error } = await supabase.from("courts").insert({
-    club_id: tournoi.club_id,
-    nom: parsed.data.nom,
-    ordre: count ?? 0,
-  });
+  const { data: court, error } = await supabase
+    .from("courts")
+    .insert({ club_id: tournoi.club_id, nom: parsed.data.nom, ordre: count ?? 0 })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !court) {
     return { error: "Impossible d'ajouter le terrain." };
   }
+
+  // Un terrain qu'on vient de créer depuis un tournoi est utile pour ce
+  // tournoi : on le sélectionne directement.
+  await supabase
+    .from("tournament_courts")
+    .insert({ tournament_id: parsed.data.tournamentId, court_id: court.id });
 
   revalidatePath(`/admin/tournois/${parsed.data.tournamentId}`);
   return { success: true };
 }
 
-export async function supprimerTerrain(courtId: string, tournamentId: string): Promise<void> {
+export async function basculerTerrainTournoi(
+  tournamentId: string,
+  courtId: string,
+  selectionne: boolean,
+): Promise<void> {
   const supabase = await createClient();
+
+  if (selectionne) {
+    await supabase
+      .from("tournament_courts")
+      .insert({ tournament_id: tournamentId, court_id: courtId });
+  } else {
+    await supabase
+      .from("tournament_courts")
+      .delete()
+      .eq("tournament_id", tournamentId)
+      .eq("court_id", courtId);
+  }
+
+  revalidatePath(`/admin/tournois/${tournamentId}`);
+}
+
+export async function supprimerTerrainDuClub(courtId: string, tournamentId: string): Promise<void> {
+  const supabase = await createClient();
+  // Supprime le terrain du club entier (cascade sur tournament_courts pour
+  // tous les tournois), pas seulement de ce tournoi. À utiliser pour
+  // corriger un terrain créé par erreur.
   await supabase.from("courts").delete().eq("id", courtId);
   revalidatePath(`/admin/tournois/${tournamentId}`);
 }
