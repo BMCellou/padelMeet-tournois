@@ -93,9 +93,14 @@ export default async function FicheTournoiPage({
           </CardContent>
         </Card>
 
-        <Link href={`/admin/tournois/${tournoi.id}/inscriptions`}>
-          <Button>Gérer les inscriptions</Button>
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href={`/admin/tournois/${tournoi.id}/inscriptions`}>
+            <Button>Gérer les inscriptions</Button>
+          </Link>
+          <Link href={`/admin/tournois/${tournoi.id}/poules`}>
+            <Button variant="outline">Poules et tirage</Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -555,6 +555,7 @@ export type Database = {
           public_slug: string | null
           statut: string
           tiebreak_rules: Json
+          tirage_seed: number | null
         }
         Insert: {
           club_id: string
@@ -571,6 +572,7 @@ export type Database = {
           public_slug?: string | null
           statut?: string
           tiebreak_rules?: Json
+          tirage_seed?: number | null
         }
         Update: {
           club_id?: string
@@ -587,6 +589,7 @@ export type Database = {
           public_slug?: string | null
           statut?: string
           tiebreak_rules?: Json
+          tirage_seed?: number | null
         }
         Relationships: [
           {
