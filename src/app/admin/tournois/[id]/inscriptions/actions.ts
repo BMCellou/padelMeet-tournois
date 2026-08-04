@@ -258,3 +258,129 @@ export async function genererEquipesAleatoires(
     joueursNonApparies: resultat.joueursNonApparies.length,
   };
 }
+
+const modifierJoueurSchema = z.object({
+  playerId: z.string().uuid(),
+  tournamentId: z.string().uuid(),
+  nom: z.string().trim().min(1, "Le nom est requis."),
+  prenom: z.string().trim().min(1, "Le prénom est requis."),
+  sexe: z.enum(["H", "F"]).optional(),
+  classementFft: z.string().trim().optional(),
+  telephone: z.string().trim().optional(),
+  email: z.string().trim().email("E-mail invalide.").optional().or(z.literal("")),
+});
+
+export async function modifierJoueur(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = modifierJoueurSchema.safeParse({
+    playerId: formData.get("playerId"),
+    tournamentId: formData.get("tournamentId"),
+    nom: formData.get("nom"),
+    prenom: formData.get("prenom"),
+    sexe: formData.get("sexe") || undefined,
+    classementFft: formData.get("classementFft") || undefined,
+    telephone: formData.get("telephone") || undefined,
+    email: formData.get("email") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("players")
+    .update({
+      nom: parsed.data.nom,
+      prenom: parsed.data.prenom,
+      sexe: parsed.data.sexe,
+      classement_fft: parsed.data.classementFft,
+      telephone: parsed.data.telephone,
+      email: parsed.data.email || null,
+    })
+    .eq("id", parsed.data.playerId);
+
+  if (error) {
+    return { error: "Impossible de modifier ce joueur." };
+  }
+
+  revalidatePath(`/admin/tournois/${parsed.data.tournamentId}/inscriptions`);
+  return { success: true };
+}
+
+const renommerEquipeSchema = z.object({
+  teamId: z.string().uuid(),
+  tournamentId: z.string().uuid(),
+  nomAffiche: z.string().trim().min(1, "Le nom de l'équipe est requis."),
+});
+
+export async function renommerEquipe(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = renommerEquipeSchema.safeParse({
+    teamId: formData.get("teamId"),
+    tournamentId: formData.get("tournamentId"),
+    nomAffiche: formData.get("nomAffiche"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("teams")
+    .update({ nom_affiche: parsed.data.nomAffiche })
+    .eq("id", parsed.data.teamId);
+
+  if (error) {
+    return { error: "Impossible de renommer l'équipe." };
+  }
+
+  revalidatePath(`/admin/tournois/${parsed.data.tournamentId}/inscriptions`);
+  return { success: true };
+}
+
+export async function supprimerEquipe(teamId: string, tournamentId: string): Promise<void> {
+  const supabase = await createClient();
+  // Cascade en base sur team_players et registrations : supprimer
+  // l'équipe suffit. Les joueurs eux-mêmes restent dans la base.
+  await supabase.from("teams").delete().eq("id", teamId);
+  revalidatePath(`/admin/tournois/${tournamentId}/inscriptions`);
+}
+
+export async function remplacerJoueurEquipe(
+  tournamentId: string,
+  teamId: string,
+  ancienPlayerId: string,
+  nouveauPlayerId: string,
+): Promise<{ error: string } | { success: true }> {
+  const supabase = await createClient();
+
+  const { data: dejaDansUneEquipe } = await supabase
+    .from("team_players")
+    .select("team_id, teams!inner(tournament_id)")
+    .eq("player_id", nouveauPlayerId)
+    .eq("teams.tournament_id", tournamentId)
+    .maybeSingle();
+
+  if (dejaDansUneEquipe) {
+    return { error: "Ce joueur fait déjà partie d'une équipe de ce tournoi." };
+  }
+
+  const { error } = await supabase
+    .from("team_players")
+    .update({ player_id: nouveauPlayerId })
+    .eq("team_id", teamId)
+    .eq("player_id", ancienPlayerId);
+
+  if (error) {
+    return { error: "Impossible de remplacer ce joueur." };
+  }
+
+  revalidatePath(`/admin/tournois/${tournamentId}/inscriptions`);
+  return { success: true };
+}
