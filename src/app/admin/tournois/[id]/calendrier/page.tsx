@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminHeader } from "../../../AdminHeader";
+import { AdminSidebar } from "../../../AdminSidebar";
 import { GenerationForm } from "./GenerationForm";
 import { CalendrierGrid, type MatchAffiche } from "./CalendrierGrid";
 import { ExemptsList, type ExemptParPoule } from "./ExemptsList";
@@ -17,7 +18,9 @@ export default async function CalendrierPage({
 
   const { data: tournoi } = await supabase
     .from("tournaments")
-    .select("id, nom, date, heure_debut, duree_match_min, pause_min, repos_min_min, club_id")
+    .select(
+      "id, nom, date, heure_debut, duree_match_min, pause_min, repos_min_min, club_id",
+    )
     .eq("id", tournamentId)
     .single();
 
@@ -49,7 +52,9 @@ export default async function CalendrierPage({
 
   const { data: matchsBruts } = await supabase
     .from("matches")
-    .select("id, court_id, scheduled_at, duree_estimee, group_id, round, team_a_id, team_b_id")
+    .select(
+      "id, court_id, scheduled_at, duree_estimee, group_id, round, team_a_id, team_b_id",
+    )
     .eq("tournament_id", tournamentId)
     .eq("phase", "poule");
 
@@ -89,51 +94,56 @@ export default async function CalendrierPage({
   return (
     <div className="min-h-screen bg-muted/20">
       <AdminHeader />
-      <div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-8">
-        <h1 className="text-2xl font-semibold">Calendrier — {tournoi.nom}</h1>
+      <div className="flex flex-col sm:flex-row">
+        <AdminSidebar tournamentId={tournoi.id} tournamentNom={tournoi.nom} />
+        <div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-8">
+          <h1 className="text-2xl font-semibold">Calendrier — {tournoi.nom}</h1>
 
-        {!groupes || groupes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Tire d&apos;abord les poules avant de générer le calendrier.
-          </p>
-        ) : !terrains || terrains.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Ajoute au moins un terrain avant de générer le calendrier.
-          </p>
-        ) : (
-          <>
-            {dejaGenere ? (
-              <CalendrierGrid
-                tournamentId={tournamentId}
-                terrains={terrains}
-                matches={matches}
-                reposMinMin={tournoi.repos_min_min}
-              />
-            ) : null}
-
-            <ExemptsList donnees={exempts} />
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {dejaGenere ? "Régénérer le calendrier" : "Générer le calendrier"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <GenerationForm
+          {!groupes || groupes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Tire d&apos;abord les poules avant de générer le calendrier.
+            </p>
+          ) : !terrains || terrains.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Ajoute au moins un terrain avant de générer le calendrier.
+            </p>
+          ) : (
+            <>
+              {dejaGenere ? (
+                <CalendrierGrid
                   tournamentId={tournamentId}
-                  regenerer={dejaGenere}
-                  defaut={{
-                    heureDebut: tournoi.heure_debut.slice(0, 5),
-                    dureeJeuMin: tournoi.duree_match_min ?? 25,
-                    rotationMin: tournoi.pause_min ?? 5,
-                    reposMinMin: tournoi.repos_min_min,
-                  }}
+                  terrains={terrains}
+                  matches={matches}
+                  reposMinMin={tournoi.repos_min_min}
                 />
-              </CardContent>
-            </Card>
-          </>
-        )}
+              ) : null}
+
+              <ExemptsList donnees={exempts} />
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    {dejaGenere
+                      ? "Régénérer le calendrier"
+                      : "Générer le calendrier"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <GenerationForm
+                    tournamentId={tournamentId}
+                    regenerer={dejaGenere}
+                    defaut={{
+                      heureDebut: tournoi.heure_debut.slice(0, 5),
+                      dureeJeuMin: tournoi.duree_match_min ?? 25,
+                      rotationMin: tournoi.pause_min ?? 5,
+                      reposMinMin: tournoi.repos_min_min,
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
