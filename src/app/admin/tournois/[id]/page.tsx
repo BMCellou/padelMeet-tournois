@@ -100,6 +100,9 @@ export default async function FicheTournoiPage({
           <Link href={`/admin/tournois/${tournoi.id}/poules`}>
             <Button variant="outline">Poules et tirage</Button>
           </Link>
+          <Link href={`/admin/tournois/${tournoi.id}/calendrier`}>
+            <Button variant="outline">Calendrier</Button>
+          </Link>
         </div>
       </div>
     </div>

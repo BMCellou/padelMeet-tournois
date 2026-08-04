@@ -14,3 +14,4 @@ export * from "./tableau";
 export * from "./propagation";
 export * from "./classementFinal";
 export * from "./planification";
+export * from "./conflits";

@@ -547,12 +547,14 @@ export type Database = {
           duree_match_min: number | null
           format_config: Json
           genre: string | null
+          heure_debut: string
           id: string
           nb_qualifies: number | null
           niveau: string | null
           nom: string
           pause_min: number | null
           public_slug: string | null
+          repos_min_min: number
           statut: string
           tiebreak_rules: Json
           tirage_seed: number | null
@@ -564,12 +566,14 @@ export type Database = {
           duree_match_min?: number | null
           format_config?: Json
           genre?: string | null
+          heure_debut?: string
           id?: string
           nb_qualifies?: number | null
           niveau?: string | null
           nom: string
           pause_min?: number | null
           public_slug?: string | null
+          repos_min_min?: number
           statut?: string
           tiebreak_rules?: Json
           tirage_seed?: number | null
@@ -581,12 +585,14 @@ export type Database = {
           duree_match_min?: number | null
           format_config?: Json
           genre?: string | null
+          heure_debut?: string
           id?: string
           nb_qualifies?: number | null
           niveau?: string | null
           nom?: string
           pause_min?: number | null
           public_slug?: string | null
+          repos_min_min?: number
           statut?: string
           tiebreak_rules?: Json
           tirage_seed?: number | null
