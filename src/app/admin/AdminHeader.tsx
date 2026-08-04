@@ -12,8 +12,13 @@ export async function AdminHeader() {
   return (
     <header className="w-full border-b bg-background">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <Link href="/admin" className="text-lg font-semibold">
-          PadelMeet Tournois
+        <Link href="/admin" className="flex items-center gap-2 text-lg font-semibold">
+          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
+            P
+          </span>
+          <span>
+            PadelMeet <span className="text-primary">Tournois</span>
+          </span>
         </Link>
         <div className="flex items-center justify-between gap-4 sm:justify-end">
           <span className="text-sm text-muted-foreground">{user?.email}</span>

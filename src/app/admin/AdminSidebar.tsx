@@ -27,7 +27,9 @@ export function AdminSidebar({ tournamentId, tournamentNom }: AdminSidebarProps)
         href="/admin"
         className={cn(
           "shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap",
-          pathname === "/admin" ? "bg-accent" : "hover:bg-accent",
+          pathname === "/admin"
+            ? "bg-primary/10 text-primary"
+            : "hover:bg-accent",
         )}
       >
         Tous les tournois
@@ -44,7 +46,9 @@ export function AdminSidebar({ tournamentId, tournamentNom }: AdminSidebarProps)
               href={l.href}
               className={cn(
                 "shrink-0 rounded-md px-3 py-2 text-sm whitespace-nowrap",
-                pathname === l.href ? "bg-accent font-medium" : "hover:bg-accent",
+                pathname === l.href
+                  ? "bg-primary/10 font-medium text-primary"
+                  : "hover:bg-accent",
               )}
             >
               {l.label}
