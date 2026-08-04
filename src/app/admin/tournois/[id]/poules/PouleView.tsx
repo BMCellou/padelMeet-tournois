@@ -34,9 +34,12 @@ export function PouleView({
           </CardHeader>
           <CardContent className="space-y-2">
             {g.equipes.map((e) => (
-              <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
-                <span>{e.nomAffiche}</span>
-                {modifiable ? (
+              <div
+                key={e.id}
+                className="flex items-center justify-between gap-2 text-sm"
+              >
+                <span className="truncate">{e.nomAffiche}</span>
+                {modifiable && groupes.length > 1 ? (
                   <Select
                     value={g.id}
                     onValueChange={(nouveauGroupId) => {
@@ -45,8 +48,12 @@ export function PouleView({
                       }
                     }}
                   >
-                    <SelectTrigger size="sm" className="h-7 text-xs">
-                      <SelectValue />
+                    <SelectTrigger size="sm" className="h-7 shrink-0 text-xs">
+                      <SelectValue>
+                        {(valeur: string) =>
+                          `Poule ${groupes.find((x) => x.id === valeur)?.nom ?? ""}`
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {groupes.map((cible) => (

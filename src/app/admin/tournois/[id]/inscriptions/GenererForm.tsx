@@ -11,6 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const LIBELLES_STRATEGIE: Record<string, string> = {
+  aleatoire: "Aléatoire pur",
+  equilibre: "Équilibré (par classement)",
+  mixte: "Mixte forcé (H/F)",
+};
+
 export function GenererForm({ tournamentId }: { tournamentId: string }) {
   const [state, formAction, isPending] = useActionState(genererEquipesAleatoires, null);
 
@@ -19,7 +25,9 @@ export function GenererForm({ tournamentId }: { tournamentId: string }) {
       <input type="hidden" name="tournamentId" value={tournamentId} />
       <Select name="strategie" defaultValue="aleatoire">
         <SelectTrigger className="w-full">
-          <SelectValue />
+          <SelectValue>
+            {(valeur: string) => LIBELLES_STRATEGIE[valeur] ?? valeur}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="aleatoire">Aléatoire pur</SelectItem>

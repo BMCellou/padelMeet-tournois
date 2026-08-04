@@ -19,6 +19,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const LIBELLES_GENRE: Record<string, string> = {
+  masculin: "Masculin",
+  feminin: "Féminin",
+  mixte: "Mixte",
+};
+
 export default function NouveauTournoiPage() {
   const [state, formAction, isPending] = useActionState(creerTournoi, null);
 
@@ -43,7 +49,11 @@ export default function NouveauTournoiPage() {
                 <Label htmlFor="genre">Genre</Label>
                 <Select name="genre">
                   <SelectTrigger id="genre">
-                    <SelectValue placeholder="Non précisé" />
+                    <SelectValue placeholder="Non précisé">
+                      {(valeur: string | null) =>
+                        valeur ? LIBELLES_GENRE[valeur] : "Non précisé"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="masculin">Masculin</SelectItem>
