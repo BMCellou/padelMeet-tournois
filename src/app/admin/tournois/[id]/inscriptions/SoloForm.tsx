@@ -12,7 +12,7 @@ export function SoloForm({ tournamentId }: { tournamentId: string }) {
   return (
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="tournamentId" value={tournamentId} />
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <div className="space-y-1">
           <Label htmlFor="prenom">Prénom</Label>
           <Input id="prenom" name="prenom" required />

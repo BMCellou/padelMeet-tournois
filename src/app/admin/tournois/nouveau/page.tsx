@@ -23,7 +23,7 @@ export default function NouveauTournoiPage() {
   const [state, formAction, isPending] = useActionState(creerTournoi, null);
 
   return (
-    <div className="mx-auto max-w-lg p-8">
+    <div className="mx-auto w-full max-w-lg p-4 sm:p-8">
       <Card>
         <CardHeader>
           <CardTitle>Nouveau tournoi</CardTitle>
@@ -38,7 +38,7 @@ export default function NouveauTournoiPage() {
               <Label htmlFor="date">Date</Label>
               <Input id="date" name="date" type="date" required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="genre">Genre</Label>
                 <Select name="genre">
@@ -57,7 +57,7 @@ export default function NouveauTournoiPage() {
                 <Input id="niveau" name="niveau" placeholder="P100-P250" />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="nbQualifies">Qualifiés</Label>
                 <Input

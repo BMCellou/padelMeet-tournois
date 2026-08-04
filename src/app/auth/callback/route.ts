@@ -9,7 +9,9 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}/admin`);
+      // Le seul flux qui passe par ici est l'activation / réinitialisation
+      // de mot de passe : jamais utilisé comme méthode de connexion courante.
+      return NextResponse.redirect(`${origin}/admin/definir-mot-de-passe`);
     }
   }
 

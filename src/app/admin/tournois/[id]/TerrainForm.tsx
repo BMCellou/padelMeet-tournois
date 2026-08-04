@@ -43,7 +43,7 @@ export function TerrainForm({
 
       <form action={formAction} className="flex gap-2">
         <input type="hidden" name="tournamentId" value={tournamentId} />
-        <Input name="nom" placeholder="Terrain 1" required />
+        <Input name="nom" placeholder="Terrain 1" required className="flex-1" />
         <Button type="submit" disabled={isPending}>
           Ajouter
         </Button>

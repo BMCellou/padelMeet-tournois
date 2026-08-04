@@ -41,13 +41,20 @@ Les composants et les routes ne font qu'appeler le moteur et persister le résul
 Toute modification du moteur doit garder ces deux tests au vert.
 
 ## Sécurité auth admin (V1)
-Un seul compte admin, authentifié par magic link Supabase, restreint côté
-serveur à `process.env.ADMIN_EMAIL` (`src/app/admin/login/actions.ts`).
+Un seul compte admin. Connexion courante par e-mail + mot de passe
+(`supabase.auth.signInWithPassword`, `src/app/admin/login/actions.ts`),
+restreinte côté serveur à `process.env.ADMIN_EMAIL`. Le lien magique
+(e-mail) ne sert **jamais** à se connecter au quotidien : il ne sert qu'à
+activer le compte ou réinitialiser le mot de passe oublié
+(`supabase.auth.resetPasswordForEmail`), via `/auth/callback` qui redirige
+toujours vers `/admin/definir-mot-de-passe`, jamais directement vers
+`/admin`. Ne réintroduis pas `signInWithOtp` comme méthode de connexion.
 Ça ne suffit pas seul : désactive aussi "Allow new users to sign up" dans
 Supabase Auth > Providers > Email, sinon la clé anon publique permet à
-n'importe qui d'appeler `signInWithOtp` avec une autre adresse et de créer
-un compte `authenticated` qui passerait les policies RLS admin. Crée le
-compte admin manuellement une fois le projet Supabase lié.
+n'importe qui de créer un compte `authenticated` qui passerait les
+policies RLS admin. Crée le compte admin manuellement une fois le projet
+Supabase lié, puis envoie-lui un lien de réinitialisation pour qu'il
+définisse son mot de passe initial.
 
 ## Ce qu'il ne faut PAS faire
 - Ne pas ajouter de comptes joueurs, de paiement ou de notifications (hors périmètre V1).
