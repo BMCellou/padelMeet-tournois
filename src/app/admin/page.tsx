@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ClubForm } from "./club/ClubForm";
+import { ClubEditDialog } from "./club/ClubEditDialog";
 import { AdminHeader } from "./AdminHeader";
 import { AdminSidebar } from "./AdminSidebar";
 import Link from "next/link";
@@ -11,7 +12,7 @@ export default async function AdminDashboardPage() {
 
   const { data: club } = await supabase
     .from("clubs")
-    .select("id, nom")
+    .select("id, nom, ville")
     .limit(1)
     .maybeSingle();
 
@@ -29,10 +30,18 @@ export default async function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row">
         <AdminSidebar />
         <div className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-8">
-          <div>
-            <h1 className="text-2xl font-semibold">Tournois</h1>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h1 className="text-2xl font-semibold">Tournois</h1>
+              {club ? (
+                <p className="text-sm text-muted-foreground">
+                  {club.nom}
+                  {club.ville ? ` — ${club.ville}` : ""}
+                </p>
+              ) : null}
+            </div>
             {club ? (
-              <p className="text-sm text-muted-foreground">{club.nom}</p>
+              <ClubEditDialog clubId={club.id} nom={club.nom} ville={club.ville} />
             ) : null}
           </div>
 

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TerrainForm } from "./TerrainForm";
+import { ModifierTournoiDialog } from "./ModifierTournoiDialog";
+import { SupprimerTournoiDialog } from "./SupprimerTournoiDialog";
 import { AdminHeader } from "../../AdminHeader";
 import { AdminSidebar } from "../../AdminSidebar";
 
@@ -61,8 +63,24 @@ export default async function FicheTournoiPage({
           </div>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Paramètres</CardTitle>
+              <div className="flex gap-2">
+                <ModifierTournoiDialog
+                  tournoi={{
+                    id: tournoi.id,
+                    nom: tournoi.nom,
+                    date: tournoi.date,
+                    genre: tournoi.genre,
+                    niveau: tournoi.niveau,
+                    statut: tournoi.statut,
+                    nbQualifies: tournoi.nb_qualifies,
+                    dureeMatchMin: tournoi.duree_match_min,
+                    pauseMin: tournoi.pause_min,
+                  }}
+                />
+                <SupprimerTournoiDialog tournamentId={tournoi.id} tournamentNom={tournoi.nom} />
+              </div>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div>
