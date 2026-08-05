@@ -84,12 +84,48 @@ export default async function TableauPage({
       .sort((a, b) => (a.rang ?? 0) - (b.rang ?? 0))
       .map((s) => ({ rang: s.rang!, equipeNom: nomEquipe.get(s.team_id) ?? "?" }));
 
+    const { data: matchsPouleBruts } = await supabase
+      .from("matches")
+      .select(
+        "id, round, statut, team_a_id, team_b_id, winner_id, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+      )
+      .eq("tournament_id", tournamentId)
+      .eq("group_id", groupes[0].id)
+      .order("round");
+
+    const matchsPoule: MatchAffiche[] = (matchsPouleBruts ?? [])
+      .filter((m) => m.team_a_id && m.team_b_id)
+      .map((m) => ({
+        id: m.id,
+        round: m.round,
+        statut: m.statut,
+        teamAId: m.team_a_id!,
+        teamBId: m.team_b_id!,
+        teamANom: nomEquipe.get(m.team_a_id!) ?? "?",
+        teamBNom: nomEquipe.get(m.team_b_id!) ?? "?",
+        winnerId: m.winner_id,
+        sets: [...m.match_sets]
+          .sort((a, b) => a.numero - b.numero)
+          .map((s) => ({
+            jeuxA: s.jeux_a,
+            jeuxB: s.jeux_b,
+            tiebreakA: s.tiebreak_a,
+            tiebreakB: s.tiebreak_b,
+          })),
+      }));
+
     contenu = (
       <>
         <p className="text-sm text-muted-foreground">
           Une seule poule : le classement de poule est directement le classement final.
         </p>
         <ClassementFinalList lignes={lignes} />
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Matchs de la poule</p>
+          {matchsPoule.map((m) => (
+            <MatchScoreCard key={m.id} tournamentId={tournamentId} match={m} format={format} />
+          ))}
+        </div>
       </>
     );
   } else {
