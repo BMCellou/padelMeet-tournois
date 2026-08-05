@@ -23,7 +23,9 @@ const setsSchema = z.array(setSchema).min(1, "Au moins un set est requis.");
 async function chargerMatchEtFormat(supabase: SupabaseServerClient, matchId: string, tournamentId: string) {
   const { data: match } = await supabase
     .from("matches")
-    .select("id, tournament_id, group_id, team_a_id, team_b_id, statut, format_override")
+    .select(
+      "id, tournament_id, group_id, team_a_id, team_b_id, statut, format_override, phase, next_match_id, next_slot",
+    )
     .eq("id", matchId)
     .eq("tournament_id", tournamentId)
     .single();
@@ -125,6 +127,34 @@ async function recalculerClassementPoule(
   }
 }
 
+/**
+ * Après validation/correction/forfait : recalcule le classement de poule
+ * (phase='poule'), ou propage le vainqueur vers le match suivant du
+ * tableau (phase='tableau', §4.8). Rien à faire si c'est la finale.
+ */
+async function apresValidation(
+  supabase: SupabaseServerClient,
+  tournamentId: string,
+  match: {
+    phase: string;
+    group_id: string | null;
+    next_match_id: string | null;
+    next_slot: string | null;
+  },
+  winnerId: string,
+  tiebreakRules: CritereDepartage[],
+): Promise<void> {
+  if (match.phase === "poule") {
+    await recalculerClassementPoule(supabase, tournamentId, match.group_id!, tiebreakRules);
+    return;
+  }
+
+  if (match.phase === "tableau" && match.next_match_id) {
+    const champ = match.next_slot === "a" ? { team_a_id: winnerId } : { team_b_id: winnerId };
+    await supabase.from("matches").update(champ).eq("id", match.next_match_id);
+  }
+}
+
 async function remplacerSets(supabase: SupabaseServerClient, matchId: string, sets: SetSaisi[]): Promise<void> {
   await supabase.from("match_sets").delete().eq("match_id", matchId);
   await supabase.from("match_sets").insert(
@@ -206,9 +236,10 @@ export async function validerScore(tournamentId: string, matchId: string): Promi
     payload: { matchId, sets } as unknown as Json,
   });
 
-  await recalculerClassementPoule(supabase, tournamentId, contexte.match.group_id!, contexte.tiebreakRules);
+  await apresValidation(supabase, tournamentId, contexte.match, winnerId!, contexte.tiebreakRules);
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);
+  revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
   return { success: true };
 }
 
@@ -256,9 +287,10 @@ export async function corrigerScore(
     payload: { matchId, ancienSets, nouveauxSets: parsed.data } as unknown as Json,
   });
 
-  await recalculerClassementPoule(supabase, tournamentId, contexte.match.group_id!, contexte.tiebreakRules);
+  await apresValidation(supabase, tournamentId, contexte.match, winnerId!, contexte.tiebreakRules);
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);
+  revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
   return { success: true };
 }
 
@@ -288,8 +320,9 @@ export async function declarerForfait(
     payload: { matchId, equipeGagnanteId } as unknown as Json,
   });
 
-  await recalculerClassementPoule(supabase, tournamentId, contexte.match.group_id!, contexte.tiebreakRules);
+  await apresValidation(supabase, tournamentId, contexte.match, equipeGagnanteId, contexte.tiebreakRules);
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);
+  revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
   return { success: true };
 }
