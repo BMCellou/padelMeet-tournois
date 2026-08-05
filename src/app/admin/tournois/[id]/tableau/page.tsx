@@ -4,34 +4,9 @@ import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 import { MatchScoreCard, type MatchAffiche } from "../scores/MatchScoreCard";
 import { GenererTableauForm } from "./GenererTableauForm";
-import { ClassementFinalList, type LigneFinale } from "./ClassementFinalList";
-import { classementFinal } from "@/lib/engine/classementFinal";
+import { ClassementFinalList, type LigneFinale } from "@/components/tournoi/ClassementFinalList";
+import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
 import type { MatchFormat } from "@/lib/engine/types";
-
-interface StandingRow {
-  team_id: string;
-  joues: number;
-  v: number;
-  ratio_sets: number | null;
-  ratio_jeux: number | null;
-  rang: number | null;
-}
-
-function ratioVictoires(s: StandingRow | undefined): number {
-  return s && s.joues > 0 ? s.v / s.joues : 0;
-}
-
-function trierParRatio(ids: string[], standings: Map<string, StandingRow>): string[] {
-  return [...ids].sort((a, b) => {
-    const sa = standings.get(a);
-    const sb = standings.get(b);
-    const rv = ratioVictoires(sb) - ratioVictoires(sa);
-    if (rv !== 0) return rv;
-    const rs = (sb?.ratio_sets ?? 0) - (sa?.ratio_sets ?? 0);
-    if (rs !== 0) return rs;
-    return (sb?.ratio_jeux ?? 0) - (sa?.ratio_jeux ?? 0);
-  });
-}
 
 export default async function TableauPage({
   params,
@@ -148,41 +123,13 @@ export default async function TableauPage({
       }
       const tours = [...parTour.keys()].sort((a, b) => a - b);
       const dernierTour = tours[tours.length - 1];
-      const finale = matchsBruts.find((m) => m.round === dernierTour && !m.next_match_id);
-      const finaleTerminee = finale && (finale.statut === "valide" || finale.statut === "forfait");
 
-      let classementFinalLignes: LigneFinale[] | null = null;
-
-      if (finaleTerminee && finale) {
-        const champion = finale.winner_id!;
-        const finaliste = finale.team_a_id === champion ? finale.team_b_id! : finale.team_a_id!;
-
-        const demis = matchsBruts.filter((m) => m.round === dernierTour - 1);
-        const demiPerdants = demis.map((m) =>
-          m.winner_id === m.team_a_id ? m.team_b_id! : m.team_a_id!,
-        );
-
-        const quarts = dernierTour >= 3 ? matchsBruts.filter((m) => m.round === dernierTour - 2) : [];
-        const quartsPerdants = quarts.map((m) =>
-          m.winner_id === m.team_a_id ? m.team_b_id! : m.team_a_id!,
-        );
-
-        const idsQualifies = new Set(matchsBruts.flatMap((m) => [m.team_a_id, m.team_b_id]).filter(Boolean));
-        const nonQualifies = (teams ?? []).map((t) => t.id).filter((id) => !idsQualifies.has(id));
-
-        const resultat = classementFinal({
-          finaleVainqueurId: champion,
-          finalePerdantId: finaliste,
-          demiFinalesPerdantIds: demiPerdants,
-          quartsPerdantIdsTries: trierParRatio(quartsPerdants, standingsParEquipe),
-          nonQualifieIdsTries: trierParRatio(nonQualifies, standingsParEquipe),
-        });
-
-        classementFinalLignes = resultat.map((e) => ({
-          rang: e.rang,
-          equipeNom: nomEquipe.get(e.teamId) ?? "?",
-        }));
-      }
+      const classementFinalLignes = calculerClassementFinalTableau(
+        matchsBruts,
+        (teams ?? []).map((t) => t.id),
+        standingsParEquipe,
+        nomEquipe,
+      );
 
       contenu = (
         <>

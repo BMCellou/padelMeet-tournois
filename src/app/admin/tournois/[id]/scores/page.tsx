@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 import { MatchScoreCard, type MatchAffiche } from "./MatchScoreCard";
-import { StandingsTable, type LigneClassement } from "./StandingsTable";
+import { StandingsTable, type LigneClassement } from "@/components/tournoi/StandingsTable";
 import type { MatchFormat } from "@/lib/engine/types";
 
 export default async function ScoresPage({
