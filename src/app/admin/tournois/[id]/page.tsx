@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TerrainForm } from "./TerrainForm";
+import { LienPublic } from "./LienPublic";
 import { ModifierTournoiDialog } from "./ModifierTournoiDialog";
 import { SupprimerTournoiDialog } from "./SupprimerTournoiDialog";
 import { AdminHeader } from "../../AdminHeader";
@@ -19,7 +20,7 @@ export default async function FicheTournoiPage({
   const { data: tournoi } = await supabase
     .from("tournaments")
     .select(
-      "id, nom, date, statut, genre, niveau, nb_qualifies, duree_match_min, pause_min, club_id",
+      "id, nom, date, statut, genre, niveau, nb_qualifies, duree_match_min, pause_min, club_id, public_slug",
     )
     .eq("id", id)
     .single();
@@ -111,6 +112,24 @@ export default async function FicheTournoiPage({
                 </span>
                 {(terrainsSelectionnes ?? []).length}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Lien public</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tournoi.statut === "brouillon" ? (
+                <p className="text-sm text-muted-foreground">
+                  Passe le statut à « Publié » (bouton Modifier ci-dessus) pour activer le lien
+                  public.
+                </p>
+              ) : (
+                <LienPublic
+                  url={`${process.env.NEXT_PUBLIC_SITE_URL}/t/${tournoi.public_slug}`}
+                />
+              )}
             </CardContent>
           </Card>
 
