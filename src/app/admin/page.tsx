@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ClubForm } from "./club/ClubForm";
-import { ClubEditDialog } from "./club/ClubEditDialog";
 import { AdminHeader } from "./AdminHeader";
 import { AdminSidebar } from "./AdminSidebar";
 import Link from "next/link";
@@ -10,19 +9,19 @@ import Link from "next/link";
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
-  const { data: club } = await supabase
+  const { data: clubs } = await supabase
     .from("clubs")
     .select("id, nom, ville")
-    .limit(1)
-    .maybeSingle();
+    .order("nom");
 
-  const { data: tournois } = club
+  const { data: tournois } = clubs && clubs.length > 0
     ? await supabase
         .from("tournaments")
-        .select("id, nom, date, statut")
-        .eq("club_id", club.id)
+        .select("id, nom, date, statut, club_id")
         .order("date", { ascending: false })
     : { data: null };
+
+  const clubsParId = new Map((clubs ?? []).map((c) => [c.id, c]));
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -33,19 +32,16 @@ export default async function AdminDashboardPage() {
           <div className="flex items-center justify-between gap-2">
             <div>
               <h1 className="text-2xl font-semibold">Tournois</h1>
-              {club ? (
-                <p className="text-sm text-muted-foreground">
-                  {club.nom}
-                  {club.ville ? ` — ${club.ville}` : ""}
-                </p>
-              ) : null}
+              <p className="text-sm text-muted-foreground">
+                Tous les clubs ·{" "}
+                <Link href="/admin/clubs" className="underline">
+                  gérer les clubs
+                </Link>
+              </p>
             </div>
-            {club ? (
-              <ClubEditDialog clubId={club.id} nom={club.nom} ville={club.ville} />
-            ) : null}
           </div>
 
-          {!club ? (
+          {!clubs || clubs.length === 0 ? (
             <ClubForm />
           ) : (
             <div className="space-y-4">
@@ -68,6 +64,7 @@ export default async function AdminDashboardPage() {
                         <div>
                           <p className="font-medium">{t.nom}</p>
                           <p className="text-sm text-muted-foreground">
+                            {clubsParId.get(t.club_id)?.nom ?? "Club inconnu"} ·{" "}
                             {new Date(t.date).toLocaleDateString("fr-FR")}
                           </p>
                         </div>

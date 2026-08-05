@@ -83,6 +83,42 @@ export async function basculerTerrainTournoi(
   revalidatePath(`/admin/tournois/${tournamentId}`);
 }
 
+type ActionResult = { error: string } | { success: true };
+
+const renommerTerrainSchema = z.object({
+  courtId: z.string().uuid(),
+  tournamentId: z.string().uuid(),
+  nom: z.string().trim().min(1, "Le nom du terrain est requis."),
+});
+
+export async function renommerTerrain(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = renommerTerrainSchema.safeParse({
+    courtId: formData.get("courtId"),
+    tournamentId: formData.get("tournamentId"),
+    nom: formData.get("nom"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("courts")
+    .update({ nom: parsed.data.nom })
+    .eq("id", parsed.data.courtId);
+
+  if (error) {
+    return { error: "Impossible de renommer le terrain." };
+  }
+
+  revalidatePath(`/admin/tournois/${parsed.data.tournamentId}`);
+  return { success: true };
+}
+
 export async function supprimerTerrainDuClub(courtId: string, tournamentId: string): Promise<void> {
   const supabase = await createClient();
   // Supprime le terrain du club entier (cascade sur tournament_courts pour

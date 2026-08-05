@@ -19,10 +19,8 @@ export function ClubForm() {
   return (
     <Card className="mx-auto max-w-sm">
       <CardHeader>
-        <CardTitle>Créer ton club</CardTitle>
-        <CardDescription>
-          Une seule fois : tous tes tournois seront rattachés à ce club.
-        </CardDescription>
+        <CardTitle>Créer un club</CardTitle>
+        <CardDescription>Tu pourras y rattacher des tournois.</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">

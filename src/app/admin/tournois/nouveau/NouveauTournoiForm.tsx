@@ -20,8 +20,14 @@ const LIBELLES_GENRE: Record<string, string> = {
   mixte: "Mixte",
 };
 
-export function NouveauTournoiForm() {
+interface Club {
+  id: string;
+  nom: string;
+}
+
+export function NouveauTournoiForm({ clubs }: { clubs: Club[] }) {
   const [state, formAction, isPending] = useActionState(creerTournoi, null);
+  const clubsParId = new Map(clubs.map((c) => [c.id, c]));
 
   return (
     <Card>
@@ -30,6 +36,29 @@ export function NouveauTournoiForm() {
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
+          {clubs.length > 1 ? (
+            <div className="space-y-2">
+              <Label htmlFor="clubId">Club</Label>
+              <Select name="clubId" defaultValue={clubs[0].id}>
+                <SelectTrigger id="clubId">
+                  <SelectValue placeholder="Choisir un club">
+                    {(valeur: string | null) =>
+                      valeur ? (clubsParId.get(valeur)?.nom ?? valeur) : "Choisir un club"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {clubs.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <input type="hidden" name="clubId" value={clubs[0].id} />
+          )}
           <div className="space-y-2">
             <Label htmlFor="nom">Nom du tournoi</Label>
             <Input id="nom" name="nom" required placeholder="Tournoi du 25 juillet" />

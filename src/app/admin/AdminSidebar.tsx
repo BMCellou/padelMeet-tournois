@@ -36,6 +36,15 @@ export function AdminSidebar({ tournamentId, tournamentNom }: AdminSidebarProps)
       >
         Tous les tournois
       </Link>
+      <Link
+        href="/admin/clubs"
+        className={cn(
+          "shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap",
+          pathname === "/admin/clubs" ? "bg-primary/10 text-primary" : "hover:bg-accent",
+        )}
+      >
+        Clubs
+      </Link>
 
       {tournamentId ? (
         <div className="flex shrink-0 gap-1 sm:mt-4 sm:flex-col sm:gap-1">

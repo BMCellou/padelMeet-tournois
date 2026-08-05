@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 
 const tournamentSchema = z.object({
+  clubId: z.string().uuid("Le club est requis."),
   nom: z.string().trim().min(1, "Le nom du tournoi est requis."),
   date: z.string().min(1, "La date est requise."),
   genre: z.enum(["masculin", "feminin", "mixte"]).optional(),
@@ -28,6 +29,7 @@ export async function creerTournoi(
   formData: FormData,
 ): Promise<CreerTournoiResult> {
   const parsed = tournamentSchema.safeParse({
+    clubId: formData.get("clubId"),
     nom: formData.get("nom"),
     date: formData.get("date"),
     genre: formData.get("genre") || undefined,
@@ -43,20 +45,10 @@ export async function creerTournoi(
 
   const supabase = await createClient();
 
-  const { data: club, error: clubError } = await supabase
-    .from("clubs")
-    .select("id")
-    .limit(1)
-    .single();
-
-  if (clubError || !club) {
-    return { error: "Aucun club trouvé. Recharge la page." };
-  }
-
   const { data, error } = await supabase
     .from("tournaments")
     .insert({
-      club_id: club.id,
+      club_id: parsed.data.clubId,
       nom: parsed.data.nom,
       date: parsed.data.date,
       genre: parsed.data.genre,

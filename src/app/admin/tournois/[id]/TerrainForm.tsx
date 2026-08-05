@@ -1,15 +1,43 @@
 "use client";
 
 import { useActionState } from "react";
-import { ajouterTerrain, basculerTerrainTournoi, supprimerTerrainDuClub } from "./actions";
+import {
+  ajouterTerrain,
+  basculerTerrainTournoi,
+  renommerTerrain,
+  supprimerTerrainDuClub,
+} from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 
 interface Terrain {
   id: string;
   nom: string;
+}
+
+function RenommerTerrainForm({
+  tournamentId,
+  terrain,
+}: {
+  tournamentId: string;
+  terrain: Terrain;
+}) {
+  const [state, formAction, isPending] = useActionState(renommerTerrain, null);
+
+  return (
+    <form action={formAction} className="flex flex-1 items-center gap-1">
+      <input type="hidden" name="courtId" value={terrain.id} />
+      <input type="hidden" name="tournamentId" value={tournamentId} />
+      <Input name="nom" defaultValue={terrain.nom} className="h-8 text-sm" />
+      <Button type="submit" variant="ghost" size="sm" disabled={isPending}>
+        Renommer
+      </Button>
+      {state && "error" in state ? (
+        <span className="text-xs text-destructive">{state.error}</span>
+      ) : null}
+    </form>
+  );
 }
 
 export function TerrainForm({
@@ -35,23 +63,17 @@ export function TerrainForm({
       ) : (
         <ul className="divide-y rounded-lg border">
           {terrainsDuClub.map((t) => (
-            <li key={t.id} className="flex items-center justify-between gap-2 p-3">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id={`terrain-${t.id}`}
-                  checked={selectionnes.has(t.id)}
-                  onCheckedChange={(checked) =>
-                    basculerTerrainTournoi(tournamentId, t.id, checked)
-                  }
-                />
-                <Label htmlFor={`terrain-${t.id}`} className="cursor-pointer font-normal">
-                  {t.nom}
-                </Label>
-              </div>
+            <li key={t.id} className="flex items-center gap-2 p-3">
+              <Checkbox
+                id={`terrain-${t.id}`}
+                checked={selectionnes.has(t.id)}
+                onCheckedChange={(checked) => basculerTerrainTournoi(tournamentId, t.id, checked)}
+              />
+              <RenommerTerrainForm tournamentId={tournamentId} terrain={t} />
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground"
+                className="shrink-0 text-muted-foreground"
                 onClick={() => supprimerTerrainDuClub(t.id, tournamentId)}
               >
                 Supprimer du club

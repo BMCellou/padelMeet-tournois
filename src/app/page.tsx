@@ -17,13 +17,13 @@ function ordreStatut(statut: string): number {
 export default async function Accueil() {
   const supabase = await createClient();
 
-  const { data: club } = await supabase.from("clubs").select("id, nom, ville").limit(1).maybeSingle();
+  const { data: clubs } = await supabase.from("clubs").select("id, nom, ville");
+  const clubsParId = new Map((clubs ?? []).map((c) => [c.id, c]));
 
-  const { data: tournoisBruts } = club
+  const { data: tournoisBruts } = clubs && clubs.length > 0
     ? await supabase
         .from("tournaments")
-        .select("id, nom, date, statut, genre, niveau, public_slug")
-        .eq("club_id", club.id)
+        .select("id, nom, date, statut, genre, niveau, public_slug, club_id")
         .in("statut", ["publie", "en_cours", "termine"])
     : { data: null };
 
@@ -46,12 +46,6 @@ export default async function Accueil() {
             PadelMeet <span className="text-primary">Tournois</span>
           </span>
         </div>
-        {club ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {club.nom}
-            {club.ville ? ` — ${club.ville}` : ""}
-          </p>
-        ) : null}
       </header>
 
       <div className="mx-auto w-full max-w-2xl space-y-3 p-4">
@@ -73,6 +67,8 @@ export default async function Accueil() {
                     <div>
                       <p className="font-medium">{t.nom}</p>
                       <p className="text-sm text-muted-foreground">
+                        {clubsParId.get(t.club_id)?.nom ?? "Club"}
+                        {" · "}
                         {new Date(t.date).toLocaleDateString("fr-FR", {
                           weekday: "long",
                           day: "numeric",
