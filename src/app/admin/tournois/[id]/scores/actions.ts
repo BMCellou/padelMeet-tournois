@@ -326,3 +326,58 @@ export async function declarerForfait(
   revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
   return { success: true };
 }
+
+/**
+ * Remet un match saisi/validé/forfait à l'état "à venir" : supprime le
+ * score, retire le vainqueur, et — pour un match de tableau — efface la
+ * propagation vers le match suivant (à condition que celui-ci n'ait pas
+ * déjà été joué, sinon on bloque pour éviter un tableau incohérent).
+ */
+export async function reinitialiserScore(tournamentId: string, matchId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const contexte = await chargerMatchEtFormat(supabase, matchId, tournamentId);
+  if (!contexte) return { error: "Match introuvable." };
+
+  const { match } = contexte;
+
+  if (match.statut === "a_venir" || match.statut === "pret") {
+    return { error: "Ce match n'a pas encore de score à réinitialiser." };
+  }
+
+  if (match.phase === "tableau" && match.next_match_id) {
+    const { data: matchSuivant } = await supabase
+      .from("matches")
+      .select("statut")
+      .eq("id", match.next_match_id)
+      .single();
+
+    if (matchSuivant && matchSuivant.statut !== "a_venir") {
+      return {
+        error: "Le tour suivant a déjà commencé : impossible de réinitialiser ce match.",
+      };
+    }
+  }
+
+  await supabase.from("match_sets").delete().eq("match_id", matchId);
+  await supabase.from("matches").update({ statut: "a_venir", winner_id: null }).eq("id", matchId);
+
+  if (match.phase === "tableau" && match.next_match_id) {
+    const champ = match.next_slot === "a" ? { team_a_id: null } : { team_b_id: null };
+    await supabase.from("matches").update(champ).eq("id", match.next_match_id);
+  }
+
+  await supabase.from("audit_log").insert({
+    tournament_id: tournamentId,
+    acteur: await enregistrerActeur(supabase),
+    action: "reinitialisation_score",
+    payload: { matchId, statutPrecedent: match.statut } as unknown as Json,
+  });
+
+  if (match.phase === "poule") {
+    await recalculerClassementPoule(supabase, tournamentId, match.group_id!, contexte.tiebreakRules);
+  }
+
+  revalidatePath(`/admin/tournois/${tournamentId}/scores`);
+  revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
+  return { success: true };
+}

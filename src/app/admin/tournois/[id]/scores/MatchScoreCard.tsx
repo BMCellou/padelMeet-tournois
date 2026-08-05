@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { enregistrerScore, validerScore, corrigerScore, declarerForfait } from "./actions";
+import {
+  enregistrerScore,
+  validerScore,
+  corrigerScore,
+  declarerForfait,
+  reinitialiserScore,
+} from "./actions";
 import type { MatchFormat } from "@/lib/engine/types";
 import type { SetSaisi } from "@/lib/engine/score";
 import { SetsForm } from "./SetsForm";
@@ -93,6 +99,17 @@ export function MatchScoreCard({
     });
   }
 
+  function reinitialiser() {
+    if (!window.confirm("Réinitialiser ce match ? Le score sera supprimé et le match repassera à l'état « à venir ».")) {
+      return;
+    }
+    startTransition(async () => {
+      const resultat = await reinitialiserScore(tournamentId, match.id);
+      if ("error" in resultat) setError(resultat.error);
+      else setError(null);
+    });
+  }
+
   const gagnantNom =
     match.statut === "forfait" && match.winnerId
       ? match.winnerId === match.teamAId
@@ -152,6 +169,18 @@ export function MatchScoreCard({
             />
           </DialogContent>
         </Dialog>
+
+        {match.statut !== "a_venir" && match.statut !== "pret" && match.statut !== "en_cours" ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={reinitialiser}
+            disabled={isPending}
+          >
+            Réinitialiser
+          </Button>
+        ) : null}
 
         {match.statut !== "valide" ? (
           <Dialog
