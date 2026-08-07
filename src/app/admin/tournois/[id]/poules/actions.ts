@@ -10,7 +10,7 @@ import { z } from "zod";
 
 type ActionResult = { error: string } | { success: true };
 
-async function calendrierDejaGenere(
+async function matchsExistent(
   supabase: Awaited<ReturnType<typeof createClient>>,
   tournamentId: string,
 ): Promise<boolean> {
@@ -20,6 +20,18 @@ async function calendrierDejaGenere(
     .eq("tournament_id", tournamentId)
     .eq("phase", "poule");
   return (count ?? 0) > 0;
+}
+
+async function scoresDejaSaisis(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tournamentId: string,
+): Promise<boolean> {
+  const { data: matchs } = await supabase
+    .from("matches")
+    .select("id, statut")
+    .eq("tournament_id", tournamentId)
+    .eq("phase", "poule");
+  return (matchs ?? []).some((m) => m.statut !== "a_venir");
 }
 
 const tirageSchema = z.object({
@@ -43,8 +55,8 @@ export async function tirerPoules(
   const { tournamentId, nombrePoulesForce } = parsed.data;
   const supabase = await createClient();
 
-  if (await calendrierDejaGenere(supabase, tournamentId)) {
-    return { error: "Le calendrier est déjà généré : impossible de relancer le tirage." };
+  if (await scoresDejaSaisis(supabase, tournamentId)) {
+    return { error: "Des scores ont déjà été saisis : impossible de relancer le tirage." };
   }
 
   const { data: teams, error: teamsError } = await supabase
@@ -67,7 +79,10 @@ export async function tirerPoules(
   const seed = randomInt(1, 2_147_483_647);
   const tirage = tirerAuSort(equipes, repartition.tailles, creerRng(seed));
 
-  // Relance : on repart d'un état propre (cascade sur group_teams).
+  // Relance : on repart d'un état propre. Un calendrier a pu être généré
+  // depuis le premier tirage (matches liés aux anciennes poules) : on le
+  // supprime aussi, il faudra le régénérer depuis l'écran calendrier.
+  await supabase.from("matches").delete().eq("tournament_id", tournamentId).eq("phase", "poule");
   await supabase.from("groups").delete().eq("tournament_id", tournamentId);
 
   for (const [index, poule] of tirage.poules.entries()) {
@@ -97,6 +112,7 @@ export async function tirerPoules(
   await supabase.from("tournaments").update({ tirage_seed: seed }).eq("id", tournamentId);
 
   revalidatePath(`/admin/tournois/${tournamentId}/poules`);
+  revalidatePath(`/admin/tournois/${tournamentId}/calendrier`);
   return { success: true };
 }
 
@@ -144,7 +160,7 @@ export async function deplacerEquipe(
 ): Promise<void> {
   const supabase = await createClient();
 
-  if (await calendrierDejaGenere(supabase, tournamentId)) {
+  if (await matchsExistent(supabase, tournamentId)) {
     return;
   }
 

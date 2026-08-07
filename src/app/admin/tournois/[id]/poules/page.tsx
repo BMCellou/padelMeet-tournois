@@ -38,13 +38,14 @@ export default async function PoulesPage({
     .eq("tournament_id", tournamentId)
     .order("ordre");
 
-  const { count: nbMatchsPoule } = await supabase
+  const { data: matchsPoule } = await supabase
     .from("matches")
-    .select("id", { count: "exact", head: true })
+    .select("id, statut")
     .eq("tournament_id", tournamentId)
     .eq("phase", "poule");
 
-  const calendrierGenere = (nbMatchsPoule ?? 0) > 0;
+  const calendrierGenere = (matchsPoule?.length ?? 0) > 0;
+  const scoresDejaSaisis = (matchsPoule ?? []).some((m) => m.statut !== "a_venir");
   const equipesParId = new Map((teams ?? []).map((t) => [t.id, t]));
 
   const groupes = (groupesBruts ?? []).map((g) => ({
@@ -92,10 +93,10 @@ export default async function PoulesPage({
                   Graine du tirage : {tournoi.tirage_seed}
                 </p>
               ) : null}
-              {calendrierGenere ? (
+              {scoresDejaSaisis ? (
                 <p className="text-sm text-muted-foreground">
-                  Le calendrier est généré : le tirage ne peut plus être relancé
-                  ni ajusté.
+                  Des scores ont déjà été saisis : le tirage ne peut plus être
+                  relancé ni ajusté.
                 </p>
               ) : (
                 <Card>
@@ -104,7 +105,14 @@ export default async function PoulesPage({
                       Relancer le tirage
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-3">
+                    {calendrierGenere ? (
+                      <p className="text-sm text-muted-foreground">
+                        Un calendrier a déjà été généré pour ce tirage : le
+                        relancer ici le supprimera, il faudra le régénérer
+                        ensuite depuis l&apos;écran Calendrier.
+                      </p>
+                    ) : null}
                     <TirageForm tournamentId={tournamentId} relance />
                   </CardContent>
                 </Card>
