@@ -6,13 +6,8 @@ import { StandingsTable, type LigneClassement } from "@/components/tournoi/Stand
 import { ClassementFinalList } from "@/components/tournoi/ClassementFinalList";
 import { PublicMatchCard, type MatchPublicAffiche } from "@/components/tournoi/PublicMatchCard";
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
+import { formatHeureParis } from "@/lib/temps";
 import { RealtimeRefresher } from "./RealtimeRefresher";
-
-function heureLocale(iso: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
 
 export default async function PageTournoiPublic({
   params,
@@ -99,7 +94,7 @@ export default async function PageTournoiPublic({
           tiebreakB: s.tiebreak_b,
         })),
       courtNom: m.court_id ? nomTerrain.get(m.court_id) : null,
-      heure: heureLocale(m.scheduled_at),
+      heure: formatHeureParis(m.scheduled_at),
     };
   }
 

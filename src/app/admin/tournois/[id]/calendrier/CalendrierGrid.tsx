@@ -9,6 +9,7 @@ import {
 } from "@dnd-kit/core";
 import { deplacerMatch } from "./actions";
 import { detecterConflits, type MatchPlanifieAvecEquipes } from "@/lib/engine/conflits";
+import { formatHeureParis } from "@/lib/temps";
 import { cn } from "@/lib/utils";
 
 export interface MatchAffiche {
@@ -33,11 +34,6 @@ const SEPARATEUR = "__";
 
 function cleCase(courtId: string, slotISO: string): string {
   return `${courtId}${SEPARATEUR}${slotISO}`;
-}
-
-function heureLocale(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 function MatchCard({
@@ -196,7 +192,7 @@ export function CalendrierGrid({
               {slots.map((slotISO) => (
                 <tr key={slotISO}>
                   <td className="align-top text-xs text-muted-foreground">
-                    {heureLocale(slotISO)}
+                    {formatHeureParis(slotISO)}
                   </td>
                   {terrains.map((t) => {
                     const match = matchParCase.get(cleCase(t.id, slotISO));

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { genererTours } from "@/lib/engine/tours";
 import { planifier, type MatchAPlanifier } from "@/lib/engine/planification";
+import { heureLocaleVersISO } from "@/lib/temps";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -145,7 +146,7 @@ export async function genererCalendrier(
     aPlanifier,
     courts.map((c) => ({ id: c.id, ordre: c.ordre })),
     {
-      heureDebut: `${tournoi.date}T${heureDebut}:00`,
+      heureDebut: heureLocaleVersISO(tournoi.date, heureDebut),
       dureeJeuMin,
       rotationMin,
       reposMinMin,
