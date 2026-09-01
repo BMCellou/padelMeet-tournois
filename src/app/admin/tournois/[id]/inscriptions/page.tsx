@@ -10,6 +10,7 @@ import {
   type EquipeAffichee,
   type JoueurDisponible,
 } from "./EquipesList";
+import { EquipesEnAttenteList } from "./EquipesEnAttenteList";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 
@@ -40,13 +41,18 @@ export default async function InscriptionsPage({
     .eq("type", "solo")
     .eq("statut", "en_attente");
 
-  const { data: equipesBrutes } = await supabase
+  const { data: equipesToutesBrutes } = await supabase
     .from("teams")
     .select(
-      "id, nom_affiche, origine, team_players(players(id, nom, prenom, sexe, classement_fft, telephone, email))",
+      "id, nom_affiche, origine, statut, team_players(players(id, nom, prenom, sexe, classement_fft, telephone, email))",
     )
     .eq("tournament_id", tournamentId)
     .order("nom_affiche");
+
+  const equipesBrutes = (equipesToutesBrutes ?? []).filter((e) => e.statut === "validee");
+  const equipesEnAttenteBrutes = (equipesToutesBrutes ?? []).filter(
+    (e) => e.statut === "en_attente",
+  );
 
   const joueursMap = new Map<string, JoueurAffiche>();
 
@@ -105,6 +111,11 @@ export default async function InscriptionsPage({
       })),
   }));
 
+  const equipesEnAttente = equipesEnAttenteBrutes.map((e) => ({
+    id: e.id,
+    nomAffiche: e.nom_affiche,
+  }));
+
   return (
     <div className="min-h-screen bg-muted/20">
       <AdminHeader />
@@ -156,6 +167,17 @@ export default async function InscriptionsPage({
                 </ul>
               )}
               <GenererForm tournamentId={tournamentId} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                Équipes en attente de validation ({equipesEnAttente.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EquipesEnAttenteList tournamentId={tournamentId} equipes={equipesEnAttente} />
             </CardContent>
           </Card>
 

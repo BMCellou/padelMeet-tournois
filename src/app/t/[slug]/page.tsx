@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,14 @@ import { ClassementFinalList } from "@/components/tournoi/ClassementFinalList";
 import { PublicMatchCard, type MatchPublicAffiche } from "@/components/tournoi/PublicMatchCard";
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
 import { formatHeureParis } from "@/lib/temps";
+import { getParticipantConnecte } from "@/lib/participant/session";
+import { createServiceClient } from "@/lib/supabase/service";
+import { chargerStatutInscription } from "./inscriptionStatus";
+import {
+  InscriptionNonConnecte,
+  InscriptionDejaFaite,
+  InscriptionFormulaire,
+} from "./InscriptionTournoi";
 import { RealtimeRefresher } from "./RealtimeRefresher";
 
 export default async function PageTournoiPublic({
@@ -142,6 +151,29 @@ export default async function PageTournoiPublic({
           nomEquipe,
         );
 
+  let sectionInscription: ReactNode = null;
+  if (tournoi.statut === "publie") {
+    const participant = await getParticipantConnecte();
+    if (!participant) {
+      sectionInscription = <InscriptionNonConnecte slug={slug} />;
+    } else {
+      const service = createServiceClient();
+      const statutInscription = await chargerStatutInscription(
+        service,
+        tournoi.id,
+        participant.playerId,
+      );
+      sectionInscription = statutInscription.inscrit ? (
+        <InscriptionDejaFaite
+          libelle={statutInscription.libelle}
+          enAttente={statutInscription.enAttente}
+        />
+      ) : (
+        <InscriptionFormulaire tournamentId={tournoi.id} slug={slug} />
+      );
+    }
+  }
+
   return (
     <div className="min-h-screen bg-muted/20 pb-12">
       <RealtimeRefresher tournamentId={tournoi.id} />
@@ -162,6 +194,8 @@ export default async function PageTournoiPublic({
       </header>
 
       <div className="mx-auto w-full max-w-xl space-y-6 p-4">
+        {sectionInscription}
+
         {classementFinalLignes ? <ClassementFinalList lignes={classementFinalLignes} /> : null}
 
         {poulesAffichees.map(({ groupe, lignesClassement, matchs }) => (

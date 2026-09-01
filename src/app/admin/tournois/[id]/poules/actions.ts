@@ -62,7 +62,8 @@ export async function tirerPoules(
   const { data: teams, error: teamsError } = await supabase
     .from("teams")
     .select("id, seed")
-    .eq("tournament_id", tournamentId);
+    .eq("tournament_id", tournamentId)
+    .eq("statut", "validee");
 
   if (teamsError || !teams) {
     return { error: "Impossible de charger les équipes." };

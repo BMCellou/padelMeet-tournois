@@ -344,6 +344,14 @@ export async function renommerEquipe(
   return { success: true };
 }
 
+export async function validerEquipe(teamId: string, tournamentId: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase.from("teams").update({ statut: "validee" }).eq("id", teamId);
+  await supabase.from("registrations").update({ statut: "valide" }).eq("team_id", teamId);
+  revalidatePath(`/admin/tournois/${tournamentId}/inscriptions`);
+  revalidatePath(`/admin/tournois/${tournamentId}/poules`);
+}
+
 export async function supprimerEquipe(teamId: string, tournamentId: string): Promise<void> {
   const supabase = await createClient();
   // Cascade en base sur team_players et registrations : supprimer

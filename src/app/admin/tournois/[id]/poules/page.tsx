@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
@@ -30,7 +31,14 @@ export default async function PoulesPage({
     .from("teams")
     .select("id, nom_affiche, seed")
     .eq("tournament_id", tournamentId)
+    .eq("statut", "validee")
     .order("nom_affiche");
+
+  const { count: nbEquipesEnAttente } = await supabase
+    .from("teams")
+    .select("id", { count: "exact", head: true })
+    .eq("tournament_id", tournamentId)
+    .eq("statut", "en_attente");
 
   const { data: groupesBruts } = await supabase
     .from("groups")
@@ -146,6 +154,18 @@ export default async function PoulesPage({
                       </div>
                     ))
                   )}
+                  {nbEquipesEnAttente ? (
+                    <p className="text-xs text-muted-foreground">
+                      {nbEquipesEnAttente} équipe(s) en attente de validation —{" "}
+                      <Link
+                        href={`/admin/tournois/${tournamentId}/inscriptions`}
+                        className="underline"
+                      >
+                        à valider dans Inscriptions
+                      </Link>{" "}
+                      avant le tirage.
+                    </p>
+                  ) : null}
                 </CardContent>
               </Card>
 
