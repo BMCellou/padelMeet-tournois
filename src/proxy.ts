@@ -30,22 +30,45 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isLoginRoute = request.nextUrl.pathname === "/admin/login";
+  let estAdmin = false;
+  if (user) {
+    const { data } = await supabase.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
+    estAdmin = !!data;
+  }
 
-  if (isAdminRoute && !isLoginRoute && !user) {
+  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
+  const isAdminLoginRoute = request.nextUrl.pathname === "/admin/login";
+
+  // Un compte participant n'a pas de droit admin en base (RLS), mais on
+  // le renvoie aussi hors de /admin côté navigation : sinon il verrait un
+  // espace admin vide/en erreur au lieu d'un message clair.
+  if (isAdminRoute && !isAdminLoginRoute && !estAdmin) {
     const loginUrl = new URL("/admin/login", request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isLoginRoute && user) {
+  if (isAdminLoginRoute && estAdmin) {
     const dashboardUrl = new URL("/admin", request.url);
     return NextResponse.redirect(dashboardUrl);
+  }
+
+  const isCompteRoute = request.nextUrl.pathname.startsWith("/compte");
+  const isCompteAuthRoute =
+    request.nextUrl.pathname === "/compte/connexion" || request.nextUrl.pathname === "/compte/inscription";
+
+  if (isCompteRoute && !isCompteAuthRoute && !user) {
+    const connexionUrl = new URL("/compte/connexion", request.url);
+    return NextResponse.redirect(connexionUrl);
+  }
+
+  if (isCompteAuthRoute && user) {
+    const compteUrl = new URL("/compte", request.url);
+    return NextResponse.redirect(compteUrl);
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/compte/:path*"],
 };
