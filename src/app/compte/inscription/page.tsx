@@ -49,13 +49,9 @@ function FormulaireInscription() {
                 <Label htmlFor="nom">Nom</Label>
                 <Input id="nom" name="nom" required />
               </div>
-              <div className="space-y-1">
+              <div className="col-span-2 space-y-1">
                 <Label htmlFor="sexe">Sexe (H/F)</Label>
-                <Input id="sexe" name="sexe" maxLength={1} placeholder="H" />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="classementFft">Classement</Label>
-                <Input id="classementFft" name="classementFft" placeholder="15/1" />
+                <Input id="sexe" name="sexe" maxLength={1} placeholder="H" className="max-w-24" />
               </div>
               <div className="col-span-2 space-y-1">
                 <Label htmlFor="telephone">Téléphone</Label>

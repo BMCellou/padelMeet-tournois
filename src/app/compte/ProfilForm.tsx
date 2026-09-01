@@ -29,18 +29,9 @@ export function ProfilForm({ profil }: { profil: MonProfil }) {
           <Label htmlFor="nom">Nom</Label>
           <Input id="nom" name="nom" defaultValue={profil.nom} required />
         </div>
-        <div className="space-y-1">
+        <div className="col-span-2 space-y-1">
           <Label htmlFor="sexe">Sexe (H/F)</Label>
-          <Input id="sexe" name="sexe" maxLength={1} defaultValue={profil.sexe ?? ""} />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="classementFft">Classement</Label>
-          <Input
-            id="classementFft"
-            name="classementFft"
-            placeholder="15/1"
-            defaultValue={profil.classementFft ?? ""}
-          />
+          <Input id="sexe" name="sexe" maxLength={1} defaultValue={profil.sexe ?? ""} className="max-w-24" />
         </div>
         <div className="col-span-2 space-y-1">
           <Label htmlFor="telephone">Téléphone</Label>
