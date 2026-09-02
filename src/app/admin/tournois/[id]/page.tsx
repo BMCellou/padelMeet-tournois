@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { TerrainForm } from "./TerrainForm";
 import { LienPublic } from "./LienPublic";
 import { ModifierTournoiDialog } from "./ModifierTournoiDialog";
 import { SupprimerTournoiDialog } from "./SupprimerTournoiDialog";
+import { ArbitresForm, type ScoreurAffiche } from "./ArbitresForm";
 import { AdminHeader } from "../../AdminHeader";
 import { AdminSidebar } from "../../AdminSidebar";
 
@@ -44,6 +46,20 @@ export default async function FicheTournoiPage({
     .from("teams")
     .select("id", { count: "exact", head: true })
     .eq("tournament_id", tournoi.id);
+
+  const { data: membershipsScoreurs } = await supabase
+    .from("memberships")
+    .select("id, user_id")
+    .eq("role", "scorekeeper")
+    .eq("tournament_id", tournoi.id);
+
+  const service = createServiceClient();
+  const scoreurs: ScoreurAffiche[] = await Promise.all(
+    (membershipsScoreurs ?? []).map(async (m) => {
+      const { data } = await service.auth.admin.getUserById(m.user_id);
+      return { membershipId: m.id, email: data.user?.email ?? "?" };
+    }),
+  );
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -145,6 +161,15 @@ export default async function FicheTournoiPage({
                   (t) => t.court_id,
                 )}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Arbitres / scoreurs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ArbitresForm tournamentId={tournoi.id} scoreurs={scoreurs} />
             </CardContent>
           </Card>
         </div>

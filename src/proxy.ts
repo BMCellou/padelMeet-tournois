@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/supabase/database.types";
 
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -30,36 +32,64 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const pathname = request.nextUrl.pathname;
+
+  // Un scoreur n'a accès qu'à l'écran Scores de SON tournoi assigné
+  // (memberships.role='scorekeeper', tournament_id=<celui de l'URL>) :
+  // on doit donc lire l'id de tournoi dans le chemin avant de trancher.
+  const matchTournoi = pathname.match(new RegExp(`^/admin/tournois/(${UUID})(/.*)?$`));
+  const tournamentIdDansUrl = matchTournoi?.[1] ?? null;
+  const sousChemin = matchTournoi?.[2] ?? "";
+  const routeScoresAutorisee = sousChemin === "" || sousChemin.startsWith("/scores");
+
   let estAdmin = false;
+  let premierTournoiScoreur: string | null = null;
+  let estScorekeeperDuTournoi = false;
   let estParticipant = false;
   if (user) {
-    const [{ data: adminRow }, { data: playerRow }] = await Promise.all([
-      supabase.from("admins").select("user_id").eq("user_id", user.id).maybeSingle(),
+    const [{ data: membershipsRows }, { data: playerRow }] = await Promise.all([
+      supabase.from("memberships").select("role, tournament_id").eq("user_id", user.id),
       supabase.from("players").select("id").eq("user_id", user.id).maybeSingle(),
     ]);
-    estAdmin = !!adminRow;
+    estAdmin = (membershipsRows ?? []).some((m) => m.role === "admin");
+    premierTournoiScoreur =
+      (membershipsRows ?? []).find((m) => m.role === "scorekeeper")?.tournament_id ?? null;
+    estScorekeeperDuTournoi = !!(
+      tournamentIdDansUrl &&
+      (membershipsRows ?? []).some(
+        (m) => m.role === "scorekeeper" && m.tournament_id === tournamentIdDansUrl,
+      )
+    );
     estParticipant = !!playerRow;
   }
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isAdminLoginRoute = request.nextUrl.pathname === "/admin/login";
+  const isAdminRoute = pathname.startsWith("/admin");
+  const isAdminLoginRoute = pathname === "/admin/login";
+  const estStaffAutorise = estAdmin || (estScorekeeperDuTournoi && routeScoresAutorisee);
 
   // Un compte participant n'a pas de droit admin en base (RLS), mais on
   // le renvoie aussi hors de /admin côté navigation : sinon il verrait un
-  // espace admin vide/en erreur au lieu d'un message clair.
-  if (isAdminRoute && !isAdminLoginRoute && !estAdmin) {
-    const loginUrl = new URL("/admin/login", request.url);
-    return NextResponse.redirect(loginUrl);
+  // espace admin vide/en erreur au lieu d'un message clair. Un scoreur
+  // qui s'égare hors de son écran (ex. /admin) est ramené vers SON
+  // tournoi plutôt que vers un formulaire de connexion muet, puisqu'il
+  // est déjà bien connecté.
+  if (isAdminRoute && !isAdminLoginRoute && !estStaffAutorise) {
+    const cible = premierTournoiScoreur
+      ? `/admin/tournois/${premierTournoiScoreur}/scores`
+      : "/admin/login";
+    return NextResponse.redirect(new URL(cible, request.url));
   }
 
-  if (isAdminLoginRoute && estAdmin) {
-    const dashboardUrl = new URL("/admin", request.url);
+  if (isAdminLoginRoute && (estStaffAutorise || premierTournoiScoreur)) {
+    const dashboardUrl = new URL(
+      estAdmin ? "/admin" : `/admin/tournois/${tournamentIdDansUrl ?? premierTournoiScoreur}/scores`,
+      request.url,
+    );
     return NextResponse.redirect(dashboardUrl);
   }
 
-  const isCompteRoute = request.nextUrl.pathname.startsWith("/compte");
-  const isCompteAuthRoute =
-    request.nextUrl.pathname === "/compte/connexion" || request.nextUrl.pathname === "/compte/inscription";
+  const isCompteRoute = pathname.startsWith("/compte");
+  const isCompteAuthRoute = pathname === "/compte/connexion" || pathname === "/compte/inscription";
 
   // On distingue "a une session" de "est un participant reconnu" (a une
   // fiche joueur) : un compte authentifié sans fiche joueur (l'admin,
