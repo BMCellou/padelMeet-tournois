@@ -39,22 +39,5 @@ export default async function Accueil() {
       clubNom: clubsParId.get(t.club_id)?.nom ?? "Club",
     }));
 
-  return (
-    <div className="min-h-screen bg-muted/20">
-      <header className="border-b bg-background p-6 text-center">
-        <div className="mx-auto flex w-fit items-center gap-2 text-xl font-semibold">
-          <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-            P
-          </span>
-          <span>
-            PadelMeet <span className="text-primary">Tournois</span>
-          </span>
-        </div>
-      </header>
-
-      <div className="mx-auto w-full max-w-2xl space-y-3 p-4">
-        <TournoisTabs tournois={tournois} />
-      </div>
-    </div>
-  );
+  return <TournoisTabs tournois={tournois} />;
 }

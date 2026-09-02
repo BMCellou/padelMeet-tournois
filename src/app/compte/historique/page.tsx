@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const LIBELLES_STATUT_TOURNOI: Record<string, string> = {
   brouillon: "À venir",
@@ -84,9 +85,12 @@ export default async function HistoriqueParticipantPage() {
   lignes.sort((a, b) => b.date.localeCompare(a.date));
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <header className="border-b bg-background p-4 text-center">
-        <h1 className="text-xl font-bold">Mes tournois</h1>
+    <div className="min-h-screen bg-background">
+      <header className="bg-primary p-4 text-primary-foreground">
+        <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
+          <BrandLogo />
+          <h1 className="text-lg">Mes tournois</h1>
+        </div>
       </header>
 
       <div className="mx-auto w-full max-w-lg space-y-3 p-4 sm:p-8">

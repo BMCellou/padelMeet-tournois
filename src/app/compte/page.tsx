@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BrandLogo } from "@/components/BrandLogo";
 import { ProfilForm } from "./ProfilForm";
 import { deconnexion } from "./actions";
 
@@ -25,21 +26,16 @@ export default async function CompteParticipantPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <header className="border-b bg-background p-4 text-center">
-        <div className="mx-auto flex w-fit items-center gap-2 text-xl font-semibold">
-          <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-            P
-          </span>
-          <span>
-            PadelMeet <span className="text-primary">Tournois</span>
-          </span>
+    <div className="min-h-screen bg-background">
+      <header className="bg-primary p-4 text-primary-foreground">
+        <div className="mx-auto w-fit">
+          <BrandLogo />
         </div>
       </header>
 
       <div className="mx-auto w-full max-w-lg space-y-6 p-4 sm:p-8">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold">
+          <h1 className="text-2xl">
             {participant.prenom} {participant.nom}
           </h1>
           <form action={deconnexion}>

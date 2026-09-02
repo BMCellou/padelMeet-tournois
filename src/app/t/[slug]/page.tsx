@@ -17,6 +17,7 @@ import {
   InscriptionFormulaire,
 } from "./InscriptionTournoi";
 import { RealtimeRefresher } from "./RealtimeRefresher";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default async function PageTournoiPublic({
   params,
@@ -175,11 +176,17 @@ export default async function PageTournoiPublic({
   }
 
   return (
-    <div className="min-h-screen bg-muted/20 pb-12">
+    <div className="min-h-screen bg-background pb-12">
       <RealtimeRefresher tournamentId={tournoi.id} />
 
-      <header className="border-b bg-background p-4 text-center">
-        <h1 className="text-xl font-bold">{tournoi.nom}</h1>
+      <div className="bg-primary p-3 text-primary-foreground">
+        <div className="mx-auto w-fit">
+          <BrandLogo />
+        </div>
+      </div>
+
+      <header className="border-b bg-card p-4 text-center">
+        <h1 className="text-xl">{tournoi.nom}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {new Date(tournoi.date).toLocaleDateString("fr-FR", {
             weekday: "long",

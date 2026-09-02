@@ -49,7 +49,7 @@ export function InscriptionDejaFaite({
             En attente de validation par le club
           </Badge>
         ) : (
-          <Badge>Confirmée</Badge>
+          <Badge variant="volt">Confirmée</Badge>
         )}
       </CardContent>
     </Card>
@@ -126,7 +126,7 @@ export function InscriptionFormulaire({
             {statePaire && "error" in statePaire ? (
               <p className="text-sm text-destructive">{statePaire.error}</p>
             ) : null}
-            <Button type="submit" className="w-full" disabled={pendingPaire}>
+            <Button type="submit" variant="volt" className="w-full" disabled={pendingPaire}>
               {pendingPaire ? "Inscription..." : "S'inscrire en paire"}
             </Button>
           </form>
@@ -140,7 +140,7 @@ export function InscriptionFormulaire({
             {stateSolo && "error" in stateSolo ? (
               <p className="text-sm text-destructive">{stateSolo.error}</p>
             ) : null}
-            <Button type="submit" className="w-full" disabled={pendingSolo}>
+            <Button type="submit" variant="volt" className="w-full" disabled={pendingSolo}>
               {pendingSolo ? "Inscription..." : "S'inscrire en solo"}
             </Button>
           </form>
