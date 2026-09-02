@@ -31,9 +31,14 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   let estAdmin = false;
+  let estParticipant = false;
   if (user) {
-    const { data } = await supabase.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
-    estAdmin = !!data;
+    const [{ data: adminRow }, { data: playerRow }] = await Promise.all([
+      supabase.from("admins").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("players").select("id").eq("user_id", user.id).maybeSingle(),
+    ]);
+    estAdmin = !!adminRow;
+    estParticipant = !!playerRow;
   }
 
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
@@ -56,12 +61,17 @@ export async function proxy(request: NextRequest) {
   const isCompteAuthRoute =
     request.nextUrl.pathname === "/compte/connexion" || request.nextUrl.pathname === "/compte/inscription";
 
-  if (isCompteRoute && !isCompteAuthRoute && !user) {
+  // On distingue "a une session" de "est un participant reconnu" (a une
+  // fiche joueur) : un compte authentifié sans fiche joueur (l'admin,
+  // typiquement) doit pouvoir voir /compte/connexion pour se connecter
+  // avec un autre compte — sinon ce renvoi et celui de /compte (aucune
+  // fiche joueur trouvée) se bouclent indéfiniment.
+  if (isCompteRoute && !isCompteAuthRoute && !estParticipant) {
     const connexionUrl = new URL("/compte/connexion", request.url);
     return NextResponse.redirect(connexionUrl);
   }
 
-  if (isCompteAuthRoute && user) {
+  if (isCompteAuthRoute && estParticipant) {
     const compteUrl = new URL("/compte", request.url);
     return NextResponse.redirect(compteUrl);
   }
