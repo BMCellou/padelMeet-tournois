@@ -71,7 +71,40 @@ const paireSchema = z.object({
   slug: z.string().min(1),
   nomPartenaire: z.string().trim().min(1, "Le nom du/de la partenaire est requis."),
   prenomPartenaire: z.string().trim().min(1, "Le prénom du/de la partenaire est requis."),
+  emailPartenaire: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("E-mail du/de la partenaire invalide.")
+    .optional()
+    .or(z.literal("")),
 });
+
+/**
+ * Cherche une fiche joueur existante pour le/la partenaire (compte déjà
+ * créé), sans jamais se fier au seul e-mail : il doit correspondre au
+ * nom ET au prénom saisis, sinon un e-mail tapé par erreur pourrait
+ * rattacher le compte d'une tierce personne à l'insu de tous. Si rien ne
+ * correspond, on ne crée rien ici : l'appelant retombe sur une fiche
+ * simple (comme aujourd'hui).
+ */
+async function trouverPartenaireExistant(
+  service: ReturnType<typeof createServiceClient>,
+  email: string,
+  nom: string,
+  prenom: string,
+): Promise<{ id: string; nom: string; prenom: string } | null> {
+  const { data } = await service
+    .from("players")
+    .select("id, nom, prenom")
+    .eq("email", email)
+    .not("user_id", "is", null)
+    .ilike("nom", nom)
+    .ilike("prenom", prenom)
+    .maybeSingle();
+
+  return data;
+}
 
 export async function sInscrireEnPaire(
   _prevState: ActionResult | null,
@@ -82,6 +115,7 @@ export async function sInscrireEnPaire(
     slug: formData.get("slug"),
     nomPartenaire: formData.get("nomPartenaire"),
     prenomPartenaire: formData.get("prenomPartenaire"),
+    emailPartenaire: formData.get("emailPartenaire") || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -100,18 +134,53 @@ export async function sInscrireEnPaire(
   );
   if (statutActuel.inscrit) return { error: "Tu es déjà inscrit(e) à ce tournoi." };
 
-  const { data: partenaire, error: partenaireError } = await service
-    .from("players")
-    .insert({ nom: parsed.data.nomPartenaire, prenom: parsed.data.prenomPartenaire })
-    .select("id")
-    .single();
-  if (partenaireError || !partenaire) return { error: "Impossible d'enregistrer le/la partenaire." };
+  let partenaireId: string;
+  let nomAffichePartenaire = `${parsed.data.prenomPartenaire} ${parsed.data.nomPartenaire}`;
+
+  const partenaireExistant = parsed.data.emailPartenaire
+    ? await trouverPartenaireExistant(
+        service,
+        parsed.data.emailPartenaire,
+        parsed.data.nomPartenaire,
+        parsed.data.prenomPartenaire,
+      )
+    : null;
+
+  if (partenaireExistant) {
+    if (partenaireExistant.id === participant.playerId) {
+      return { error: "Tu ne peux pas être ta/ton propre partenaire." };
+    }
+    const statutPartenaire = await chargerStatutInscription(
+      service,
+      parsed.data.tournamentId,
+      partenaireExistant.id,
+    );
+    if (statutPartenaire.inscrit) {
+      return { error: "Ton/ta partenaire est déjà inscrit(e) à ce tournoi." };
+    }
+    partenaireId = partenaireExistant.id;
+    // Reprend la casse réelle de son profil (la recherche est
+    // insensible à la casse) pour un affichage cohérent avec son compte.
+    nomAffichePartenaire = `${partenaireExistant.prenom} ${partenaireExistant.nom}`;
+  } else {
+    const { data: partenaire, error: partenaireError } = await service
+      .from("players")
+      .insert({
+        nom: parsed.data.nomPartenaire,
+        prenom: parsed.data.prenomPartenaire,
+        email: parsed.data.emailPartenaire || null,
+      })
+      .select("id")
+      .single();
+    if (partenaireError || !partenaire) return { error: "Impossible d'enregistrer le/la partenaire." };
+    partenaireId = partenaire.id;
+  }
 
   const { data: team, error: teamError } = await service
     .from("teams")
     .insert({
       tournament_id: parsed.data.tournamentId,
-      nom_affiche: `${participant.prenom} ${participant.nom} / ${parsed.data.prenomPartenaire} ${parsed.data.nomPartenaire}`,
+      nom_affiche: `${participant.prenom} ${participant.nom} / ${nomAffichePartenaire}`,
       origine: "paire",
       statut: "en_attente",
     })
@@ -121,7 +190,7 @@ export async function sInscrireEnPaire(
 
   const { error: tpError } = await service.from("team_players").insert([
     { team_id: team.id, player_id: participant.playerId },
-    { team_id: team.id, player_id: partenaire.id },
+    { team_id: team.id, player_id: partenaireId },
   ]);
   if (tpError) return { error: "Impossible d'associer les joueurs à l'équipe." };
 

@@ -122,6 +122,14 @@ export function InscriptionFormulaire({
                 <Label htmlFor="nomPartenaire">Nom du/de la partenaire</Label>
                 <Input id="nomPartenaire" name="nomPartenaire" required />
               </div>
+              <div className="col-span-2 space-y-1">
+                <Label htmlFor="emailPartenaire">E-mail du/de la partenaire (optionnel)</Label>
+                <Input id="emailPartenaire" name="emailPartenaire" type="email" />
+                <p className="text-xs text-muted-foreground">
+                  S&apos;il/elle a déjà un compte, ça relie directement son profil — son historique
+                  verra ce tournoi. Sinon, laisse vide.
+                </p>
+              </div>
             </div>
             {statePaire && "error" in statePaire ? (
               <p className="text-sm text-destructive">{statePaire.error}</p>
