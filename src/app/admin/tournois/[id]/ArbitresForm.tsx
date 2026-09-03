@@ -64,7 +64,9 @@ export function ArbitresForm({
       {state && "error" in state ? <p className="text-sm text-destructive">{state.error}</p> : null}
       <p className="text-xs text-muted-foreground">
         Transmets ces identifiants au/à la scoreur·se toi-même (rien n&apos;est envoyé par e-mail) —
-        connexion sur le même écran que l&apos;admin.
+        connexion sur le même écran que l&apos;admin. Si cet e-mail a déjà un compte (participant,
+        admin, ou scoreur d&apos;un autre tournoi), le mot de passe saisi ici est ignoré : on ajoute
+        juste le rôle à son compte existant, avec son mot de passe actuel.
       </p>
     </div>
   );

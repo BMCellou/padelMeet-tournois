@@ -45,24 +45,53 @@ export async function inscription(
   }
 
   const service = createServiceClient();
+  const supabase = await createClient();
 
-  const { data: cree, error: creationError } = await service.auth.admin.createUser({
+  // Un compte admin/scoreur peut aussi être joueur : un seul compte, deux
+  // rôles composés (jamais deux comptes pour le même e-mail — Supabase
+  // Auth l'interdit de toute façon). On vérifie que c'est bien la même
+  // personne en tentant la connexion avec le mot de passe fourni : si ça
+  // marche, on rattache le profil joueur à ce compte existant plutôt que
+  // d'échouer.
+  const dejaConnecte = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
-    email_confirm: true,
   });
 
-  if (creationError || !cree.user) {
-    const dejaExistant = creationError?.message?.toLowerCase().includes("already");
-    return {
-      error: dejaExistant
-        ? "Un compte existe déjà avec cet e-mail. Connecte-toi plutôt."
-        : "Impossible de créer le compte.",
-    };
+  let userId: string;
+  let vientDetreCree = false;
+
+  if (dejaConnecte.data.user) {
+    userId = dejaConnecte.data.user.id;
+    const { data: profilExistant } = await service
+      .from("players")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (profilExistant) {
+      return { error: "Ce compte a déjà un profil joueur : connecte-toi plutôt." };
+    }
+  } else {
+    const { data: cree, error: creationError } = await service.auth.admin.createUser({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      email_confirm: true,
+    });
+
+    if (creationError || !cree.user) {
+      const dejaExistant = creationError?.message?.toLowerCase().includes("already");
+      return {
+        error: dejaExistant
+          ? "Un compte existe déjà avec cet e-mail, mais ce mot de passe ne correspond pas. Connecte-toi avec le bon mot de passe pour associer ton profil joueur, ou utilise « mot de passe oublié »."
+          : "Impossible de créer le compte.",
+      };
+    }
+    userId = cree.user.id;
+    vientDetreCree = true;
   }
 
   const { error: joueurError } = await service.from("players").insert({
-    user_id: cree.user.id,
+    user_id: userId,
     nom: parsed.data.nom,
     prenom: parsed.data.prenom,
     sexe: parsed.data.sexe,
@@ -71,18 +100,18 @@ export async function inscription(
   });
 
   if (joueurError) {
-    await service.auth.admin.deleteUser(cree.user.id);
+    if (vientDetreCree) await service.auth.admin.deleteUser(userId);
     return { error: "Impossible de créer le profil joueur." };
   }
 
-  const supabase = await createClient();
-  const { error: connexionError } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  });
-
-  if (connexionError) {
-    redirect("/compte/connexion");
+  if (vientDetreCree) {
+    const { error: connexionError } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+    if (connexionError) {
+      redirect("/compte/connexion");
+    }
   }
 
   redirect(urlSuivante(formData));
