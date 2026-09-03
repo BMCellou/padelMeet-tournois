@@ -123,11 +123,12 @@ export function InscriptionFormulaire({
                 <Input id="nomPartenaire" name="nomPartenaire" required />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label htmlFor="emailPartenaire">E-mail du/de la partenaire (optionnel)</Label>
-                <Input id="emailPartenaire" name="emailPartenaire" type="email" />
+                <Label htmlFor="emailPartenaire">E-mail du/de la partenaire</Label>
+                <Input id="emailPartenaire" name="emailPartenaire" type="email" required />
                 <p className="text-xs text-muted-foreground">
                   S&apos;il/elle a déjà un compte, ça relie directement son profil — son historique
-                  verra ce tournoi. Sinon, laisse vide.
+                  verra ce tournoi. Sinon, pas de souci : indique quand même son e-mail, on
+                  l&apos;enregistre pour plus tard.
                 </p>
               </div>
             </div>

@@ -71,13 +71,12 @@ const paireSchema = z.object({
   slug: z.string().min(1),
   nomPartenaire: z.string().trim().min(1, "Le nom du/de la partenaire est requis."),
   prenomPartenaire: z.string().trim().min(1, "Le prénom du/de la partenaire est requis."),
-  emailPartenaire: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email("E-mail du/de la partenaire invalide.")
-    .optional()
-    .or(z.literal("")),
+  // Obligatoire : laisser ce champ optionnel revient à offrir une porte
+  // de sortie à quiconque hésite, et donc à recréer des doublons — l'un
+  // des principaux problèmes que ce champ est censé éviter. Ça ne veut
+  // pas dire que le compte doit déjà exister (voir trouverPartenaireExistant) :
+  // juste que l'e-mail doit être fourni pour tenter le rapprochement.
+  emailPartenaire: z.string().trim().toLowerCase().email("L'e-mail du/de la partenaire est requis."),
 });
 
 /**
@@ -115,7 +114,7 @@ export async function sInscrireEnPaire(
     slug: formData.get("slug"),
     nomPartenaire: formData.get("nomPartenaire"),
     prenomPartenaire: formData.get("prenomPartenaire"),
-    emailPartenaire: formData.get("emailPartenaire") || undefined,
+    emailPartenaire: formData.get("emailPartenaire"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -137,14 +136,12 @@ export async function sInscrireEnPaire(
   let partenaireId: string;
   let nomAffichePartenaire = `${parsed.data.prenomPartenaire} ${parsed.data.nomPartenaire}`;
 
-  const partenaireExistant = parsed.data.emailPartenaire
-    ? await trouverPartenaireExistant(
-        service,
-        parsed.data.emailPartenaire,
-        parsed.data.nomPartenaire,
-        parsed.data.prenomPartenaire,
-      )
-    : null;
+  const partenaireExistant = await trouverPartenaireExistant(
+    service,
+    parsed.data.emailPartenaire,
+    parsed.data.nomPartenaire,
+    parsed.data.prenomPartenaire,
+  );
 
   if (partenaireExistant) {
     if (partenaireExistant.id === participant.playerId) {
@@ -168,7 +165,7 @@ export async function sInscrireEnPaire(
       .insert({
         nom: parsed.data.nomPartenaire,
         prenom: parsed.data.prenomPartenaire,
-        email: parsed.data.emailPartenaire || null,
+        email: parsed.data.emailPartenaire,
       })
       .select("id")
       .single();
