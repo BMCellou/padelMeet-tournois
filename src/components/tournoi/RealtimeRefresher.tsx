@@ -5,8 +5,13 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * Rafraîchit la page publique en direct quand un score est saisi/validé ou
- * qu'une équipe est modifiée, sans que le visiteur ait à recharger.
+ * Rafraîchit une page en direct quand un score est saisi/validé, qu'une
+ * équipe est modifiée, ou qu'une inscription (solo ou paire) arrive —
+ * sans que la personne qui a la page ouverte ait à recharger. Utilisé
+ * côté public (page tournoi) ET côté admin (écran Inscriptions) : les
+ * policies RLS filtrent déjà ce que chaque session a le droit de voir,
+ * un visiteur anonyme n'aura donc jamais d'événement sur `registrations`
+ * (réservée à l'admin).
  */
 export function RealtimeRefresher({ tournamentId }: { tournamentId: string }) {
   const router = useRouter();
@@ -15,7 +20,7 @@ export function RealtimeRefresher({ tournamentId }: { tournamentId: string }) {
     const supabase = createClient();
 
     const channel = supabase
-      .channel(`public-tournoi-${tournamentId}`)
+      .channel(`tournoi-${tournamentId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "matches", filter: `tournament_id=eq.${tournamentId}` },
@@ -29,6 +34,11 @@ export function RealtimeRefresher({ tournamentId }: { tournamentId: string }) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "teams", filter: `tournament_id=eq.${tournamentId}` },
+        () => router.refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "registrations", filter: `tournament_id=eq.${tournamentId}` },
         () => router.refresh(),
       )
       .subscribe();

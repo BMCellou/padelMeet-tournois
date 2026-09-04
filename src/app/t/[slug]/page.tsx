@@ -16,7 +16,7 @@ import {
   InscriptionDejaFaite,
   InscriptionFormulaire,
 } from "./InscriptionTournoi";
-import { RealtimeRefresher } from "./RealtimeRefresher";
+import { RealtimeRefresher } from "@/components/tournoi/RealtimeRefresher";
 import { BrandLogo } from "@/components/BrandLogo";
 
 export default async function PageTournoiPublic({

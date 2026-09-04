@@ -13,6 +13,7 @@ import {
 import { EquipesEnAttenteList } from "./EquipesEnAttenteList";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
+import { RealtimeRefresher } from "@/components/tournoi/RealtimeRefresher";
 
 export default async function InscriptionsPage({
   params,
@@ -118,6 +119,7 @@ export default async function InscriptionsPage({
 
   return (
     <div className="min-h-screen bg-muted/20">
+      <RealtimeRefresher tournamentId={tournamentId} />
       <AdminHeader />
       <div className="flex flex-col sm:flex-row">
         <AdminSidebar tournamentId={tournoi.id} tournamentNom={tournoi.nom} />

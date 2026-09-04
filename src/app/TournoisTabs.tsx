@@ -66,7 +66,15 @@ export function TournoisTabs({ tournois }: { tournois: TournoiAffiche[] }) {
     <div className="min-h-screen bg-background">
       <header className="w-full bg-primary text-primary-foreground">
         <div className="mx-auto w-full max-w-2xl px-4 pt-4 sm:px-6">
-          <BrandLogo />
+          <div className="flex items-center justify-between gap-2">
+            <BrandLogo />
+            <Link
+              href="/compte"
+              className="shrink-0 rounded-md border border-primary-foreground/25 px-3 py-1.5 text-sm font-medium hover:bg-primary-foreground/10"
+            >
+              Mon compte
+            </Link>
+          </div>
           <div className="mt-4 flex gap-6 text-sm">
             <button
               type="button"
