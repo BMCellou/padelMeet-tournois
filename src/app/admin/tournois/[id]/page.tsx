@@ -31,11 +31,12 @@ export default async function FicheTournoiPage({
     notFound();
   }
 
-  const { data: terrainsDuClub } = await supabase
-    .from("courts")
-    .select("id, nom, ordre")
-    .eq("club_id", tournoi.club_id)
-    .order("ordre");
+  const { data: clubs } = await supabase.from("clubs").select("id, nom").order("nom");
+  const clubActuel = (clubs ?? []).find((c) => c.id === tournoi.club_id);
+
+  const { data: terrainsDuClub } = tournoi.club_id
+    ? await supabase.from("courts").select("id, nom, ordre").eq("club_id", tournoi.club_id).order("ordre")
+    : { data: [] };
 
   const { data: terrainsSelectionnes } = await supabase
     .from("tournament_courts")
@@ -86,6 +87,7 @@ export default async function FicheTournoiPage({
                 <ModifierTournoiDialog
                   tournoi={{
                     id: tournoi.id,
+                    clubId: tournoi.club_id,
                     nom: tournoi.nom,
                     date: tournoi.date,
                     genre: tournoi.genre,
@@ -95,11 +97,16 @@ export default async function FicheTournoiPage({
                     dureeMatchMin: tournoi.duree_match_min,
                     pauseMin: tournoi.pause_min,
                   }}
+                  clubs={clubs ?? []}
                 />
                 <SupprimerTournoiDialog tournamentId={tournoi.id} tournamentNom={tournoi.nom} />
               </div>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              <div>
+                <span className="text-muted-foreground">Club : </span>
+                {clubActuel?.nom ?? "à définir"}
+              </div>
               <div>
                 <span className="text-muted-foreground">Genre : </span>
                 {tournoi.genre ?? "non précisé"}
@@ -154,13 +161,20 @@ export default async function FicheTournoiPage({
               <CardTitle className="text-base">Terrains</CardTitle>
             </CardHeader>
             <CardContent>
-              <TerrainForm
-                tournamentId={tournoi.id}
-                terrainsDuClub={terrainsDuClub ?? []}
-                terrainsSelectionnesIds={(terrainsSelectionnes ?? []).map(
-                  (t) => t.court_id,
-                )}
-              />
+              {!tournoi.club_id ? (
+                <p className="text-sm text-muted-foreground">
+                  Assigne d&apos;abord un club à ce tournoi (bouton Modifier ci-dessus) pour gérer
+                  ses terrains.
+                </p>
+              ) : (
+                <TerrainForm
+                  tournamentId={tournoi.id}
+                  terrainsDuClub={terrainsDuClub ?? []}
+                  terrainsSelectionnesIds={(terrainsSelectionnes ?? []).map(
+                    (t) => t.court_id,
+                  )}
+                />
+              )}
             </CardContent>
           </Card>
 

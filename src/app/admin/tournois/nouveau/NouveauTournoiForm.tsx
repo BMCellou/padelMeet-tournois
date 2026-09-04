@@ -36,18 +36,21 @@ export function NouveauTournoiForm({ clubs }: { clubs: Club[] }) {
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
-          {clubs.length > 1 ? (
+          {clubs.length > 0 ? (
             <div className="space-y-2">
               <Label htmlFor="clubId">Club</Label>
-              <Select name="clubId" defaultValue={clubs[0].id}>
+              <Select name="clubId" defaultValue="aucun">
                 <SelectTrigger id="clubId">
-                  <SelectValue placeholder="Choisir un club">
+                  <SelectValue placeholder="Aucun club pour l'instant">
                     {(valeur: string | null) =>
-                      valeur ? (clubsParId.get(valeur)?.nom ?? valeur) : "Choisir un club"
+                      valeur && valeur !== "aucun"
+                        ? (clubsParId.get(valeur)?.nom ?? valeur)
+                        : "Aucun club pour l'instant"
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="aucun">Aucun club pour l&apos;instant</SelectItem>
                   {clubs.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.nom}
@@ -55,9 +58,18 @@ export function NouveauTournoiForm({ clubs }: { clubs: Club[] }) {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Tu peux laisser vide et l&apos;assigner plus tard depuis la fiche du tournoi.
+              </p>
             </div>
           ) : (
-            <input type="hidden" name="clubId" value={clubs[0].id} />
+            <>
+              <input type="hidden" name="clubId" value="aucun" />
+              <p className="text-sm text-muted-foreground">
+                Aucun club pour l&apos;instant — tu pourras en assigner un plus tard depuis la fiche
+                du tournoi.
+              </p>
+            </>
           )}
           <div className="space-y-2">
             <Label htmlFor="nom">Nom du tournoi</Label>

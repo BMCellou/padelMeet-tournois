@@ -36,6 +36,7 @@ const LIBELLES_STATUT: Record<string, string> = {
 
 export interface TournoiEditable {
   id: string;
+  clubId: string | null;
   nom: string;
   date: string;
   genre: string | null;
@@ -46,7 +47,18 @@ export interface TournoiEditable {
   pauseMin: number | null;
 }
 
-export function ModifierTournoiDialog({ tournoi }: { tournoi: TournoiEditable }) {
+interface Club {
+  id: string;
+  nom: string;
+}
+
+export function ModifierTournoiDialog({
+  tournoi,
+  clubs,
+}: {
+  tournoi: TournoiEditable;
+  clubs: Club[];
+}) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -77,6 +89,27 @@ export function ModifierTournoiDialog({ tournoi }: { tournoi: TournoiEditable })
           <div className="space-y-1">
             <Label htmlFor="edit-nom">Nom du tournoi</Label>
             <Input id="edit-nom" name="nom" defaultValue={tournoi.nom} required />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-clubId">Club</Label>
+            <Select name="clubId" defaultValue={tournoi.clubId ?? "aucun"}>
+              <SelectTrigger id="edit-clubId" className="w-full">
+                <SelectValue placeholder="Aucun club pour l'instant">
+                  {(v: string | null) => {
+                    if (!v || v === "aucun") return "Aucun club pour l'instant";
+                    return clubs.find((c) => c.id === v)?.nom ?? v;
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aucun">Aucun club pour l&apos;instant</SelectItem>
+                {clubs.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">

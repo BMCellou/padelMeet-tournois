@@ -15,6 +15,7 @@ export default async function ClubsPage() {
   const { data: tournois } = await supabase.from("tournaments").select("id, club_id");
   const nbTournoisParClub = new Map<string, number>();
   for (const t of tournois ?? []) {
+    if (!t.club_id) continue;
     nbTournoisParClub.set(t.club_id, (nbTournoisParClub.get(t.club_id) ?? 0) + 1);
   }
 

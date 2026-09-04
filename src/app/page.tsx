@@ -13,12 +13,10 @@ export default async function Accueil() {
   const { data: clubs } = await supabase.from("clubs").select("id, nom, ville");
   const clubsParId = new Map((clubs ?? []).map((c) => [c.id, c]));
 
-  const { data: tournoisBruts } = clubs && clubs.length > 0
-    ? await supabase
-        .from("tournaments")
-        .select("id, nom, date, statut, genre, niveau, public_slug, club_id")
-        .in("statut", ["publie", "en_cours", "termine"])
-    : { data: null };
+  const { data: tournoisBruts } = await supabase
+    .from("tournaments")
+    .select("id, nom, date, statut, genre, niveau, public_slug, club_id")
+    .in("statut", ["publie", "en_cours", "termine"]);
 
   const tournois: TournoiAffiche[] = [...(tournoisBruts ?? [])]
     .sort((a, b) => {
@@ -36,7 +34,7 @@ export default async function Accueil() {
       genre: t.genre,
       niveau: t.niveau,
       publicSlug: t.public_slug!,
-      clubNom: clubsParId.get(t.club_id)?.nom ?? "Club",
+      clubNom: (t.club_id ? clubsParId.get(t.club_id)?.nom : null) ?? "Club à définir",
     }));
 
   return <TournoisTabs tournois={tournois} />;

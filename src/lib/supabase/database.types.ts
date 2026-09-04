@@ -606,7 +606,7 @@ export type Database = {
       }
       tournaments: {
         Row: {
-          club_id: string
+          club_id: string | null
           created_at: string
           date: string
           duree_match_min: number | null
@@ -625,7 +625,7 @@ export type Database = {
           tirage_seed: number | null
         }
         Insert: {
-          club_id: string
+          club_id?: string | null
           created_at?: string
           date: string
           duree_match_min?: number | null
@@ -644,7 +644,7 @@ export type Database = {
           tirage_seed?: number | null
         }
         Update: {
-          club_id?: string
+          club_id?: string | null
           created_at?: string
           date?: string
           duree_match_min?: number | null
@@ -677,7 +677,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: { uid: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

@@ -8,7 +8,9 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 
 const tournamentSchema = z.object({
-  clubId: z.string().uuid("Le club est requis."),
+  // Optionnel : un tournoi peut être créé avant de savoir quel club
+  // l'accueillera, pour ouvrir les inscriptions sans attendre.
+  clubId: z.string().uuid().optional(),
   nom: z.string().trim().min(1, "Le nom du tournoi est requis."),
   date: z.string().min(1, "La date est requise."),
   genre: z.enum(["masculin", "feminin", "mixte"]).optional(),
@@ -28,8 +30,9 @@ export async function creerTournoi(
   _prevState: CreerTournoiResult | null,
   formData: FormData,
 ): Promise<CreerTournoiResult> {
+  const clubIdBrut = formData.get("clubId");
   const parsed = tournamentSchema.safeParse({
-    clubId: formData.get("clubId"),
+    clubId: clubIdBrut === "aucun" ? undefined : clubIdBrut || undefined,
     nom: formData.get("nom"),
     date: formData.get("date"),
     genre: formData.get("genre") || undefined,
@@ -48,7 +51,7 @@ export async function creerTournoi(
   const { data, error } = await supabase
     .from("tournaments")
     .insert({
-      club_id: parsed.data.clubId,
+      club_id: parsed.data.clubId ?? null,
       nom: parsed.data.nom,
       date: parsed.data.date,
       genre: parsed.data.genre,
@@ -71,6 +74,7 @@ export async function creerTournoi(
 
 const modifierTournoiSchema = z.object({
   tournamentId: z.string().uuid(),
+  clubId: z.string().uuid().optional(),
   nom: z.string().trim().min(1, "Le nom du tournoi est requis."),
   date: z.string().min(1, "La date est requise."),
   genre: z.enum(["masculin", "feminin", "mixte"]).optional(),
@@ -87,8 +91,10 @@ export async function modifierTournoi(
   _prevState: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
+  const clubIdBrut = formData.get("clubId");
   const parsed = modifierTournoiSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
+    clubId: clubIdBrut === "aucun" ? undefined : clubIdBrut || undefined,
     nom: formData.get("nom"),
     date: formData.get("date"),
     genre: formData.get("genre") || undefined,
@@ -109,6 +115,7 @@ export async function modifierTournoi(
   const { error } = await supabase
     .from("tournaments")
     .update({
+      club_id: d.clubId ?? null,
       nom: d.nom,
       date: d.date,
       genre: d.genre,

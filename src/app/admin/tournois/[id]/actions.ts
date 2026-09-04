@@ -36,6 +36,10 @@ export async function ajouterTerrain(
     return { error: "Tournoi introuvable." };
   }
 
+  if (!tournoi.club_id) {
+    return { error: "Assigne d'abord un club à ce tournoi avant d'ajouter des terrains." };
+  }
+
   const { count } = await supabase
     .from("courts")
     .select("id", { count: "exact", head: true })

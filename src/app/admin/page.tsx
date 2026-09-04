@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ClubForm } from "./club/ClubForm";
 import { AdminHeader } from "./AdminHeader";
 import { AdminSidebar } from "./AdminSidebar";
 import Link from "next/link";
@@ -14,12 +13,10 @@ export default async function AdminDashboardPage() {
     .select("id, nom, ville")
     .order("nom");
 
-  const { data: tournois } = clubs && clubs.length > 0
-    ? await supabase
-        .from("tournaments")
-        .select("id, nom, date, statut, club_id")
-        .order("date", { ascending: false })
-    : { data: null };
+  const { data: tournois } = await supabase
+    .from("tournaments")
+    .select("id, nom, date, statut, club_id")
+    .order("date", { ascending: false });
 
   const clubsParId = new Map((clubs ?? []).map((c) => [c.id, c]));
 
@@ -41,41 +38,37 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
 
-          {!clubs || clubs.length === 0 ? (
-            <ClubForm />
-          ) : (
-            <div className="space-y-4">
-              <Link href="/admin/tournois/nouveau">
-                <Button>Nouveau tournoi</Button>
-              </Link>
+          <div className="space-y-4">
+            <Link href="/admin/tournois/nouveau">
+              <Button>Nouveau tournoi</Button>
+            </Link>
 
-              {!tournois || tournois.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Aucun tournoi pour l&apos;instant.
-                </p>
-              ) : (
-                <ul className="divide-y rounded-lg border bg-background">
-                  {tournois.map((t) => (
-                    <li key={t.id}>
-                      <Link
-                        href={`/admin/tournois/${t.id}`}
-                        className="flex items-center justify-between p-4 hover:bg-accent"
-                      >
-                        <div>
-                          <p className="font-medium">{t.nom}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {clubsParId.get(t.club_id)?.nom ?? "Club inconnu"} ·{" "}
-                            {new Date(t.date).toLocaleDateString("fr-FR")}
-                          </p>
-                        </div>
-                        <Badge variant="outline">{t.statut}</Badge>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+            {!tournois || tournois.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Aucun tournoi pour l&apos;instant.
+              </p>
+            ) : (
+              <ul className="divide-y rounded-lg border bg-background">
+                {tournois.map((t) => (
+                  <li key={t.id}>
+                    <Link
+                      href={`/admin/tournois/${t.id}`}
+                      className="flex items-center justify-between p-4 hover:bg-accent"
+                    >
+                      <div>
+                        <p className="font-medium">{t.nom}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {t.club_id ? (clubsParId.get(t.club_id)?.nom ?? "Club à définir") : "Club à définir"} ·{" "}
+                          {new Date(t.date).toLocaleDateString("fr-FR")}
+                        </p>
+                      </div>
+                      <Badge variant="outline">{t.statut}</Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
     </div>

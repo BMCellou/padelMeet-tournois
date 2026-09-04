@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { AdminHeader } from "../../AdminHeader";
 import { AdminSidebar } from "../../AdminSidebar";
 import { NouveauTournoiForm } from "./NouveauTournoiForm";
-import { ClubForm } from "../../club/ClubForm";
 
 export default async function NouveauTournoiPage() {
   const supabase = await createClient();
@@ -14,11 +13,7 @@ export default async function NouveauTournoiPage() {
       <div className="flex flex-col sm:flex-row">
         <AdminSidebar />
         <div className="mx-auto w-full max-w-lg p-4 sm:p-8">
-          {!clubs || clubs.length === 0 ? (
-            <ClubForm />
-          ) : (
-            <NouveauTournoiForm clubs={clubs} />
-          )}
+          <NouveauTournoiForm clubs={clubs ?? []} />
         </div>
       </div>
     </div>
