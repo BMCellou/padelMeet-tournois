@@ -5,6 +5,7 @@ import { AdminSidebar } from "../AdminSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreerUtilisateurForm } from "./CreerUtilisateurForm";
 import { UtilisateursList, type UtilisateurAffiche } from "./UtilisateursList";
+import { JoueursSansCompteList } from "./JoueursSansCompteList";
 
 export default async function UtilisateursPage() {
   const supabase = await createClient();
@@ -20,6 +21,17 @@ export default async function UtilisateursPage() {
     .select("id, user_id, nom, prenom, sexe, classement_fft, telephone, email")
     .not("user_id", "is", null);
   const playerParUserId = new Map((players ?? []).map((p) => [p.user_id!, p]));
+
+  // Joueurs déjà inscrits (avec équipes/historique) mais sans compte —
+  // le cas typique d'un·e partenaire saisi·e à la main lors d'une
+  // inscription en paire, ou d'un joueur ajouté par un admin. On leur
+  // permet de créer un compte (et donc d'accéder à un rôle) sans jamais
+  // dupliquer leur fiche.
+  const { data: joueursSansCompte } = await supabase
+    .from("players")
+    .select("id, nom, prenom, email")
+    .is("user_id", null)
+    .order("nom", { ascending: true });
 
   const { data: memberships } = await supabase
     .from("memberships")
@@ -92,6 +104,24 @@ export default async function UtilisateursPage() {
             </CardHeader>
             <CardContent>
               <UtilisateursList utilisateurs={utilisateurs} tournois={tournois ?? []} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                Joueurs sans compte ({(joueursSansCompte ?? []).length})
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Déjà inscrits à un tournoi (souvent un·e partenaire saisi·e à la main),
+                mais sans compte pour l&apos;instant — utile pour en faire un·e scoreur·se.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <JoueursSansCompteList
+                joueurs={joueursSansCompte ?? []}
+                tournois={tournois ?? []}
+              />
             </CardContent>
           </Card>
         </div>

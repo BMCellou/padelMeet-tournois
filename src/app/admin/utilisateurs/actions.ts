@@ -157,6 +157,98 @@ export async function modifierProfilUtilisateur(
   return { success: true };
 }
 
+const creerDepuisJoueurSchema = z.object({
+  playerId: z.string().uuid(),
+  email: z.string().trim().toLowerCase().email("E-mail invalide."),
+  password: z.string().min(8, "Le mot de passe doit faire au moins 8 caractères."),
+  role: z.enum(["aucun", "admin", "scorekeeper"]),
+  tournamentId: z.string().uuid().optional(),
+});
+
+/**
+ * Crée un compte pour un joueur déjà inscrit (donc déjà présent dans
+ * `players`, avec ses équipes/inscriptions) mais sans compte auth —
+ * le cas classique du/de la partenaire saisi·e à la main lors d'une
+ * inscription en paire, ou d'un joueur ajouté directement par un admin.
+ * On NE crée PAS une nouvelle fiche joueur : on rattache le compte créé
+ * à la fiche existante (user_id), pour ne perdre ni son historique ni
+ * ses équipes.
+ */
+export async function creerCompteDepuisJoueur(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!(await estAdmin())) return { error: "Non autorisé." };
+
+  const parsed = creerDepuisJoueurSchema.safeParse({
+    playerId: formData.get("playerId"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    role: formData.get("role") || "aucun",
+    tournamentId: formData.get("tournamentId") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  if (parsed.data.role === "scorekeeper" && !parsed.data.tournamentId) {
+    return { error: "Choisis le tournoi de ce/cette scoreur·se." };
+  }
+
+  const service = createServiceClient();
+
+  const { data: joueur } = await service
+    .from("players")
+    .select("id, user_id")
+    .eq("id", parsed.data.playerId)
+    .maybeSingle();
+
+  if (!joueur) {
+    return { error: "Ce joueur n'existe plus." };
+  }
+  if (joueur.user_id) {
+    return { error: "Ce joueur a déjà un compte." };
+  }
+
+  const { data: cree, error: creationError } = await service.auth.admin.createUser({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    email_confirm: true,
+  });
+
+  if (creationError || !cree.user) {
+    const dejaExistant = creationError?.message?.toLowerCase().includes("already");
+    return {
+      error: dejaExistant ? "Un compte existe déjà avec cet e-mail." : "Impossible de créer le compte.",
+    };
+  }
+
+  const { error: liaisonError } = await service
+    .from("players")
+    .update({ user_id: cree.user.id, email: parsed.data.email })
+    .eq("id", parsed.data.playerId);
+
+  if (liaisonError) {
+    await service.auth.admin.deleteUser(cree.user.id);
+    return { error: "Impossible de rattacher le compte à ce joueur." };
+  }
+
+  if (parsed.data.role !== "aucun") {
+    const { error: membershipError } = await service.from("memberships").insert({
+      user_id: cree.user.id,
+      role: parsed.data.role,
+      tournament_id: parsed.data.role === "scorekeeper" ? parsed.data.tournamentId : null,
+    });
+    if (membershipError) {
+      return { error: "Compte créé, mais impossible d'attribuer le rôle." };
+    }
+  }
+
+  revalidatePath(PAGE_PATH);
+  return { success: true };
+}
+
 const ajouterRoleSchema = z.object({
   userId: z.string().uuid(),
   role: z.enum(["admin", "scorekeeper"]),
