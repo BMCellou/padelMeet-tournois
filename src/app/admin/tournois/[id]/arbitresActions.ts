@@ -2,15 +2,18 @@
 
 import { createServiceClient } from "@/lib/supabase/service";
 import { estAdmin } from "@/lib/staff/session";
+import { genererMotDePasseProvisoire } from "@/lib/staff/motDePasseProvisoire";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-type ActionResult = { error: string } | { success: true };
+// Un mot de passe provisoire n'est généré (et renvoyé) que si l'e-mail
+// mène à la création d'un tout nouveau compte — s'il existe déjà, on ne
+// touche pas à son mot de passe actuel (voir plus bas).
+type ResultatInvitation = { error: string } | { success: true; motDePasseProvisoire: string | null };
 
 const inviterSchema = z.object({
   tournamentId: z.string().uuid(),
   email: z.string().trim().toLowerCase().email("E-mail invalide."),
-  password: z.string().min(8, "Le mot de passe doit faire au moins 8 caractères."),
 });
 
 /**
@@ -36,9 +39,9 @@ async function trouverUtilisateurParEmail(
 }
 
 export async function inviterScoreur(
-  _prevState: ActionResult | null,
+  _prevState: ResultatInvitation | null,
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<ResultatInvitation> {
   if (!(await estAdmin())) {
     return { error: "Non autorisé." };
   }
@@ -46,7 +49,6 @@ export async function inviterScoreur(
   const parsed = inviterSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     email: formData.get("email"),
-    password: formData.get("password"),
   });
 
   if (!parsed.success) {
@@ -54,11 +56,13 @@ export async function inviterScoreur(
   }
 
   const service = createServiceClient();
+  const motDePasseProvisoire = genererMotDePasseProvisoire();
 
   const { data: cree, error: creationError } = await service.auth.admin.createUser({
     email: parsed.data.email,
-    password: parsed.data.password,
+    password: motDePasseProvisoire,
     email_confirm: true,
+    user_metadata: { must_change_password: true },
   });
 
   let userId: string;
@@ -105,7 +109,7 @@ export async function inviterScoreur(
   }
 
   revalidatePath(`/admin/tournois/${parsed.data.tournamentId}`);
-  return { success: true };
+  return { success: true, motDePasseProvisoire: cree.user ? motDePasseProvisoire : null };
 }
 
 export async function retirerScoreur(membershipId: string, tournamentId: string): Promise<void> {

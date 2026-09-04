@@ -67,13 +67,23 @@ export async function proxy(request: NextRequest) {
   const isAdminLoginRoute = pathname === "/admin/login";
   const estStaffAutorise = estAdmin || (estScorekeeperDuTournoi && routeScoresAutorisee);
 
+  // Un compte créé par un admin (mot de passe provisoire généré, jamais
+  // choisi par la personne elle-même) doit en définir un nouveau avant
+  // de pouvoir aller où que ce soit ailleurs dans l'appli — priorité sur
+  // toutes les autres redirections ci-dessous.
+  const isChangePasswordRoute = pathname === "/admin/definir-mot-de-passe";
+  const doitChangerMotDePasse = !!user?.user_metadata?.must_change_password;
+  if (doitChangerMotDePasse && !isChangePasswordRoute && (isAdminRoute || pathname.startsWith("/compte"))) {
+    return NextResponse.redirect(new URL("/admin/definir-mot-de-passe", request.url));
+  }
+
   // Un compte participant n'a pas de droit admin en base (RLS), mais on
   // le renvoie aussi hors de /admin côté navigation : sinon il verrait un
   // espace admin vide/en erreur au lieu d'un message clair. Un scoreur
   // qui s'égare hors de son écran (ex. /admin) est ramené vers SON
   // tournoi plutôt que vers un formulaire de connexion muet, puisqu'il
   // est déjà bien connecté.
-  if (isAdminRoute && !isAdminLoginRoute && !estStaffAutorise) {
+  if (isAdminRoute && !isAdminLoginRoute && !isChangePasswordRoute && !estStaffAutorise) {
     const cible = premierTournoiScoreur
       ? `/admin/tournois/${premierTournoiScoreur}/scores`
       : "/admin/login";

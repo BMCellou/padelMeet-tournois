@@ -3,10 +3,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { estAdmin } from "@/lib/staff/session";
+import { genererMotDePasseProvisoire } from "@/lib/staff/motDePasseProvisoire";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 type ActionResult = { error: string } | { success: true };
+// Résultat des actions qui créent un compte : le mot de passe provisoire
+// généré n'est renvoyé qu'une fois, à l'admin qui vient de créer le
+// compte — il n'est jamais stocké en clair ni récupérable ensuite.
+type ResultatCreation = { error: string } | { success: true; motDePasseProvisoire: string };
 
 const PAGE_PATH = "/admin/utilisateurs";
 
@@ -31,7 +36,6 @@ async function compterAdminsActifs(
 
 const creerSchema = z.object({
   email: z.string().trim().toLowerCase().email("E-mail invalide."),
-  password: z.string().min(8, "Le mot de passe doit faire au moins 8 caractères."),
   nom: z.string().trim().min(1, "Le nom est requis."),
   prenom: z.string().trim().min(1, "Le prénom est requis."),
   sexe: z.enum(["H", "F"]).optional(),
@@ -41,14 +45,13 @@ const creerSchema = z.object({
 });
 
 export async function creerUtilisateur(
-  _prevState: ActionResult | null,
+  _prevState: ResultatCreation | null,
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<ResultatCreation> {
   if (!(await estAdmin())) return { error: "Non autorisé." };
 
   const parsed = creerSchema.safeParse({
     email: formData.get("email"),
-    password: formData.get("password"),
     nom: formData.get("nom"),
     prenom: formData.get("prenom"),
     sexe: formData.get("sexe") || undefined,
@@ -66,11 +69,13 @@ export async function creerUtilisateur(
   }
 
   const service = createServiceClient();
+  const motDePasseProvisoire = genererMotDePasseProvisoire();
 
   const { data: cree, error: creationError } = await service.auth.admin.createUser({
     email: parsed.data.email,
-    password: parsed.data.password,
+    password: motDePasseProvisoire,
     email_confirm: true,
+    user_metadata: { must_change_password: true },
   });
 
   if (creationError || !cree.user) {
@@ -106,7 +111,7 @@ export async function creerUtilisateur(
   }
 
   revalidatePath(PAGE_PATH);
-  return { success: true };
+  return { success: true, motDePasseProvisoire };
 }
 
 const modifierProfilSchema = z.object({
@@ -160,7 +165,6 @@ export async function modifierProfilUtilisateur(
 const creerDepuisJoueurSchema = z.object({
   playerId: z.string().uuid(),
   email: z.string().trim().toLowerCase().email("E-mail invalide."),
-  password: z.string().min(8, "Le mot de passe doit faire au moins 8 caractères."),
   role: z.enum(["aucun", "admin", "scorekeeper"]),
   tournamentId: z.string().uuid().optional(),
 });
@@ -175,15 +179,14 @@ const creerDepuisJoueurSchema = z.object({
  * ses équipes.
  */
 export async function creerCompteDepuisJoueur(
-  _prevState: ActionResult | null,
+  _prevState: ResultatCreation | null,
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<ResultatCreation> {
   if (!(await estAdmin())) return { error: "Non autorisé." };
 
   const parsed = creerDepuisJoueurSchema.safeParse({
     playerId: formData.get("playerId"),
     email: formData.get("email"),
-    password: formData.get("password"),
     role: formData.get("role") || "aucun",
     tournamentId: formData.get("tournamentId") || undefined,
   });
@@ -211,10 +214,13 @@ export async function creerCompteDepuisJoueur(
     return { error: "Ce joueur a déjà un compte." };
   }
 
+  const motDePasseProvisoire = genererMotDePasseProvisoire();
+
   const { data: cree, error: creationError } = await service.auth.admin.createUser({
     email: parsed.data.email,
-    password: parsed.data.password,
+    password: motDePasseProvisoire,
     email_confirm: true,
+    user_metadata: { must_change_password: true },
   });
 
   if (creationError || !cree.user) {
@@ -246,7 +252,7 @@ export async function creerCompteDepuisJoueur(
   }
 
   revalidatePath(PAGE_PATH);
-  return { success: true };
+  return { success: true, motDePasseProvisoire };
 }
 
 const ajouterRoleSchema = z.object({
