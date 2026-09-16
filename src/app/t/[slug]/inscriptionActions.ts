@@ -80,12 +80,16 @@ const paireSchema = z.object({
 });
 
 /**
- * Cherche une fiche joueur existante pour le/la partenaire (compte déjà
- * créé), sans jamais se fier au seul e-mail : il doit correspondre au
- * nom ET au prénom saisis, sinon un e-mail tapé par erreur pourrait
- * rattacher le compte d'une tierce personne à l'insu de tous. Si rien ne
+ * Cherche une fiche joueur existante pour le/la partenaire — compte déjà
+ * créé, ou fiche fantôme laissée par une précédente inscription en paire
+ * (voir `inscription` dans src/app/compte/actions.ts) — sans jamais se
+ * fier au seul e-mail : il doit correspondre au nom ET au prénom saisis,
+ * sinon un e-mail tapé par erreur pourrait rattacher le compte ou
+ * l'historique d'une tierce personne à l'insu de tous. Si rien ne
  * correspond, on ne crée rien ici : l'appelant retombe sur une fiche
- * simple (comme aujourd'hui).
+ * simple (comme aujourd'hui). Réutiliser aussi les fiches fantômes évite
+ * qu'une même personne sans compte, ajoutée comme partenaire dans deux
+ * inscriptions différentes, se retrouve avec deux fiches distinctes.
  */
 async function trouverPartenaireExistant(
   service: ReturnType<typeof createServiceClient>,
@@ -97,9 +101,9 @@ async function trouverPartenaireExistant(
     .from("players")
     .select("id, nom, prenom")
     .eq("email", email)
-    .not("user_id", "is", null)
     .ilike("nom", nom)
     .ilike("prenom", prenom)
+    .limit(1)
     .maybeSingle();
 
   return data;
