@@ -90,14 +90,43 @@ export async function inscription(
     vientDetreCree = true;
   }
 
-  const { error: joueurError } = await service.from("players").insert({
-    user_id: userId,
-    nom: parsed.data.nom,
-    prenom: parsed.data.prenom,
-    sexe: parsed.data.sexe,
-    telephone: parsed.data.telephone,
-    email: parsed.data.email,
-  });
+  // Une fiche joueur "fantôme" (sans compte) a pu être créée avant coup —
+  // typiquement par un·e partenaire lors d'une inscription en paire (voir
+  // trouverPartenaireExistant dans src/app/t/[slug]/inscriptionActions.ts),
+  // ou par un admin. On la rattache à ce compte plutôt que d'en créer une
+  // seconde : sinon l'équipe/l'historique déjà enregistrés restent liés à
+  // l'ancienne fiche, invisible pour ce nouveau compte. Mêmes garde-fous
+  // que côté inscription en paire : email ET nom ET prénom, jamais l'email
+  // seul (un e-mail mal saisi ne doit jamais rattacher le compte d'un tiers).
+  const { data: fichesFantomes } = await service
+    .from("players")
+    .select("id")
+    .is("user_id", null)
+    .eq("email", parsed.data.email)
+    .ilike("nom", parsed.data.nom)
+    .ilike("prenom", parsed.data.prenom)
+    .limit(1);
+  const ficheFantome = fichesFantomes?.[0];
+
+  const { error: joueurError } = ficheFantome
+    ? await service
+        .from("players")
+        .update({
+          user_id: userId,
+          sexe: parsed.data.sexe,
+          telephone: parsed.data.telephone,
+          classement_fft: parsed.data.classementFft,
+        })
+        .eq("id", ficheFantome.id)
+    : await service.from("players").insert({
+        user_id: userId,
+        nom: parsed.data.nom,
+        prenom: parsed.data.prenom,
+        sexe: parsed.data.sexe,
+        telephone: parsed.data.telephone,
+        classement_fft: parsed.data.classementFft,
+        email: parsed.data.email,
+      });
 
   if (joueurError) {
     if (vientDetreCree) await service.auth.admin.deleteUser(userId);
