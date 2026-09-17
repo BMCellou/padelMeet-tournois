@@ -7,7 +7,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-type ActionResult = { error: string } | { success: true };
+type ActionResult =
+  | { error: string }
+  | { success: true }
+  | { confirmation: { ficheId: string; nom: string; prenom: string } };
 
 function urlSuivante(formData: FormData): string {
   const next = String(formData.get("next") ?? "");
@@ -24,6 +27,10 @@ const inscriptionSchema = z.object({
   sexe: z.enum(["H", "F"]).optional(),
   telephone: z.string().trim().optional(),
   classementFft: z.string().trim().optional(),
+  // Renvoyés par le formulaire lors de la resoumission qui suit l'écran
+  // de confirmation (voir plus bas) — absents au premier passage.
+  ficheFantomeChoisie: z.string().uuid().optional(),
+  ignorerFantome: z.literal("1").optional(),
 });
 
 export async function inscription(
@@ -38,6 +45,8 @@ export async function inscription(
     sexe: formData.get("sexe") || undefined,
     telephone: formData.get("telephone") || undefined,
     classementFft: formData.get("classementFft") || undefined,
+    ficheFantomeChoisie: formData.get("ficheFantomeChoisie") || undefined,
+    ignorerFantome: formData.get("ignorerFantome") || undefined,
   });
 
   if (!parsed.success) {
@@ -60,6 +69,7 @@ export async function inscription(
 
   let userId: string;
   let vientDetreCree = false;
+  let ficheFantome: { id: string } | null = null;
 
   if (dejaConnecte.data.user) {
     userId = dejaConnecte.data.user.id;
@@ -71,7 +81,69 @@ export async function inscription(
     if (profilExistant) {
       return { error: "Ce compte a déjà un profil joueur : connecte-toi plutôt." };
     }
+
+    // Compte déjà authentifié : on ne propose pas de confirmation ici (cas
+    // plus rare, identité déjà prouvée par le mot de passe) — seule une
+    // correspondance exacte nom+prénom rattache automatiquement.
+    const { data: fichesExactes } = await service
+      .from("players")
+      .select("id")
+      .is("user_id", null)
+      .eq("email", parsed.data.email)
+      .ilike("nom", parsed.data.nom)
+      .ilike("prenom", parsed.data.prenom)
+      .limit(1);
+    ficheFantome = fichesExactes?.[0] ?? null;
   } else {
+    // Une fiche joueur "fantôme" (sans compte) a pu être créée avant coup —
+    // typiquement par un·e partenaire lors d'une inscription en paire (voir
+    // trouverPartenaireExistant dans src/app/t/[slug]/inscriptionActions.ts),
+    // ou par un admin. On la rattache à ce compte plutôt que d'en créer une
+    // seconde, sinon l'équipe/l'historique déjà enregistrés restent liés à
+    // l'ancienne fiche, invisible pour ce nouveau compte.
+    if (parsed.data.ficheFantomeChoisie) {
+      // Deuxième passage : la personne a confirmé "oui, c'est moi" pour
+      // cette fiche précise. On revérifie qu'elle existe toujours, sans
+      // compte, avec le même e-mail — au cas où la situation aurait changé
+      // entre l'écran de confirmation et cette resoumission.
+      const { data: fiche } = await service
+        .from("players")
+        .select("id")
+        .eq("id", parsed.data.ficheFantomeChoisie)
+        .is("user_id", null)
+        .eq("email", parsed.data.email)
+        .maybeSingle();
+      ficheFantome = fiche ?? null;
+    } else if (!parsed.data.ignorerFantome) {
+      // Premier passage : e-mail seul (jamais nom+prénom seuls) suffit à
+      // chercher une fiche candidate. Une correspondance exacte de nom ET
+      // prénom rattache directement, sans rien demander ; sinon on ne
+      // tranche pas tout seul — un e-mail mal saisi ne doit jamais
+      // rattacher le compte ou l'historique d'une tierce personne à
+      // l'insu de tous — et on renvoie une confirmation à la personne.
+      const { data: fichesEmail } = await service
+        .from("players")
+        .select("id, nom, prenom")
+        .is("user_id", null)
+        .eq("email", parsed.data.email)
+        .limit(1);
+      const candidate = fichesEmail?.[0];
+      if (candidate) {
+        const memeNom = candidate.nom.trim().toLowerCase() === parsed.data.nom.trim().toLowerCase();
+        const memePrenom =
+          candidate.prenom.trim().toLowerCase() === parsed.data.prenom.trim().toLowerCase();
+        if (memeNom && memePrenom) {
+          ficheFantome = { id: candidate.id };
+        } else {
+          return {
+            confirmation: { ficheId: candidate.id, nom: candidate.nom, prenom: candidate.prenom },
+          };
+        }
+      }
+    }
+    // Si `ignorerFantome` est présent, la personne a répondu "non" à la
+    // confirmation : on force la création d'une fiche neuve ci-dessous.
+
     const { data: cree, error: creationError } = await service.auth.admin.createUser({
       email: parsed.data.email,
       password: parsed.data.password,
@@ -89,24 +161,6 @@ export async function inscription(
     userId = cree.user.id;
     vientDetreCree = true;
   }
-
-  // Une fiche joueur "fantôme" (sans compte) a pu être créée avant coup —
-  // typiquement par un·e partenaire lors d'une inscription en paire (voir
-  // trouverPartenaireExistant dans src/app/t/[slug]/inscriptionActions.ts),
-  // ou par un admin. On la rattache à ce compte plutôt que d'en créer une
-  // seconde : sinon l'équipe/l'historique déjà enregistrés restent liés à
-  // l'ancienne fiche, invisible pour ce nouveau compte. Mêmes garde-fous
-  // que côté inscription en paire : email ET nom ET prénom, jamais l'email
-  // seul (un e-mail mal saisi ne doit jamais rattacher le compte d'un tiers).
-  const { data: fichesFantomes } = await service
-    .from("players")
-    .select("id")
-    .is("user_id", null)
-    .eq("email", parsed.data.email)
-    .ilike("nom", parsed.data.nom)
-    .ilike("prenom", parsed.data.prenom)
-    .limit(1);
-  const ficheFantome = fichesFantomes?.[0];
 
   const { error: joueurError } = ficheFantome
     ? await service
