@@ -7,6 +7,7 @@ import { determinerVainqueurMatch, type SetSaisi } from "@/lib/engine/score";
 import { calculerClassement, type MatchTermine, type CritereDepartage } from "@/lib/engine/classement";
 import type { MatchFormat } from "@/lib/engine/types";
 import type { Json } from "@/lib/supabase/database.types";
+import { tenterGenerationAutomatique } from "@/lib/tournoi/tableauFinal";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 type ActionResult = { error: string } | { success: true };
@@ -237,6 +238,9 @@ export async function validerScore(tournamentId: string, matchId: string): Promi
   });
 
   await apresValidation(supabase, tournamentId, contexte.match, winnerId!, contexte.tiebreakRules);
+  if (contexte.match.phase === "poule") {
+    await tenterGenerationAutomatique(supabase, tournamentId);
+  }
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);
   revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
@@ -321,6 +325,9 @@ export async function declarerForfait(
   });
 
   await apresValidation(supabase, tournamentId, contexte.match, equipeGagnanteId, contexte.tiebreakRules);
+  if (contexte.match.phase === "poule") {
+    await tenterGenerationAutomatique(supabase, tournamentId);
+  }
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);
   revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
@@ -342,6 +349,27 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
 
   if (match.statut === "a_venir" || match.statut === "pret") {
     return { error: "Ce match n'a pas encore de score à réinitialiser." };
+  }
+
+  if (match.phase === "poule") {
+    // Le tableau final a pu être généré automatiquement dès la fin des
+    // poules (voir tenterGenerationAutomatique) : rouvrir un score de
+    // poule après coup rendrait les qualifiés obsolètes. On l'autorise
+    // tant que rien n'a encore été joué dans le tableau (l'admin peut
+    // alors le régénérer depuis l'écran Qualifiés) ; on bloque dès qu'un
+    // match du tableau a progressé.
+    const { data: matchsTableau } = await supabase
+      .from("matches")
+      .select("statut")
+      .eq("tournament_id", tournamentId)
+      .eq("phase", "tableau");
+
+    if (matchsTableau?.some((m) => m.statut !== "a_venir")) {
+      return {
+        error:
+          "Le tableau final a déjà commencé : impossible de réinitialiser ce score de poule.",
+      };
+    }
   }
 
   if (match.phase === "tableau" && match.next_match_id) {

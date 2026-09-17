@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 import { MatchScoreCard, type MatchAffiche } from "../scores/MatchScoreCard";
-import { GenererTableauForm } from "./GenererTableauForm";
+import { QualifiesEditor } from "./QualifiesEditor";
 import { ClassementFinalList, type LigneFinale } from "@/components/tournoi/ClassementFinalList";
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
+import { calculerContexteQualification } from "@/lib/tournoi/tableauFinal";
 import type { MatchFormat } from "@/lib/engine/types";
 
 export default async function TableauPage({
@@ -113,8 +114,28 @@ export default async function TableauPage({
       .eq("phase", "tableau")
       .order("round");
 
+    const tableauCommence = (matchsBruts ?? []).some((m) => m.statut !== "a_venir");
+
+    let editeurQualifies: React.ReactNode = null;
+    if (!tableauCommence) {
+      const contexte = await calculerContexteQualification(supabase, tournamentId);
+      if ("error" in contexte) {
+        editeurQualifies = <p className="text-sm text-muted-foreground">{contexte.error}</p>;
+      } else {
+        editeurQualifies = (
+          <QualifiesEditor
+            tournamentId={tournamentId}
+            tailleTableau={contexte.tailleTableau}
+            avertissement={contexte.avertissement}
+            equipes={contexte.equipes}
+            dejaGenere={(matchsBruts ?? []).length > 0}
+          />
+        );
+      }
+    }
+
     if (!matchsBruts || matchsBruts.length === 0) {
-      contenu = <GenererTableauForm tournamentId={tournamentId} />;
+      contenu = editeurQualifies;
     } else {
       const parTour = new Map<number, typeof matchsBruts>();
       for (const m of matchsBruts) {
@@ -133,6 +154,7 @@ export default async function TableauPage({
 
       contenu = (
         <>
+          {editeurQualifies}
           <div className="flex gap-4 overflow-x-auto pb-2">
             {tours.map((tour) => (
               <div key={tour} className="w-64 shrink-0 space-y-2">

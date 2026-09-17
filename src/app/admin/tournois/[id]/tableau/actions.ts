@@ -2,146 +2,47 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { selectionnerQualifies, type ClassementPoule } from "@/lib/engine/qualification";
-import { genererTableau, type Qualifie, type MatchTableau } from "@/lib/engine/tableau";
+import {
+  calculerContexteQualification,
+  genererTableauAvecQualifies,
+  type ResultatAction,
+} from "@/lib/tournoi/tableauFinal";
+import type { Qualifie } from "@/lib/engine/tableau";
 
-type ActionResult = { error: string } | { success: true };
-
-export async function genererTableauFinal(tournamentId: string): Promise<ActionResult> {
+/**
+ * Régénère le tableau à partir d'une sélection de qualifiés choisie à la
+ * main (repêchage) — le nombre d'équipes doit rester une puissance de 2
+ * (contrainte du moteur de tableau), donc typiquement un simple
+ * remplacement d'une équipe par une autre plutôt qu'un ajout/retrait.
+ */
+export async function regenererTableauAvecQualifies(
+  tournamentId: string,
+  teamIds: string[],
+): Promise<ResultatAction> {
   const supabase = await createClient();
 
-  const { data: tournoi } = await supabase
-    .from("tournaments")
-    .select("id, nb_qualifies")
-    .eq("id", tournamentId)
-    .single();
+  const contexte = await calculerContexteQualification(supabase, tournamentId);
+  if ("error" in contexte) return { error: contexte.error };
 
-  if (!tournoi) return { error: "Tournoi introuvable." };
-  if (!tournoi.nb_qualifies) {
-    return { error: "Nombre de qualifiés non défini pour ce tournoi." };
+  const groupIdParEquipe = new Map(contexte.equipes.map((e) => [e.teamId, e.groupId]));
+  const idsInconnus = teamIds.filter((id) => !groupIdParEquipe.has(id));
+  if (idsInconnus.length > 0) {
+    return { error: "Sélection invalide : une équipe choisie n'appartient pas à ce tournoi." };
   }
-
-  const { data: groupes } = await supabase
-    .from("groups")
-    .select("id")
-    .eq("tournament_id", tournamentId);
-
-  if (!groupes || groupes.length === 0) {
-    return { error: "Tire d'abord les poules." };
-  }
-  if (groupes.length === 1) {
+  if (teamIds.length !== contexte.tailleTableau) {
     return {
-      error: "Une seule poule : pas de tableau, le classement de poule est le classement final.",
+      error: `Choisis exactement ${contexte.tailleTableau} équipes qualifiées (${teamIds.length} sélectionnée${teamIds.length > 1 ? "s" : ""}).`,
     };
   }
 
-  const { data: matchsPoule } = await supabase
-    .from("matches")
-    .select("id, statut")
-    .eq("tournament_id", tournamentId)
-    .eq("phase", "poule");
-
-  if (
-    !matchsPoule ||
-    matchsPoule.length === 0 ||
-    matchsPoule.some((m) => m.statut !== "valide" && m.statut !== "forfait")
-  ) {
-    return { error: "Termine d'abord tous les matchs de poule." };
-  }
-
-  const { data: standingsBrutes } = await supabase
-    .from("standings")
-    .select("group_id, team_id, joues, v, d, sets_g, sets_p, jeux_g, jeux_p, ratio_sets, ratio_jeux, rang")
-    .eq("tournament_id", tournamentId);
-
-  const classementsParPoule: ClassementPoule[] = groupes.map((g) => ({
-    groupId: g.id,
-    equipes: (standingsBrutes ?? [])
-      .filter((s) => s.group_id === g.id)
-      .map((s) => ({
-        teamId: s.team_id,
-        joues: s.joues,
-        v: s.v,
-        d: s.d,
-        setsG: s.sets_g,
-        setsP: s.sets_p,
-        jeuxG: s.jeux_g,
-        jeuxP: s.jeux_p,
-        ratioSets: s.ratio_sets ?? 0,
-        ratioJeux: s.ratio_jeux ?? 0,
-        rang: s.rang ?? 0,
-      })),
-  }));
-
-  const qualification = selectionnerQualifies(classementsParPoule, tournoi.nb_qualifies);
-  if (qualification.qualifies.length < 2) {
-    return { error: "Pas assez d'équipes qualifiables pour un tableau." };
-  }
-
-  const groupIdParEquipe = new Map<string, string>();
-  for (const cp of classementsParPoule) {
-    for (const e of cp.equipes) groupIdParEquipe.set(e.teamId, cp.groupId);
-  }
-
-  const qualifies: Qualifie[] = qualification.qualifies.map((teamId) => ({
+  const qualifies: Qualifie[] = teamIds.map((teamId) => ({
     teamId,
     groupId: groupIdParEquipe.get(teamId)!,
   }));
 
-  let bracket: MatchTableau[];
-  try {
-    bracket = genererTableau(qualifies);
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Impossible de générer le tableau." };
+  const resultat = await genererTableauAvecQualifies(supabase, tournamentId, qualifies);
+  if ("success" in resultat) {
+    revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
   }
-
-  const { data: matchsTableauExistants } = await supabase
-    .from("matches")
-    .select("id, statut")
-    .eq("tournament_id", tournamentId)
-    .eq("phase", "tableau");
-
-  if (matchsTableauExistants?.some((m) => m.statut !== "a_venir")) {
-    return { error: "Des scores du tableau final ont déjà été saisis : impossible de régénérer." };
-  }
-
-  if (matchsTableauExistants && matchsTableauExistants.length > 0) {
-    await supabase.from("matches").delete().eq("tournament_id", tournamentId).eq("phase", "tableau");
-  }
-
-  // Insertion en deux passes : les lignes d'abord, puis le câblage
-  // next_match_id (qui référence les ids réels générés à la première passe).
-  const idParSynthetique = new Map<string, string>();
-
-  for (const m of bracket) {
-    const { data: inserted, error } = await supabase
-      .from("matches")
-      .insert({
-        tournament_id: tournamentId,
-        phase: "tableau",
-        round: m.round,
-        bracket_slot: m.bracketSlot,
-        team_a_id: m.teamAId,
-        team_b_id: m.teamBId,
-        statut: "a_venir",
-      })
-      .select("id")
-      .single();
-
-    if (error || !inserted) return { error: "Impossible de créer le tableau." };
-    idParSynthetique.set(m.id, inserted.id);
-  }
-
-  for (const m of bracket) {
-    if (!m.nextMatchId) continue;
-    const idReel = idParSynthetique.get(m.id)!;
-    const idSuivantReel = idParSynthetique.get(m.nextMatchId)!;
-    await supabase
-      .from("matches")
-      .update({ next_match_id: idSuivantReel, next_slot: m.nextSlot })
-      .eq("id", idReel);
-  }
-
-  revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
-  return { success: true };
+  return resultat;
 }
