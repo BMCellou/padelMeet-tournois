@@ -6,7 +6,7 @@ import { AdminSidebar } from "../../../AdminSidebar";
 import { MatchScoreCard, type MatchAffiche } from "./MatchScoreCard";
 import { StandingsTable, type LigneClassement } from "@/components/tournoi/StandingsTable";
 import type { MatchFormat } from "@/lib/engine/types";
-import { estAdmin } from "@/lib/staff/session";
+import { estAdmin, getTournoisScoreur } from "@/lib/staff/session";
 
 export default async function ScoresPage({
   params,
@@ -16,6 +16,7 @@ export default async function ScoresPage({
   const { id: tournamentId } = await params;
   const supabase = await createClient();
   const admin = await estAdmin();
+  const tournoisScoreur = admin ? [] : await getTournoisScoreur();
 
   const { data: tournoi } = await supabase
     .from("tournaments")
@@ -64,6 +65,7 @@ export default async function ScoresPage({
           tournamentId={tournoi.id}
           tournamentNom={tournoi.nom}
           soloScores={!admin}
+          tournoisScoreur={tournoisScoreur}
         />
         <div className="mx-auto w-full max-w-4xl space-y-6 p-4 sm:p-8">
           <h1 className="text-2xl font-semibold">Scores et classements — {tournoi.nom}</h1>

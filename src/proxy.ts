@@ -34,13 +34,19 @@ export async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Un scoreur n'a accès qu'à l'écran Scores de SON tournoi assigné
-  // (memberships.role='scorekeeper', tournament_id=<celui de l'URL>) :
-  // on doit donc lire l'id de tournoi dans le chemin avant de trancher.
+  // Un scoreur n'a accès qu'aux écrans Scores et Tableau final de SON
+  // tournoi assigné (memberships.role='scorekeeper', tournament_id=<celui
+  // de l'URL>) : on doit donc lire l'id de tournoi dans le chemin avant
+  // de trancher. Le tableau final vit sur sa propre page (les matchs de
+  // phase "tableau" n'apparaissent pas sur l'écran Scores, qui ne
+  // charge que la phase "poule") — sans /tableau ici, un scoreur ne
+  // pourrait jamais saisir un score de quart/demi/finale. La racine du
+  // tournoi (réglages club/terrains/arbitres/suppression) est en
+  // revanche du contenu strictement admin, jamais exposée à un scoreur.
   const matchTournoi = pathname.match(new RegExp(`^/admin/tournois/(${UUID})(/.*)?$`));
   const tournamentIdDansUrl = matchTournoi?.[1] ?? null;
   const sousChemin = matchTournoi?.[2] ?? "";
-  const routeScoresAutorisee = sousChemin === "" || sousChemin.startsWith("/scores");
+  const routeScoresAutorisee = sousChemin.startsWith("/scores") || sousChemin.startsWith("/tableau");
 
   let estAdmin = false;
   let premierTournoiScoreur: string | null = null;

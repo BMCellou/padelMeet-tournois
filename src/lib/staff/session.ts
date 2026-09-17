@@ -43,3 +43,32 @@ export async function estScoreurDuTournoi(tournamentId: string): Promise<boolean
   const roles = await getRolesStaff();
   return roles.some((r) => r.role === "scorekeeper" && r.tournamentId === tournamentId);
 }
+
+export interface TournoiScoreur {
+  id: string;
+  nom: string;
+}
+
+/**
+ * Tous les tournois dont la session est scoreur, avec leur nom — un même
+ * compte peut être scoreur de plusieurs tournois à la fois (une ligne
+ * memberships par tournoi) ; sert à lister tous ses tournois dans la
+ * sidebar, pas seulement le premier trouvé.
+ */
+export async function getTournoisScoreur(): Promise<TournoiScoreur[]> {
+  const roles = await getRolesStaff();
+  const tournamentIds = roles
+    .filter((r): r is { role: "scorekeeper"; tournamentId: string } => r.role === "scorekeeper")
+    .map((r) => r.tournamentId);
+
+  if (tournamentIds.length === 0) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("tournaments")
+    .select("id, nom")
+    .in("id", tournamentIds)
+    .order("date", { ascending: false });
+
+  return data ?? [];
+}

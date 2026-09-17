@@ -7,6 +7,7 @@ import { QualifiesEditor } from "./QualifiesEditor";
 import { ClassementFinalList, type LigneFinale } from "@/components/tournoi/ClassementFinalList";
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
 import { calculerContexteQualification } from "@/lib/tournoi/tableauFinal";
+import { estAdmin, getTournoisScoreur } from "@/lib/staff/session";
 import type { MatchFormat } from "@/lib/engine/types";
 
 export default async function TableauPage({
@@ -16,6 +17,8 @@ export default async function TableauPage({
 }) {
   const { id: tournamentId } = await params;
   const supabase = await createClient();
+  const admin = await estAdmin();
+  const tournoisScoreur = admin ? [] : await getTournoisScoreur();
 
   const { data: tournoi } = await supabase
     .from("tournaments")
@@ -116,12 +119,17 @@ export default async function TableauPage({
 
     const tableauCommence = (matchsBruts ?? []).some((m) => m.statut !== "a_venir");
 
+    // Choisir/repêcher les qualifiés relève du tirage, réservé aux
+    // admins — un scoreur ne voit que le tableau déjà généré (ou un
+    // message d'attente), jamais ce panneau d'édition.
     let editeurQualifies: React.ReactNode = null;
     if (!tableauCommence) {
       const contexte = await calculerContexteQualification(supabase, tournamentId);
       if ("error" in contexte) {
-        editeurQualifies = <p className="text-sm text-muted-foreground">{contexte.error}</p>;
-      } else {
+        editeurQualifies = admin ? (
+          <p className="text-sm text-muted-foreground">{contexte.error}</p>
+        ) : null;
+      } else if (admin) {
         editeurQualifies = (
           <QualifiesEditor
             tournamentId={tournamentId}
@@ -135,7 +143,11 @@ export default async function TableauPage({
     }
 
     if (!matchsBruts || matchsBruts.length === 0) {
-      contenu = editeurQualifies;
+      contenu = editeurQualifies ?? (
+        <p className="text-sm text-muted-foreground">
+          Le tableau final n&apos;a pas encore été généré.
+        </p>
+      );
     } else {
       const parTour = new Map<number, typeof matchsBruts>();
       for (const m of matchsBruts) {
@@ -225,7 +237,12 @@ export default async function TableauPage({
     <div className="min-h-screen bg-muted/20">
       <AdminHeader />
       <div className="flex flex-col sm:flex-row">
-        <AdminSidebar tournamentId={tournoi.id} tournamentNom={tournoi.nom} />
+        <AdminSidebar
+          tournamentId={tournoi.id}
+          tournamentNom={tournoi.nom}
+          soloScores={!admin}
+          tournoisScoreur={tournoisScoreur}
+        />
         <div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-8">
           <h1 className="text-2xl font-semibold">Tableau final — {tournoi.nom}</h1>
           {contenu}
