@@ -27,6 +27,13 @@ interface MatchTableauBrut {
   next_match_id: string | null;
 }
 
+interface MatchPetiteFinaleBrut {
+  team_a_id: string | null;
+  team_b_id: string | null;
+  winner_id: string | null;
+  statut: string;
+}
+
 function ratioVictoires(s: StandingRow | undefined): number {
   return s && s.joues > 0 ? s.v / s.joues : 0;
 }
@@ -45,6 +52,7 @@ export function trierParRatio(ids: string[], standings: Map<string, StandingRow>
 
 export function calculerClassementFinalTableau(
   matchsTableau: MatchTableauBrut[],
+  matchPetiteFinale: MatchPetiteFinaleBrut | null,
   toutesLesEquipesIds: string[],
   standingsParEquipe: Map<string, StandingRow>,
   nomEquipe: Map<string, string>,
@@ -72,10 +80,25 @@ export function calculerClassementFinalTableau(
   );
   const nonQualifies = toutesLesEquipesIds.filter((id) => !idsQualifies.has(id));
 
+  let petiteFinale: { vainqueurId: string; perdantId: string } | null = null;
+  if (
+    matchPetiteFinale &&
+    matchPetiteFinale.winner_id &&
+    (matchPetiteFinale.statut === "valide" || matchPetiteFinale.statut === "forfait")
+  ) {
+    const vainqueurId = matchPetiteFinale.winner_id;
+    const perdantId =
+      matchPetiteFinale.team_a_id === vainqueurId
+        ? matchPetiteFinale.team_b_id!
+        : matchPetiteFinale.team_a_id!;
+    petiteFinale = { vainqueurId, perdantId };
+  }
+
   const resultat = classementFinal({
     finaleVainqueurId: champion,
     finalePerdantId: finaliste,
     demiFinalesPerdantIds: demiPerdants,
+    petiteFinale,
     quartsPerdantIdsTries: trierParRatio(quartsPerdants, standingsParEquipe),
     nonQualifieIdsTries: trierParRatio(nonQualifies, standingsParEquipe),
   });

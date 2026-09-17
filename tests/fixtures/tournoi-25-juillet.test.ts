@@ -105,10 +105,11 @@ describe("tournoi du 25 juillet (14 équipes, poules 5/5/4, tableau de 8)", () =
 
   const tableau = genererTableau(qualifies);
 
-  it("génère un tableau de 8 (4 quarts, 2 demies, 1 finale)", () => {
+  it("génère un tableau de 8 (4 quarts, 2 demies, 1 finale, 1 petite finale)", () => {
     expect(tableau.filter((m) => m.round === 1)).toHaveLength(4);
-    expect(tableau.filter((m) => m.round === 2)).toHaveLength(2);
-    expect(tableau.filter((m) => m.round === 3)).toHaveLength(1);
+    expect(tableau.filter((m) => m.round === 2 && m.phase === "tableau")).toHaveLength(2);
+    expect(tableau.filter((m) => m.round === 3 && m.phase === "tableau")).toHaveLength(1);
+    expect(tableau.filter((m) => m.phase === "classement")).toHaveLength(1);
   });
 
   it("n'oppose jamais deux équipes de la même poule au premier tour", () => {
@@ -119,28 +120,46 @@ describe("tournoi du 25 juillet (14 équipes, poules 5/5/4, tableau de 8)", () =
 
   // Propagation des vainqueurs, tour par tour (le gagnant d'un match de
   // tableau est déterminé par la même règle déterministe que les poules).
+  // La petite finale (phase "classement") est exclue de cette boucle :
+  // ses équipes ne sont connues qu'une fois les demies jouées (perdants),
+  // pas des vainqueurs — elle est simulée séparément juste après.
   let etatTableau = tableau;
   const nbTours = Math.log2(qualification.tailleTableau);
   for (let tour = 1; tour <= nbTours; tour++) {
-    for (const m of etatTableau.filter((match) => match.round === tour)) {
+    for (const m of etatTableau.filter((match) => match.round === tour && match.phase === "tableau")) {
       const gagnant = numeroDe(m.teamAId!) < numeroDe(m.teamBId!) ? m.teamAId! : m.teamBId!;
       etatTableau = propagerVainqueur(etatTableau, m.id, gagnant);
     }
   }
 
   it("propage les vainqueurs jusqu'à la finale", () => {
-    const finale = etatTableau.find((m) => m.round === nbTours)!;
+    const finale = etatTableau.find((m) => m.round === nbTours && m.phase === "tableau")!;
     expect(finale.winnerId).not.toBeNull();
     expect(finale.teamAId).not.toBeNull();
     expect(finale.teamBId).not.toBeNull();
   });
 
-  const finale = etatTableau.find((m) => m.round === 3)!;
+  const finale = etatTableau.find((m) => m.round === 3 && m.phase === "tableau")!;
   const champion = finale.winnerId!;
   const finaliste = finale.teamAId === champion ? finale.teamBId! : finale.teamAId!;
 
-  const demies = etatTableau.filter((m) => m.round === 2);
+  const demies = etatTableau.filter((m) => m.round === 2 && m.phase === "tableau");
   const demiPerdants = demies.map((m) => (m.teamAId === m.winnerId ? m.teamBId! : m.teamAId!));
+
+  // Petite finale : simulée entre les deux perdant·e·s de demi, dans
+  // l'ordre où le moteur les y a fait propager (loserNextSlot "a"/"b").
+  const resultatPetiteFinale = simulerMatch(demiPerdants[0], demiPerdants[1]);
+  const petiteFinaleVainqueurId = resultatPetiteFinale.vainqueurId;
+  const petiteFinalePerdantId =
+    petiteFinaleVainqueurId === demiPerdants[0] ? demiPerdants[1] : demiPerdants[0];
+
+  it("la petite finale départage les deux perdant·e·s de demi-finale", () => {
+    const petiteFinale = etatTableau.find((m) => m.phase === "classement")!;
+    expect(petiteFinale.loserNextMatchId).toBeNull(); // terminale, rien après
+    expect(new Set(demiPerdants).has(petiteFinaleVainqueurId)).toBe(true);
+    expect(new Set(demiPerdants).has(petiteFinalePerdantId)).toBe(true);
+    expect(petiteFinaleVainqueurId).not.toBe(petiteFinalePerdantId);
+  });
 
   const quarts = etatTableau.filter((m) => m.round === 1);
   const quartsPerdants = quarts.map((m) => (m.teamAId === m.winnerId ? m.teamBId! : m.teamAId!));
@@ -165,17 +184,17 @@ describe("tournoi du 25 juillet (14 équipes, poules 5/5/4, tableau de 8)", () =
     finaleVainqueurId: champion,
     finalePerdantId: finaliste,
     demiFinalesPerdantIds: demiPerdants,
+    petiteFinale: { vainqueurId: petiteFinaleVainqueurId, perdantId: petiteFinalePerdantId },
     quartsPerdantIdsTries: trierParCumul(quartsPerdants),
     nonQualifieIdsTries: trierParCumul(nonQualifies),
   });
 
-  it("produit un classement final complet et cohérent (pas de petite finale)", () => {
+  it("produit un classement final complet et cohérent (petite finale départage 3e/4e)", () => {
     expect(classement).toHaveLength(14);
     expect(classement.find((e) => e.teamId === champion)!.rang).toBe(1);
     expect(classement.find((e) => e.teamId === finaliste)!.rang).toBe(2);
-
-    const rangsDemiPerdants = demiPerdants.map((id) => classement.find((e) => e.teamId === id)!.rang);
-    expect(rangsDemiPerdants).toEqual([3, 3]);
+    expect(classement.find((e) => e.teamId === petiteFinaleVainqueurId)!.rang).toBe(3);
+    expect(classement.find((e) => e.teamId === petiteFinalePerdantId)!.rang).toBe(4);
 
     const rangs5a8 = quartsPerdants
       .map((id) => classement.find((e) => e.teamId === id)!.rang)

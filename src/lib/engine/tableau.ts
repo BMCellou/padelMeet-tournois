@@ -1,6 +1,9 @@
 // §4.8 — Tableau final. Seeding standard (quarts de 8 : 1-8, 4-5, 2-7,
 // 3-6). Contrainte : deux équipes de la même poule ne se rencontrent pas
-// au premier tour (permutation corrective si besoin).
+// au premier tour (permutation corrective si besoin). Un match pour la
+// 3e place ("petite finale") est ajouté à côté du tableau principal dès
+// qu'il y a des demi-finales (4 qualifiés ou plus) : les deux perdantes
+// de demi s'y affrontent, plutôt que d'être 3es ex æquo.
 
 export interface Qualifie {
   teamId: string;
@@ -16,6 +19,14 @@ export interface MatchTableau {
   winnerId: string | null;
   nextMatchId: string | null;
   nextSlot: "a" | "b" | null;
+  /** Uniquement renseigné sur les deux demi-finales : vers quel match
+   * propager le PERDANT (la petite finale), en miroir de nextMatchId
+   * qui ne propage que le vainqueur. */
+  loserNextMatchId: string | null;
+  loserNextSlot: "a" | "b" | null;
+  /** "classement" uniquement pour le match de petite finale — le reste
+   * du tableau principal reste "tableau". */
+  phase: "tableau" | "classement";
 }
 
 /** Ordre de seeding standard d'un tableau à élimination directe (1-based). */
@@ -87,6 +98,9 @@ export function genererTableau(qualifies: Qualifie[]): MatchTableau[] {
       winnerId: null,
       nextMatchId: null,
       nextSlot: null,
+      loserNextMatchId: null,
+      loserNextSlot: null,
+      phase: "tableau",
     });
   });
 
@@ -105,6 +119,9 @@ export function genererTableau(qualifies: Qualifie[]): MatchTableau[] {
         winnerId: null,
         nextMatchId: null,
         nextSlot: null,
+        loserNextMatchId: null,
+        loserNextSlot: null,
+        phase: "tableau",
       });
 
       const matchPrecA = matches.find((m) => m.id === idsTourPrecedent[i * 2])!;
@@ -115,6 +132,31 @@ export function genererTableau(qualifies: Qualifie[]): MatchTableau[] {
       matchPrecB.nextSlot = "b";
     }
     idsTourPrecedent = idsTour;
+  }
+
+  // Petite finale : seulement s'il y a de vraies demi-finales (4
+  // qualifiés ou plus — avec 2 qualifiés, l'unique match EST déjà la
+  // finale, il n'y a personne à départager pour une 3e place).
+  if (nbTours >= 2) {
+    const demiFinales = matches.filter((m) => m.round === nbTours - 1);
+    const petiteFinaleId = "petite-finale";
+    matches.push({
+      id: petiteFinaleId,
+      round: nbTours,
+      bracketSlot: -1,
+      teamAId: null,
+      teamBId: null,
+      winnerId: null,
+      nextMatchId: null,
+      nextSlot: null,
+      loserNextMatchId: null,
+      loserNextSlot: null,
+      phase: "classement",
+    });
+    demiFinales[0].loserNextMatchId = petiteFinaleId;
+    demiFinales[0].loserNextSlot = "a";
+    demiFinales[1].loserNextMatchId = petiteFinaleId;
+    demiFinales[1].loserNextSlot = "b";
   }
 
   return matches;

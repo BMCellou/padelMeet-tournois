@@ -25,7 +25,7 @@ async function chargerMatchEtFormat(supabase: SupabaseServerClient, matchId: str
   const { data: match } = await supabase
     .from("matches")
     .select(
-      "id, tournament_id, group_id, team_a_id, team_b_id, statut, format_override, phase, next_match_id, next_slot",
+      "id, tournament_id, group_id, team_a_id, team_b_id, statut, format_override, phase, next_match_id, next_slot, loser_next_match_id, loser_next_slot",
     )
     .eq("id", matchId)
     .eq("tournament_id", tournamentId)
@@ -131,7 +131,10 @@ async function recalculerClassementPoule(
 /**
  * Après validation/correction/forfait : recalcule le classement de poule
  * (phase='poule'), ou propage le vainqueur vers le match suivant du
- * tableau (phase='tableau', §4.8). Rien à faire si c'est la finale.
+ * tableau (phase='tableau', §4.8) — et, pour une demi-finale, le
+ * perdant vers la petite finale (loser_next_match_id). Rien à propager
+ * de plus loin pour la finale ou la petite finale elle-même
+ * (phase='classement').
  */
 async function apresValidation(
   supabase: SupabaseServerClient,
@@ -139,8 +142,12 @@ async function apresValidation(
   match: {
     phase: string;
     group_id: string | null;
+    team_a_id: string | null;
+    team_b_id: string | null;
     next_match_id: string | null;
     next_slot: string | null;
+    loser_next_match_id: string | null;
+    loser_next_slot: string | null;
   },
   winnerId: string,
   tiebreakRules: CritereDepartage[],
@@ -150,9 +157,17 @@ async function apresValidation(
     return;
   }
 
-  if (match.phase === "tableau" && match.next_match_id) {
+  if (match.phase !== "tableau") return;
+
+  if (match.next_match_id) {
     const champ = match.next_slot === "a" ? { team_a_id: winnerId } : { team_b_id: winnerId };
     await supabase.from("matches").update(champ).eq("id", match.next_match_id);
+  }
+
+  if (match.loser_next_match_id) {
+    const loserId = winnerId === match.team_a_id ? match.team_b_id! : match.team_a_id!;
+    const champ = match.loser_next_slot === "a" ? { team_a_id: loserId } : { team_b_id: loserId };
+    await supabase.from("matches").update(champ).eq("id", match.loser_next_match_id);
   }
 }
 
@@ -362,7 +377,7 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
       .from("matches")
       .select("statut")
       .eq("tournament_id", tournamentId)
-      .eq("phase", "tableau");
+      .in("phase", ["tableau", "classement"]);
 
     if (matchsTableau?.some((m) => m.statut !== "a_venir")) {
       return {
@@ -372,17 +387,21 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
     }
   }
 
-  if (match.phase === "tableau" && match.next_match_id) {
-    const { data: matchSuivant } = await supabase
-      .from("matches")
-      .select("statut")
-      .eq("id", match.next_match_id)
-      .single();
+  if (match.phase === "tableau") {
+    const idsSuivants = [match.next_match_id, match.loser_next_match_id].filter(
+      (id): id is string => !!id,
+    );
+    if (idsSuivants.length > 0) {
+      const { data: matchsSuivants } = await supabase
+        .from("matches")
+        .select("statut")
+        .in("id", idsSuivants);
 
-    if (matchSuivant && matchSuivant.statut !== "a_venir") {
-      return {
-        error: "Le tour suivant a déjà commencé : impossible de réinitialiser ce match.",
-      };
+      if (matchsSuivants?.some((m) => m.statut !== "a_venir")) {
+        return {
+          error: "Le tour suivant a déjà commencé : impossible de réinitialiser ce match.",
+        };
+      }
     }
   }
 
@@ -392,6 +411,11 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
   if (match.phase === "tableau" && match.next_match_id) {
     const champ = match.next_slot === "a" ? { team_a_id: null } : { team_b_id: null };
     await supabase.from("matches").update(champ).eq("id", match.next_match_id);
+  }
+
+  if (match.phase === "tableau" && match.loser_next_match_id) {
+    const champ = match.loser_next_slot === "a" ? { team_a_id: null } : { team_b_id: null };
+    await supabase.from("matches").update(champ).eq("id", match.loser_next_match_id);
   }
 
   await supabase.from("audit_log").insert({

@@ -17,6 +17,21 @@ describe("classementFinal", () => {
     expect(resultat.find((e) => e.teamId === "demi2")!.rang).toBe(3);
   });
 
+  it("petite finale jouée : départage la 3e et la 4e place", () => {
+    const resultat = classementFinal({
+      finaleVainqueurId: "champion",
+      finalePerdantId: "finaliste",
+      demiFinalesPerdantIds: ["demi1", "demi2"],
+      petiteFinale: { vainqueurId: "demi2", perdantId: "demi1" },
+      quartsPerdantIdsTries: ["quart1", "quart2", "quart3", "quart4"],
+      nonQualifieIdsTries: [],
+    });
+
+    expect(resultat.find((e) => e.teamId === "demi2")!.rang).toBe(3);
+    expect(resultat.find((e) => e.teamId === "demi1")!.rang).toBe(4);
+    expect(resultat.find((e) => e.teamId === "quart1")!.rang).toBe(5);
+  });
+
   it("le rang 4 est sauté (3, 3, 5...) et les quarts sont classés 5 à 8", () => {
     const resultat = classementFinal({
       finaleVainqueurId: "champion",

@@ -226,6 +226,8 @@ export type Database = {
           format_override: Json | null
           group_id: string | null
           id: string
+          loser_next_match_id: string | null
+          loser_next_slot: string | null
           next_match_id: string | null
           next_slot: string | null
           phase: string
@@ -244,6 +246,8 @@ export type Database = {
           format_override?: Json | null
           group_id?: string | null
           id?: string
+          loser_next_match_id?: string | null
+          loser_next_slot?: string | null
           next_match_id?: string | null
           next_slot?: string | null
           phase: string
@@ -262,6 +266,8 @@ export type Database = {
           format_override?: Json | null
           group_id?: string | null
           id?: string
+          loser_next_match_id?: string | null
+          loser_next_slot?: string | null
           next_match_id?: string | null
           next_slot?: string | null
           phase?: string
@@ -286,6 +292,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_loser_next_match_id_fkey"
+            columns: ["loser_next_match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
             referencedColumns: ["id"]
           },
           {

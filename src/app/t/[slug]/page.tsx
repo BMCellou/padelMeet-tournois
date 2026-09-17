@@ -76,6 +76,15 @@ export default async function PageTournoiPublic({
     .eq("phase", "tableau")
     .order("round");
 
+  const { data: matchPetiteFinaleBrut } = await supabase
+    .from("matches")
+    .select(
+      "id, round, statut, team_a_id, team_b_id, winner_id, court_id, scheduled_at, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+    )
+    .eq("tournament_id", tournoi.id)
+    .eq("phase", "classement")
+    .maybeSingle();
+
   function versMatchPublic(m: {
     id: string;
     round: number;
@@ -147,10 +156,13 @@ export default async function PageTournoiPublic({
           .map((s) => ({ rang: s.rang!, equipeNom: nomEquipe.get(s.team_id) ?? "?" }))
       : calculerClassementFinalTableau(
           matchsTableauBruts ?? [],
+          matchPetiteFinaleBrut ?? null,
           (teams ?? []).map((t) => t.id),
           standingsParEquipe,
           nomEquipe,
         );
+
+  const petiteFinaleAffichee = matchPetiteFinaleBrut ? versMatchPublic(matchPetiteFinaleBrut) : null;
 
   let sectionInscription: ReactNode = null;
   if (tournoi.statut === "publie") {
@@ -245,6 +257,20 @@ export default async function PageTournoiPublic({
                     ))}
                 </div>
               ))}
+              {matchPetiteFinaleBrut ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Match pour la 3e place
+                  </p>
+                  {petiteFinaleAffichee ? (
+                    <PublicMatchCard match={petiteFinaleAffichee} />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      En attente des perdant·e·s de demi-finale.
+                    </p>
+                  )}
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : null}

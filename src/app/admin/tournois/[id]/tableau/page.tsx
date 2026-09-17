@@ -117,7 +117,18 @@ export default async function TableauPage({
       .eq("phase", "tableau")
       .order("round");
 
-    const tableauCommence = (matchsBruts ?? []).some((m) => m.statut !== "a_venir");
+    const { data: matchPetiteFinaleBrut } = await supabase
+      .from("matches")
+      .select(
+        "id, statut, team_a_id, team_b_id, winner_id, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+      )
+      .eq("tournament_id", tournamentId)
+      .eq("phase", "classement")
+      .maybeSingle();
+
+    const tableauCommence =
+      (matchsBruts ?? []).some((m) => m.statut !== "a_venir") ||
+      (matchPetiteFinaleBrut ? matchPetiteFinaleBrut.statut !== "a_venir" : false);
 
     // Choisir/repêcher les qualifiés relève du tirage, réservé aux
     // admins — un scoreur ne voit que le tableau déjà généré (ou un
@@ -159,10 +170,33 @@ export default async function TableauPage({
 
       const classementFinalLignes = calculerClassementFinalTableau(
         matchsBruts,
+        matchPetiteFinaleBrut ?? null,
         (teams ?? []).map((t) => t.id),
         standingsParEquipe,
         nomEquipe,
       );
+
+      const petiteFinaleAffichee: MatchAffiche | null =
+        matchPetiteFinaleBrut && matchPetiteFinaleBrut.team_a_id && matchPetiteFinaleBrut.team_b_id
+          ? {
+              id: matchPetiteFinaleBrut.id,
+              round: dernierTour,
+              statut: matchPetiteFinaleBrut.statut,
+              teamAId: matchPetiteFinaleBrut.team_a_id,
+              teamBId: matchPetiteFinaleBrut.team_b_id,
+              teamANom: nomEquipe.get(matchPetiteFinaleBrut.team_a_id) ?? "?",
+              teamBNom: nomEquipe.get(matchPetiteFinaleBrut.team_b_id) ?? "?",
+              winnerId: matchPetiteFinaleBrut.winner_id,
+              sets: [...matchPetiteFinaleBrut.match_sets]
+                .sort((a, b) => a.numero - b.numero)
+                .map((s) => ({
+                  jeuxA: s.jeux_a,
+                  jeuxB: s.jeux_b,
+                  tiebreakA: s.tiebreak_a,
+                  tiebreakB: s.tiebreak_b,
+                })),
+            }
+          : null;
 
       contenu = (
         <>
@@ -219,6 +253,22 @@ export default async function TableauPage({
                 })}
               </div>
             ))}
+            {matchPetiteFinaleBrut ? (
+              <div className="w-64 shrink-0 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Match pour la 3e place</p>
+                {petiteFinaleAffichee ? (
+                  <MatchScoreCard
+                    tournamentId={tournamentId}
+                    match={petiteFinaleAffichee}
+                    format={format}
+                  />
+                ) : (
+                  <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                    En attente des perdant·e·s de demi-finale
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
 
           {classementFinalLignes ? (

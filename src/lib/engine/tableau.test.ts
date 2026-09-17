@@ -28,7 +28,7 @@ describe("genererTableau — seeding standard", () => {
       groupId: `pool${i}`,
     }));
     const matches = genererTableau(qualifies);
-    expect(matches).toHaveLength(3); // 2 demi-finales (nommées t1) + 1 finale (t2)
+    expect(matches).toHaveLength(4); // 2 demi-finales (t1) + 1 finale (t2) + 1 petite finale
 
     const t1m1 = match(matches, "t1-m1");
     const t1m2 = match(matches, "t1-m2");
@@ -41,6 +41,7 @@ describe("genererTableau — seeding standard", () => {
     expect(finale.teamAId).toBeNull();
     expect(finale.teamBId).toBeNull();
     expect(finale.nextMatchId).toBeNull();
+    expect(finale.phase).toBe("tableau");
   });
 
   it("refuse un nombre d'équipes qui n'est pas une puissance de 2", () => {
@@ -49,6 +50,54 @@ describe("genererTableau — seeding standard", () => {
       groupId: `pool${i}`,
     }));
     expect(() => genererTableau(qualifies)).toThrow();
+  });
+});
+
+describe("genererTableau — petite finale (match pour la 3e place)", () => {
+  it("câble les deux demi-finales vers une petite finale commune (tableau de 4)", () => {
+    const qualifies: Qualifie[] = Array.from({ length: 4 }, (_, i) => ({
+      teamId: `seed${i + 1}`,
+      groupId: `pool${i}`,
+    }));
+    const matches = genererTableau(qualifies);
+    const petiteFinale = match(matches, "petite-finale");
+
+    expect(petiteFinale.phase).toBe("classement");
+    expect(petiteFinale.teamAId).toBeNull();
+    expect(petiteFinale.teamBId).toBeNull();
+    expect(petiteFinale.round).toBe(2); // même tour que la finale
+
+    const t1m1 = match(matches, "t1-m1");
+    const t1m2 = match(matches, "t1-m2");
+    expect(t1m1.loserNextMatchId).toBe("petite-finale");
+    expect(t1m1.loserNextSlot).toBe("a");
+    expect(t1m2.loserNextMatchId).toBe("petite-finale");
+    expect(t1m2.loserNextSlot).toBe("b");
+  });
+
+  it("câble aussi la petite finale pour un tableau de 8 (depuis les demi-finales, pas les quarts)", () => {
+    const qualifies: Qualifie[] = Array.from({ length: 8 }, (_, i) => ({
+      teamId: `seed${i + 1}`,
+      groupId: `pool${i}`,
+    }));
+    const matches = genererTableau(qualifies);
+    const demiFinales = matches.filter((m) => m.round === 2 && m.phase === "tableau");
+    const quarts = matches.filter((m) => m.round === 1);
+
+    expect(demiFinales).toHaveLength(2);
+    expect(demiFinales.every((m) => m.loserNextMatchId === "petite-finale")).toBe(true);
+    expect(quarts.every((m) => m.loserNextMatchId === null)).toBe(true);
+  });
+
+  it("pas de petite finale pour un tableau de 2 (l'unique match est déjà la finale)", () => {
+    const qualifies: Qualifie[] = [
+      { teamId: "seed1", groupId: "A" },
+      { teamId: "seed2", groupId: "B" },
+    ];
+    const matches = genererTableau(qualifies);
+    expect(matches).toHaveLength(1);
+    expect(matches[0].loserNextMatchId).toBeNull();
+    expect(matches.some((m) => m.phase === "classement")).toBe(false);
   });
 });
 

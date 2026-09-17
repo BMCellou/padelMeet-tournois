@@ -167,22 +167,30 @@ export async function genererTableauAvecQualifies(
     return { error: e instanceof Error ? e.message : "Impossible de générer le tableau." };
   }
 
+  // "classement" = la petite finale générée à côté du tableau principal
+  // (voir genererTableau) : traitée comme partie intégrante du même
+  // tableau pour la détection "déjà entamé" et la régénération.
   const { data: matchsTableauExistants } = await supabase
     .from("matches")
     .select("id, statut")
     .eq("tournament_id", tournamentId)
-    .eq("phase", "tableau");
+    .in("phase", ["tableau", "classement"]);
 
   if (matchsTableauExistants?.some((m) => m.statut !== "a_venir")) {
     return { error: "Des scores du tableau final ont déjà été saisis : impossible de régénérer." };
   }
 
   if (matchsTableauExistants && matchsTableauExistants.length > 0) {
-    await supabase.from("matches").delete().eq("tournament_id", tournamentId).eq("phase", "tableau");
+    await supabase
+      .from("matches")
+      .delete()
+      .eq("tournament_id", tournamentId)
+      .in("phase", ["tableau", "classement"]);
   }
 
   // Insertion en deux passes : les lignes d'abord, puis le câblage
-  // next_match_id (qui référence les ids réels générés à la première passe).
+  // next_match_id/loser_next_match_id (qui référencent les ids réels
+  // générés à la première passe).
   const idParSynthetique = new Map<string, string>();
 
   for (const m of bracket) {
@@ -190,7 +198,7 @@ export async function genererTableauAvecQualifies(
       .from("matches")
       .insert({
         tournament_id: tournamentId,
-        phase: "tableau",
+        phase: m.phase,
         round: m.round,
         bracket_slot: m.bracketSlot,
         team_a_id: m.teamAId,
@@ -205,13 +213,22 @@ export async function genererTableauAvecQualifies(
   }
 
   for (const m of bracket) {
-    if (!m.nextMatchId) continue;
     const idReel = idParSynthetique.get(m.id)!;
-    const idSuivantReel = idParSynthetique.get(m.nextMatchId)!;
-    await supabase
-      .from("matches")
-      .update({ next_match_id: idSuivantReel, next_slot: m.nextSlot })
-      .eq("id", idReel);
+    if (m.nextMatchId) {
+      await supabase
+        .from("matches")
+        .update({ next_match_id: idParSynthetique.get(m.nextMatchId)!, next_slot: m.nextSlot! })
+        .eq("id", idReel);
+    }
+    if (m.loserNextMatchId) {
+      await supabase
+        .from("matches")
+        .update({
+          loser_next_match_id: idParSynthetique.get(m.loserNextMatchId)!,
+          loser_next_slot: m.loserNextSlot!,
+        })
+        .eq("id", idReel);
+    }
   }
 
   return { success: true };
