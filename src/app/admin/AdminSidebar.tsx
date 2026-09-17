@@ -74,6 +74,15 @@ export function AdminSidebar({ tournamentId, tournamentNom, soloScores }: AdminS
       >
         Utilisateurs
       </Link>
+      <Link
+        href="/admin/joueurs"
+        className={cn(
+          "shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap",
+          pathname === "/admin/joueurs" ? "bg-primary/10 text-primary" : "hover:bg-accent",
+        )}
+      >
+        Joueurs
+      </Link>
 
       {tournamentId ? (
         <div className="flex shrink-0 gap-1 sm:mt-4 sm:flex-col sm:gap-1">
