@@ -234,6 +234,32 @@ export async function deconnexion(): Promise<void> {
   redirect("/compte/connexion");
 }
 
+export async function demanderReinitialisation(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    return { error: "Adresse invalide." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+  });
+
+  // Toujours "success" côté message, y compris si l'e-mail n'existe pas :
+  // on ne révèle jamais quels comptes existent (même logique que côté admin).
+  if (error) {
+    return { error: "Impossible d'envoyer le lien. Réessaie dans un instant." };
+  }
+
+  return { success: true };
+}
+
 const profilSchema = z.object({
   nom: z.string().trim().min(1, "Le nom est requis."),
   prenom: z.string().trim().min(1, "Le prénom est requis."),
