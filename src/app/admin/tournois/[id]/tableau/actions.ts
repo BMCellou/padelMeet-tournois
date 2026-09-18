@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
   calculerContexteQualification,
+  calculerMatchClassement5e,
   genererTableauAvecQualifies,
   type ResultatAction,
 } from "@/lib/tournoi/tableauFinal";
@@ -40,7 +41,15 @@ export async function regenererTableauAvecQualifies(
     groupId: groupIdParEquipe.get(teamId)!,
   }));
 
-  const resultat = await genererTableauAvecQualifies(supabase, tournamentId, qualifies);
+  const qualifiesIds = new Set(teamIds);
+  const classement5e = await calculerMatchClassement5e(
+    supabase,
+    tournamentId,
+    contexte.equipes,
+    qualifiesIds,
+  );
+
+  const resultat = await genererTableauAvecQualifies(supabase, tournamentId, qualifies, classement5e);
   if ("success" in resultat) {
     revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
   }

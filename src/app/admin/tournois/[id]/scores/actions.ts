@@ -377,7 +377,7 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
       .from("matches")
       .select("statut")
       .eq("tournament_id", tournamentId)
-      .in("phase", ["tableau", "classement"]);
+      .in("phase", ["tableau", "classement", "classement_5e"]);
 
     if (matchsTableau?.some((m) => m.statut !== "a_venir")) {
       return {

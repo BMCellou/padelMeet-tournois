@@ -85,6 +85,15 @@ export default async function PageTournoiPublic({
     .eq("phase", "classement")
     .maybeSingle();
 
+  const { data: matchClassement5eBrut } = await supabase
+    .from("matches")
+    .select(
+      "id, round, statut, team_a_id, team_b_id, winner_id, court_id, scheduled_at, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+    )
+    .eq("tournament_id", tournoi.id)
+    .eq("phase", "classement_5e")
+    .maybeSingle();
+
   function versMatchPublic(m: {
     id: string;
     round: number;
@@ -157,12 +166,14 @@ export default async function PageTournoiPublic({
       : calculerClassementFinalTableau(
           matchsTableauBruts ?? [],
           matchPetiteFinaleBrut ?? null,
+          matchClassement5eBrut ?? null,
           (teams ?? []).map((t) => t.id),
           standingsParEquipe,
           nomEquipe,
         );
 
   const petiteFinaleAffichee = matchPetiteFinaleBrut ? versMatchPublic(matchPetiteFinaleBrut) : null;
+  const classement5eAffichee = matchClassement5eBrut ? versMatchPublic(matchClassement5eBrut) : null;
 
   let sectionInscription: ReactNode = null;
   if (tournoi.statut === "publie") {
@@ -268,6 +279,18 @@ export default async function PageTournoiPublic({
                     <p className="text-xs text-muted-foreground">
                       En attente des perdant·e·s de demi-finale.
                     </p>
+                  )}
+                </div>
+              ) : null}
+              {matchClassement5eBrut ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Match pour la 5e place
+                  </p>
+                  {classement5eAffichee ? (
+                    <PublicMatchCard match={classement5eAffichee} />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">En attente des 3es de poule.</p>
                   )}
                 </div>
               ) : null}

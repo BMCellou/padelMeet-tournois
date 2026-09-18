@@ -8,6 +8,7 @@
 import type { createClient } from "@/lib/supabase/server";
 import { selectionnerQualifies, type ClassementPoule } from "@/lib/engine/qualification";
 import { genererTableau, type Qualifie } from "@/lib/engine/tableau";
+import { calculerMatch5eDePoule, type Match5e } from "@/lib/engine/classement5e";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -146,6 +147,32 @@ export async function calculerContexteQualification(
 }
 
 /**
+ * Détermine si un match de classement pour la 5e place doit être créé à
+ * côté du tableau (les deux 3es de poule non qualifiés, cas de deux
+ * poules uniquement — voir src/lib/engine/classement5e.ts), et si le
+ * tournoi a au moins 3 terrains assignés pour le jouer en parallèle des
+ * demi-finales.
+ */
+export async function calculerMatchClassement5e(
+  supabase: SupabaseServerClient,
+  tournamentId: string,
+  equipes: EquipePoule[],
+  qualifiesIds: ReadonlySet<string>,
+): Promise<Match5e | null> {
+  const match = calculerMatch5eDePoule(equipes, qualifiesIds);
+  if (!match) return null;
+
+  const { count } = await supabase
+    .from("tournament_courts")
+    .select("*", { count: "exact", head: true })
+    .eq("tournament_id", tournamentId);
+
+  if (!count || count < 3) return null;
+
+  return match;
+}
+
+/**
  * Génère et persiste le tableau final à partir d'une liste explicite de
  * qualifiés (calculée automatiquement, ou choisie à la main sur l'écran
  * de repêchage — le code ne fait pas la différence). Bloque si le
@@ -155,6 +182,7 @@ export async function genererTableauAvecQualifies(
   supabase: SupabaseServerClient,
   tournamentId: string,
   qualifies: Qualifie[],
+  classement5e: Match5e | null = null,
 ): Promise<ResultatAction> {
   if (qualifies.length < 2 || (qualifies.length & (qualifies.length - 1)) !== 0) {
     return { error: `Le nombre de qualifiés doit être une puissance de 2 (reçu ${qualifies.length}).` };
@@ -167,14 +195,15 @@ export async function genererTableauAvecQualifies(
     return { error: e instanceof Error ? e.message : "Impossible de générer le tableau." };
   }
 
-  // "classement" = la petite finale générée à côté du tableau principal
-  // (voir genererTableau) : traitée comme partie intégrante du même
-  // tableau pour la détection "déjà entamé" et la régénération.
+  // "classement" = la petite finale, "classement_5e" = le match des deux
+  // 3es de poule non qualifiés : tous deux générés à côté du tableau
+  // principal, traités comme partie intégrante du même tableau pour la
+  // détection "déjà entamé" et la régénération.
   const { data: matchsTableauExistants } = await supabase
     .from("matches")
     .select("id, statut")
     .eq("tournament_id", tournamentId)
-    .in("phase", ["tableau", "classement"]);
+    .in("phase", ["tableau", "classement", "classement_5e"]);
 
   if (matchsTableauExistants?.some((m) => m.statut !== "a_venir")) {
     return { error: "Des scores du tableau final ont déjà été saisis : impossible de régénérer." };
@@ -185,7 +214,7 @@ export async function genererTableauAvecQualifies(
       .from("matches")
       .delete()
       .eq("tournament_id", tournamentId)
-      .in("phase", ["tableau", "classement"]);
+      .in("phase", ["tableau", "classement", "classement_5e"]);
   }
 
   // Insertion en deux passes : les lignes d'abord, puis le câblage
@@ -231,6 +260,23 @@ export async function genererTableauAvecQualifies(
     }
   }
 
+  if (classement5e) {
+    // Joué en parallèle des demi-finales (même round) : les deux équipes
+    // sont déjà connues, pas de propagation à câbler.
+    const roundDemiFinales = Math.max(
+      1,
+      Math.max(...bracket.filter((m) => m.phase === "tableau").map((m) => m.round)) - 1,
+    );
+    await supabase.from("matches").insert({
+      tournament_id: tournamentId,
+      phase: "classement_5e",
+      round: roundDemiFinales,
+      team_a_id: classement5e.teamAId,
+      team_b_id: classement5e.teamBId,
+      statut: "a_venir",
+    });
+  }
+
   return { success: true };
 }
 
@@ -264,5 +310,8 @@ export async function tenterGenerationAutomatique(
 
   if (qualifies.length !== contexte.tailleTableau) return;
 
-  await genererTableauAvecQualifies(supabase, tournamentId, qualifies);
+  const qualifiesIds = new Set(qualifies.map((q) => q.teamId));
+  const classement5e = await calculerMatchClassement5e(supabase, tournamentId, contexte.equipes, qualifiesIds);
+
+  await genererTableauAvecQualifies(supabase, tournamentId, qualifies, classement5e);
 }

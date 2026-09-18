@@ -34,6 +34,13 @@ interface MatchPetiteFinaleBrut {
   statut: string;
 }
 
+interface MatchClassement5eBrut {
+  team_a_id: string | null;
+  team_b_id: string | null;
+  winner_id: string | null;
+  statut: string;
+}
+
 function ratioVictoires(s: StandingRow | undefined): number {
   return s && s.joues > 0 ? s.v / s.joues : 0;
 }
@@ -53,6 +60,7 @@ export function trierParRatio(ids: string[], standings: Map<string, StandingRow>
 export function calculerClassementFinalTableau(
   matchsTableau: MatchTableauBrut[],
   matchPetiteFinale: MatchPetiteFinaleBrut | null,
+  matchClassement5e: MatchClassement5eBrut | null,
   toutesLesEquipesIds: string[],
   standingsParEquipe: Map<string, StandingRow>,
   nomEquipe: Map<string, string>,
@@ -94,13 +102,32 @@ export function calculerClassementFinalTableau(
     petiteFinale = { vainqueurId, perdantId };
   }
 
+  let classement5e: { vainqueurId: string; perdantId: string } | null = null;
+  if (
+    matchClassement5e &&
+    matchClassement5e.winner_id &&
+    (matchClassement5e.statut === "valide" || matchClassement5e.statut === "forfait")
+  ) {
+    const vainqueurId = matchClassement5e.winner_id;
+    const perdantId =
+      matchClassement5e.team_a_id === vainqueurId
+        ? matchClassement5e.team_b_id!
+        : matchClassement5e.team_a_id!;
+    classement5e = { vainqueurId, perdantId };
+  }
+
+  const nonQualifiesRestants = classement5e
+    ? nonQualifies.filter((id) => id !== classement5e!.vainqueurId && id !== classement5e!.perdantId)
+    : nonQualifies;
+
   const resultat = classementFinal({
     finaleVainqueurId: champion,
     finalePerdantId: finaliste,
     demiFinalesPerdantIds: demiPerdants,
     petiteFinale,
     quartsPerdantIdsTries: trierParRatio(quartsPerdants, standingsParEquipe),
-    nonQualifieIdsTries: trierParRatio(nonQualifies, standingsParEquipe),
+    classement5e,
+    nonQualifieIdsTries: trierParRatio(nonQualifiesRestants, standingsParEquipe),
   });
 
   return resultat.map((e) => ({ rang: e.rang, equipeNom: nomEquipe.get(e.teamId) ?? "?" }));

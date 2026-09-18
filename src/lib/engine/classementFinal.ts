@@ -13,6 +13,10 @@ export interface DonneesClassementFinal {
   petiteFinale?: { vainqueurId: string; perdantId: string } | null;
   /** Perdants de quarts, déjà triés du meilleur au moins bon (5e à 8e). */
   quartsPerdantIdsTries: string[];
+  /** Résultat du match de classement pour la 5e place (les deux 3es de
+   * poule non qualifiés, cas de deux poules uniquement) s'il a été joué —
+   * sinon ces équipes restent départagées par ratio dans nonQualifieIdsTries. */
+  classement5e?: { vainqueurId: string; perdantId: string } | null;
   /** Équipes non qualifiées, déjà triées du meilleur au moins bon (9e et suivants). */
   nonQualifieIdsTries: string[];
 }
@@ -40,6 +44,12 @@ export function classementFinal(donnees: DonneesClassementFinal): EquipeClasseme
   let rang = 3 + donnees.demiFinalesPerdantIds.length;
   for (const id of donnees.quartsPerdantIdsTries) {
     resultat.push({ teamId: id, rang });
+    rang++;
+  }
+  if (donnees.classement5e) {
+    resultat.push({ teamId: donnees.classement5e.vainqueurId, rang });
+    rang++;
+    resultat.push({ teamId: donnees.classement5e.perdantId, rang });
     rang++;
   }
   for (const id of donnees.nonQualifieIdsTries) {

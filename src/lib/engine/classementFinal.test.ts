@@ -48,6 +48,25 @@ describe("classementFinal", () => {
     expect(resultat.some((e) => e.rang === 4)).toBe(false);
   });
 
+  it("match de 5e place joué : départage la 5e et la 6e place, le reste des non-qualifiés suit", () => {
+    const resultat = classementFinal({
+      finaleVainqueurId: "champion",
+      finalePerdantId: "finaliste",
+      demiFinalesPerdantIds: ["demi1", "demi2"],
+      petiteFinale: { vainqueurId: "demi2", perdantId: "demi1" },
+      quartsPerdantIdsTries: [],
+      classement5e: { vainqueurId: "a3", perdantId: "b3" },
+      nonQualifieIdsTries: ["a4", "b4"],
+    });
+
+    expect(resultat.find((e) => e.teamId === "demi2")!.rang).toBe(3);
+    expect(resultat.find((e) => e.teamId === "demi1")!.rang).toBe(4);
+    expect(resultat.find((e) => e.teamId === "a3")!.rang).toBe(5);
+    expect(resultat.find((e) => e.teamId === "b3")!.rang).toBe(6);
+    expect(resultat.find((e) => e.teamId === "a4")!.rang).toBe(7);
+    expect(resultat.find((e) => e.teamId === "b4")!.rang).toBe(8);
+  });
+
   it("classe les non-qualifiés à la suite (9e et suivants)", () => {
     const resultat = classementFinal({
       finaleVainqueurId: "champion",

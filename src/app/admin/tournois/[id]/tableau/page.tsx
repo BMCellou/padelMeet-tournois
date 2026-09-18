@@ -126,9 +126,19 @@ export default async function TableauPage({
       .eq("phase", "classement")
       .maybeSingle();
 
+    const { data: matchClassement5eBrut } = await supabase
+      .from("matches")
+      .select(
+        "id, statut, team_a_id, team_b_id, winner_id, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+      )
+      .eq("tournament_id", tournamentId)
+      .eq("phase", "classement_5e")
+      .maybeSingle();
+
     const tableauCommence =
       (matchsBruts ?? []).some((m) => m.statut !== "a_venir") ||
-      (matchPetiteFinaleBrut ? matchPetiteFinaleBrut.statut !== "a_venir" : false);
+      (matchPetiteFinaleBrut ? matchPetiteFinaleBrut.statut !== "a_venir" : false) ||
+      (matchClassement5eBrut ? matchClassement5eBrut.statut !== "a_venir" : false);
 
     // Choisir/repêcher les qualifiés relève du tirage, réservé aux
     // admins — un scoreur ne voit que le tableau déjà généré (ou un
@@ -171,6 +181,7 @@ export default async function TableauPage({
       const classementFinalLignes = calculerClassementFinalTableau(
         matchsBruts,
         matchPetiteFinaleBrut ?? null,
+        matchClassement5eBrut ?? null,
         (teams ?? []).map((t) => t.id),
         standingsParEquipe,
         nomEquipe,
@@ -188,6 +199,28 @@ export default async function TableauPage({
               teamBNom: nomEquipe.get(matchPetiteFinaleBrut.team_b_id) ?? "?",
               winnerId: matchPetiteFinaleBrut.winner_id,
               sets: [...matchPetiteFinaleBrut.match_sets]
+                .sort((a, b) => a.numero - b.numero)
+                .map((s) => ({
+                  jeuxA: s.jeux_a,
+                  jeuxB: s.jeux_b,
+                  tiebreakA: s.tiebreak_a,
+                  tiebreakB: s.tiebreak_b,
+                })),
+            }
+          : null;
+
+      const classement5eAffichee: MatchAffiche | null =
+        matchClassement5eBrut && matchClassement5eBrut.team_a_id && matchClassement5eBrut.team_b_id
+          ? {
+              id: matchClassement5eBrut.id,
+              round: dernierTour,
+              statut: matchClassement5eBrut.statut,
+              teamAId: matchClassement5eBrut.team_a_id,
+              teamBId: matchClassement5eBrut.team_b_id,
+              teamANom: nomEquipe.get(matchClassement5eBrut.team_a_id) ?? "?",
+              teamBNom: nomEquipe.get(matchClassement5eBrut.team_b_id) ?? "?",
+              winnerId: matchClassement5eBrut.winner_id,
+              sets: [...matchClassement5eBrut.match_sets]
                 .sort((a, b) => a.numero - b.numero)
                 .map((s) => ({
                   jeuxA: s.jeux_a,
@@ -265,6 +298,22 @@ export default async function TableauPage({
                 ) : (
                   <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
                     En attente des perdant·e·s de demi-finale
+                  </div>
+                )}
+              </div>
+            ) : null}
+            {matchClassement5eBrut ? (
+              <div className="w-64 shrink-0 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Match pour la 5e place</p>
+                {classement5eAffichee ? (
+                  <MatchScoreCard
+                    tournamentId={tournamentId}
+                    match={classement5eAffichee}
+                    format={format}
+                  />
+                ) : (
+                  <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                    En attente des 3es de poule
                   </div>
                 )}
               </div>
