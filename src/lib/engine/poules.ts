@@ -1,10 +1,13 @@
-// §4.1 — Répartition en poules. Contrainte dure : 4 équipes minimum par
-// poule (garantit 3 matchs par équipe). Taille cible 4 ou 5, maximum 7.
+// §4.1 — Répartition en poules. Automatique : 4 équipes minimum par poule
+// (garantit 3 matchs par équipe), taille cible 4 ou 5, maximum 7. Quand
+// l'admin force le nombre de poules, une poule de 3 est acceptée (ex. 7
+// équipes en 3 + 4) : chaque équipe y joue alors 2 matchs au minimum.
 
 const TAILLE_CIBLE_MIN = 4;
 const TAILLE_CIBLE_MAX = 5;
 const TAILLE_MAX = 7;
 const TAILLE_MIN = 4;
+const TAILLE_MIN_FORCE = 3;
 
 export interface RepartitionPoulesOptions {
   nombrePoulesForce?: number;
@@ -47,9 +50,9 @@ export function calculerRepartitionPoules(
   if (options.nombrePoulesForce !== undefined) {
     const n = options.nombrePoulesForce;
     const tailles = partitionEquilibree(nombreEquipes, n);
-    if (tailles.some((t) => t < TAILLE_MIN)) {
+    if (tailles.some((t) => t < TAILLE_MIN_FORCE)) {
       throw new Error(
-        `Impossible de former ${n} poule(s) avec ${nombreEquipes} équipes : au moins une poule aurait moins de ${TAILLE_MIN} équipes.`,
+        `Impossible de former ${n} poule(s) avec ${nombreEquipes} équipes : au moins une poule aurait moins de ${TAILLE_MIN_FORCE} équipes.`,
       );
     }
     return { nombrePoules: n, tailles };

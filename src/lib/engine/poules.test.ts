@@ -34,6 +34,11 @@ describe("calculerRepartitionPoules", () => {
     expect(calculerRepartitionPoules(5).avertissement).toBeUndefined();
   });
 
+  it("forcer 2 poules avec 7 équipes donne une poule de 4 et une de 3", () => {
+    const r = calculerRepartitionPoules(7, { nombrePoulesForce: 2 });
+    expect([...r.tailles].sort()).toEqual([3, 4]);
+  });
+
   it("refuse moins de 4 équipes", () => {
     expect(() => calculerRepartitionPoules(3)).toThrow();
   });
@@ -45,6 +50,6 @@ describe("calculerRepartitionPoules", () => {
   });
 
   it("refuse un forçage qui violerait le minimum de 4 par poule", () => {
-    expect(() => calculerRepartitionPoules(14, { nombrePoulesForce: 4 })).toThrow();
+    expect(() => calculerRepartitionPoules(14, { nombrePoulesForce: 5 })).toThrow();
   });
 });
