@@ -266,6 +266,7 @@ const profilSchema = z.object({
   sexe: z.enum(["H", "F"]).optional(),
   telephone: z.string().trim().optional(),
   classementFft: z.string().trim().optional(),
+  canalRappel: z.enum(["email", "whatsapp"]).default("email"),
 });
 
 export async function modifierMonProfil(
@@ -283,6 +284,7 @@ export async function modifierMonProfil(
     sexe: formData.get("sexe") || undefined,
     telephone: formData.get("telephone") || undefined,
     classementFft: formData.get("classementFft") || undefined,
+    canalRappel: formData.get("canalRappel") || undefined,
   });
 
   if (!parsed.success) {
@@ -298,6 +300,7 @@ export async function modifierMonProfil(
       sexe: parsed.data.sexe,
       telephone: parsed.data.telephone,
       classement_fft: parsed.data.classementFft,
+      canal_rappel: parsed.data.canalRappel,
     })
     .eq("id", participant.playerId);
 

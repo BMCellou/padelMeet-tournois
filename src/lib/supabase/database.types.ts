@@ -370,8 +370,27 @@ export type Database = {
           },
         ]
       }
+      parametres_rappels: {
+        Row: {
+          cron_actif: boolean
+          delai_avant_heures: number
+          id: boolean
+        }
+        Insert: {
+          cron_actif?: boolean
+          delai_avant_heures?: number
+          id?: boolean
+        }
+        Update: {
+          cron_actif?: boolean
+          delai_avant_heures?: number
+          id?: boolean
+        }
+        Relationships: []
+      }
       players: {
         Row: {
+          canal_rappel: string
           classement_fft: string | null
           email: string | null
           id: string
@@ -382,6 +401,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          canal_rappel?: string
           classement_fft?: string | null
           email?: string | null
           id?: string
@@ -392,6 +412,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          canal_rappel?: string
           classement_fft?: string | null
           email?: string | null
           id?: string
@@ -402,6 +423,48 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      rappels_envoyes: {
+        Row: {
+          canal: string
+          envoye_at: string
+          envoye_par: string
+          id: string
+          match_id: string
+          player_id: string
+        }
+        Insert: {
+          canal: string
+          envoye_at?: string
+          envoye_par: string
+          id?: string
+          match_id: string
+          player_id: string
+        }
+        Update: {
+          canal?: string
+          envoye_at?: string
+          envoye_par?: string
+          id?: string
+          match_id?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rappels_envoyes_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rappels_envoyes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       registrations: {
         Row: {

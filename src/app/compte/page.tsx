@@ -17,7 +17,7 @@ export default async function CompteParticipantPage() {
   const service = createServiceClient();
   const { data: profil } = await service
     .from("players")
-    .select("nom, prenom, sexe, classement_fft, telephone, email")
+    .select("nom, prenom, sexe, classement_fft, telephone, email, canal_rappel")
     .eq("id", participant.playerId)
     .single();
 
@@ -58,6 +58,7 @@ export default async function CompteParticipantPage() {
                 classementFft: profil.classement_fft,
                 telephone: profil.telephone,
                 email: profil.email,
+                canalRappel: profil.canal_rappel === "whatsapp" ? "whatsapp" : "email",
               }}
             />
           </CardContent>

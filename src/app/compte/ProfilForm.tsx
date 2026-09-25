@@ -13,6 +13,7 @@ export interface MonProfil {
   classementFft: string | null;
   telephone: string | null;
   email: string | null;
+  canalRappel: "email" | "whatsapp";
 }
 
 export function ProfilForm({ profil }: { profil: MonProfil }) {
@@ -37,6 +38,18 @@ export function ProfilForm({ profil }: { profil: MonProfil }) {
           <Label htmlFor="telephone">Téléphone</Label>
           <Input id="telephone" name="telephone" defaultValue={profil.telephone ?? ""} />
         </div>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="canalRappel">Recevoir mes rappels de match par</Label>
+        <select
+          id="canalRappel"
+          name="canalRappel"
+          defaultValue={profil.canalRappel}
+          className="h-9 rounded-md border bg-background px-2 text-sm"
+        >
+          <option value="email">E-mail</option>
+          <option value="whatsapp">WhatsApp (au numéro ci-dessus)</option>
+        </select>
       </div>
       <div className="space-y-1">
         <Label>E-mail</Label>
