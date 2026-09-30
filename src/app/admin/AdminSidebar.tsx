@@ -120,6 +120,15 @@ export function AdminSidebar({
       >
         Joueurs
       </Link>
+      <Link
+        href="/admin/sauvegardes"
+        className={cn(
+          "shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap",
+          pathname === "/admin/sauvegardes" ? "bg-primary/10 text-primary" : "hover:bg-accent",
+        )}
+      >
+        Sauvegardes
+      </Link>
 
       {tournamentId ? (
         <div className="flex shrink-0 gap-1 sm:mt-4 sm:flex-col sm:gap-1">
