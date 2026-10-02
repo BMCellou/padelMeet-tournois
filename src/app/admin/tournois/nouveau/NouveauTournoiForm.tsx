@@ -137,6 +137,19 @@ export function NouveauTournoiForm({ clubs }: { clubs: Club[] }) {
               />
             </div>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="maxParticipants">Nombre maximum de joueurs</Label>
+            <Input
+              id="maxParticipants"
+              name="maxParticipants"
+              type="number"
+              min={2}
+              placeholder="Illimité"
+            />
+            <p className="text-xs text-muted-foreground">
+              Une paire compte pour 2. Vide = pas de limite. Modifiable plus tard.
+            </p>
+          </div>
           {state && "error" in state ? (
             <p className="text-sm text-destructive">{state.error}</p>
           ) : null}

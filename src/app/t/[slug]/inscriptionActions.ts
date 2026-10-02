@@ -3,6 +3,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { getParticipantConnecte } from "@/lib/participant/session";
 import { chargerStatutInscription } from "./inscriptionStatus";
+import { chargerPlaces } from "@/lib/inscriptions/occupation";
+import { refusInscription } from "@/lib/inscriptions/places";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -54,13 +56,28 @@ export async function sInscrireSolo(
   );
   if (statutActuel.inscrit) return { error: "Tu es déjà inscrit(e) à ce tournoi." };
 
-  const { error } = await service.from("registrations").insert({
-    tournament_id: parsed.data.tournamentId,
-    type: "solo",
-    player_id: participant.playerId,
-    statut: "en_attente",
-  });
-  if (error) return { error: "Impossible de t'inscrire." };
+  const refus = refusInscription(await chargerPlaces(service, parsed.data.tournamentId), 1);
+  if (refus) return { error: refus };
+
+  const { data: inscription, error } = await service
+    .from("registrations")
+    .insert({
+      tournament_id: parsed.data.tournamentId,
+      type: "solo",
+      player_id: participant.playerId,
+      statut: "en_attente",
+    })
+    .select("id")
+    .single();
+  if (error || !inscription) return { error: "Impossible de t'inscrire." };
+
+  // Deux inscriptions simultanées ont pu passer la vérification
+  // ci-dessus : on recompte et on annule la nôtre si la limite est dépassée.
+  const placesApres = await chargerPlaces(service, parsed.data.tournamentId);
+  if (!placesApres.illimite && placesApres.max !== null && placesApres.occupees > placesApres.max) {
+    await service.from("registrations").delete().eq("id", inscription.id);
+    return { error: "Ce tournoi est complet." };
+  }
 
   revalidatePath(`/t/${parsed.data.slug}`);
   return { success: true };
@@ -137,6 +154,9 @@ export async function sInscrireEnPaire(
   );
   if (statutActuel.inscrit) return { error: "Tu es déjà inscrit(e) à ce tournoi." };
 
+  const refus = refusInscription(await chargerPlaces(service, parsed.data.tournamentId), 2);
+  if (refus) return { error: refus };
+
   let partenaireId: string;
   let nomAffichePartenaire = `${parsed.data.prenomPartenaire} ${parsed.data.nomPartenaire}`;
 
@@ -202,6 +222,14 @@ export async function sInscrireEnPaire(
     statut: "en_attente",
   });
   if (regError) return { error: "Impossible d'enregistrer l'inscription." };
+
+  // Même garde-fou de concurrence que pour le solo : la suppression de
+  // l'équipe cascade sur team_players et registrations.
+  const placesApres = await chargerPlaces(service, parsed.data.tournamentId);
+  if (!placesApres.illimite && placesApres.max !== null && placesApres.occupees > placesApres.max) {
+    await service.from("teams").delete().eq("id", team.id);
+    return { error: "Ce tournoi est complet." };
+  }
 
   revalidatePath(`/t/${parsed.data.slug}`);
   return { success: true };

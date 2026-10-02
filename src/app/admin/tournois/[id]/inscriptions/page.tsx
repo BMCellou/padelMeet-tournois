@@ -13,6 +13,8 @@ import {
 import { EquipesEnAttenteList } from "./EquipesEnAttenteList";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
+import { createServiceClient } from "@/lib/supabase/service";
+import { chargerPlaces } from "@/lib/inscriptions/occupation";
 import { RealtimeRefresher } from "@/components/tournoi/RealtimeRefresher";
 
 export default async function InscriptionsPage({
@@ -117,6 +119,8 @@ export default async function InscriptionsPage({
     nomAffiche: e.nom_affiche,
   }));
 
+  const places = await chargerPlaces(createServiceClient(), tournamentId);
+
   return (
     <div className="min-h-screen bg-muted/20">
       <RealtimeRefresher tournamentId={tournamentId} />
@@ -127,6 +131,14 @@ export default async function InscriptionsPage({
           <h1 className="text-2xl font-semibold">
             Inscriptions — {tournoi.nom}
           </h1>
+
+          <p className="text-sm text-muted-foreground">
+            {places.illimite
+              ? `${places.occupees} joueur(s) inscrit(s), pas de limite.`
+              : `${places.occupees} / ${places.max} joueurs inscrits — ${
+                  places.complet ? "complet" : `${places.restantes} place(s) restante(s)`
+                }. Les ajouts faits ici ne sont pas bloqués par la limite ; seules les inscriptions en ligne le sont.`}
+          </p>
 
           <Card>
             <CardHeader>

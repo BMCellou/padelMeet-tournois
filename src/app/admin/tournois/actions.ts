@@ -7,6 +7,12 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 
+// Champ vide = pas de limite.
+const maxParticipantsSchema = z.preprocess(
+  (v) => (v === "" || v === null || v === undefined ? null : v),
+  z.coerce.number().int().min(2, "La limite doit être d'au moins 2 joueurs.").nullable(),
+);
+
 const tournamentSchema = z.object({
   // Optionnel : un tournoi peut être créé avant de savoir quel club
   // l'accueillera, pour ouvrir les inscriptions sans attendre.
@@ -18,6 +24,7 @@ const tournamentSchema = z.object({
   nbQualifies: z.coerce.number().int().positive(),
   dureeMatchMin: z.coerce.number().int().positive(),
   pauseMin: z.coerce.number().int().nonnegative(),
+  maxParticipants: maxParticipantsSchema,
 });
 
 type CreerTournoiResult = { error: string } | { success: true; tournamentId: string };
@@ -40,6 +47,7 @@ export async function creerTournoi(
     nbQualifies: formData.get("nbQualifies"),
     dureeMatchMin: formData.get("dureeMatchMin"),
     pauseMin: formData.get("pauseMin"),
+    maxParticipants: formData.get("maxParticipants"),
   });
 
   if (!parsed.success) {
@@ -59,6 +67,7 @@ export async function creerTournoi(
       nb_qualifies: parsed.data.nbQualifies,
       duree_match_min: parsed.data.dureeMatchMin,
       pause_min: parsed.data.pauseMin,
+      max_participants: parsed.data.maxParticipants,
       public_slug: genererSlugPublic(),
       format_config: FORMAT_PAR_DEFAUT,
     })
@@ -83,6 +92,7 @@ const modifierTournoiSchema = z.object({
   nbQualifies: z.coerce.number().int().positive(),
   dureeMatchMin: z.coerce.number().int().positive(),
   pauseMin: z.coerce.number().int().nonnegative(),
+  maxParticipants: maxParticipantsSchema,
 });
 
 type ActionResult = { error: string } | { success: true };
@@ -103,6 +113,7 @@ export async function modifierTournoi(
     nbQualifies: formData.get("nbQualifies"),
     dureeMatchMin: formData.get("dureeMatchMin"),
     pauseMin: formData.get("pauseMin"),
+    maxParticipants: formData.get("maxParticipants"),
   });
 
   if (!parsed.success) {
@@ -124,6 +135,7 @@ export async function modifierTournoi(
       nb_qualifies: d.nbQualifies,
       duree_match_min: d.dureeMatchMin,
       pause_min: d.pauseMin,
+      max_participants: d.maxParticipants,
     })
     .eq("id", tournamentId);
 

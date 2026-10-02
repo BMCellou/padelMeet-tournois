@@ -45,6 +45,7 @@ export interface TournoiEditable {
   nbQualifies: number | null;
   dureeMatchMin: number | null;
   pauseMin: number | null;
+  maxParticipants: number | null;
 }
 
 interface Club {
@@ -189,6 +190,21 @@ export function ModifierTournoiDialog({
                 required
               />
             </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="edit-maxParticipants">Nombre maximum de joueurs</Label>
+            <Input
+              id="edit-maxParticipants"
+              name="maxParticipants"
+              type="number"
+              min={2}
+              defaultValue={tournoi.maxParticipants ?? ""}
+              placeholder="Illimité"
+            />
+            <p className="text-xs text-muted-foreground">
+              Une paire compte pour 2. Vide = pas de limite. Le nombre de places restantes est affiché
+              aux inscrits.
+            </p>
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <DialogFooter>

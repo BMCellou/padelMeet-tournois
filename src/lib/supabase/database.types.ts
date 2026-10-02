@@ -690,6 +690,7 @@ export type Database = {
           genre: string | null
           heure_debut: string
           id: string
+          max_participants: number | null
           nb_qualifies: number | null
           niveau: string | null
           nom: string
@@ -709,6 +710,7 @@ export type Database = {
           genre?: string | null
           heure_debut?: string
           id?: string
+          max_participants?: number | null
           nb_qualifies?: number | null
           niveau?: string | null
           nom: string
@@ -728,6 +730,7 @@ export type Database = {
           genre?: string | null
           heure_debut?: string
           id?: string
+          max_participants?: number | null
           nb_qualifies?: number | null
           niveau?: string | null
           nom?: string

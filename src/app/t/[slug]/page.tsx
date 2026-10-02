@@ -11,6 +11,8 @@ import { formatHeureParis } from "@/lib/temps";
 import { getParticipantConnecte } from "@/lib/participant/session";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargerStatutInscription } from "./inscriptionStatus";
+import { chargerPlaces } from "@/lib/inscriptions/occupation";
+import { libellePlaces } from "@/lib/inscriptions/places";
 import {
   InscriptionNonConnecte,
   InscriptionDejaFaite,
@@ -178,10 +180,14 @@ export default async function PageTournoiPublic({
   let sectionInscription: ReactNode = null;
   if (tournoi.statut === "publie") {
     const participant = await getParticipantConnecte();
+    const service = createServiceClient();
+    const places = await chargerPlaces(service, tournoi.id);
+    const placesLibelle = libellePlaces(places);
     if (!participant) {
-      sectionInscription = <InscriptionNonConnecte slug={slug} />;
+      sectionInscription = (
+        <InscriptionNonConnecte slug={slug} placesLibelle={placesLibelle} complet={places.complet} />
+      );
     } else {
-      const service = createServiceClient();
       const statutInscription = await chargerStatutInscription(
         service,
         tournoi.id,
@@ -193,7 +199,12 @@ export default async function PageTournoiPublic({
           enAttente={statutInscription.enAttente}
         />
       ) : (
-        <InscriptionFormulaire tournamentId={tournoi.id} slug={slug} />
+        <InscriptionFormulaire
+          tournamentId={tournoi.id}
+          slug={slug}
+          placesLibelle={placesLibelle}
+          placesRestantes={places.restantes}
+        />
       );
     }
   }

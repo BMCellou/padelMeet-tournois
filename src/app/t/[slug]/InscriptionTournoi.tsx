@@ -9,12 +9,32 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 
-export function InscriptionNonConnecte({ slug }: { slug: string }) {
+export function BadgePlaces({ libelle, complet }: { libelle: string | null; complet: boolean }) {
+  if (!libelle) return null;
+  return (
+    <Badge variant={complet ? "outline" : "volt"} className={complet ? "text-destructive" : undefined}>
+      {libelle}
+    </Badge>
+  );
+}
+
+export function InscriptionNonConnecte({
+  slug,
+  placesLibelle,
+  complet,
+}: {
+  slug: string;
+  placesLibelle: string | null;
+  complet: boolean;
+}) {
   const next = encodeURIComponent(`/t/${slug}`);
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">S&apos;inscrire à ce tournoi</CardTitle>
+        <CardTitle className="flex items-center justify-between gap-2 text-base">
+          S&apos;inscrire à ce tournoi
+          <BadgePlaces libelle={placesLibelle} complet={complet} />
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 sm:flex-row">
         <Link href={`/compte/connexion?next=${next}`} className="flex-1">
@@ -59,9 +79,14 @@ export function InscriptionDejaFaite({
 export function InscriptionFormulaire({
   tournamentId,
   slug,
+  placesLibelle,
+  placesRestantes,
 }: {
   tournamentId: string;
   slug: string;
+  placesLibelle: string | null;
+  /** null = illimité */
+  placesRestantes: number | null;
 }) {
   const [mode, setMode] = useState<"solo" | "paire">("paire");
   const [stateSolo, actionSolo, pendingSolo] = useActionState(sInscrireSolo, null);
@@ -85,13 +110,29 @@ export function InscriptionFormulaire({
     );
   }
 
+  const complet = placesRestantes === 0;
+  const uneSeulePlace = placesRestantes === 1;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">S&apos;inscrire à ce tournoi</CardTitle>
+        <CardTitle className="flex items-center justify-between gap-2 text-base">
+          S&apos;inscrire à ce tournoi
+          <BadgePlaces libelle={placesLibelle} complet={complet} />
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2 text-sm">
+        {complet ? (
+          <p className="text-sm text-muted-foreground">
+            Ce tournoi est complet, les inscriptions sont fermées.
+          </p>
+        ) : null}
+        {uneSeulePlace ? (
+          <p className="text-sm text-muted-foreground">
+            Il ne reste qu&apos;une place : seule l&apos;inscription en solo est possible.
+          </p>
+        ) : null}
+        <div className={complet || uneSeulePlace ? "hidden" : "flex gap-2 text-sm"}>
           <button
             type="button"
             className={mode === "paire" ? "font-medium underline" : "text-muted-foreground"}
@@ -109,7 +150,7 @@ export function InscriptionFormulaire({
           </button>
         </div>
 
-        {mode === "paire" ? (
+        {complet ? null : mode === "paire" && !uneSeulePlace ? (
           <form action={actionPaire} className="space-y-3">
             <input type="hidden" name="tournamentId" value={tournamentId} />
             <input type="hidden" name="slug" value={slug} />

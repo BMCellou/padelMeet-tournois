@@ -22,7 +22,7 @@ export default async function FicheTournoiPage({
   const { data: tournoi } = await supabase
     .from("tournaments")
     .select(
-      "id, nom, date, statut, genre, niveau, nb_qualifies, duree_match_min, pause_min, club_id, public_slug",
+      "id, nom, date, statut, genre, niveau, nb_qualifies, duree_match_min, pause_min, club_id, public_slug, max_participants",
     )
     .eq("id", id)
     .single();
@@ -96,6 +96,7 @@ export default async function FicheTournoiPage({
                     nbQualifies: tournoi.nb_qualifies,
                     dureeMatchMin: tournoi.duree_match_min,
                     pauseMin: tournoi.pause_min,
+                    maxParticipants: tournoi.max_participants,
                   }}
                   clubs={clubs ?? []}
                 />
