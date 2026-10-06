@@ -45,7 +45,7 @@ export default async function ScoresPage({
   const { data: matchsBruts } = await supabase
     .from("matches")
     .select(
-      "id, group_id, round, statut, team_a_id, team_b_id, winner_id, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+      "id, group_id, round, statut, team_a_id, team_b_id, winner_id, format_override, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
     )
     .eq("tournament_id", tournamentId)
     .eq("phase", "poule")
@@ -87,6 +87,7 @@ export default async function ScoresPage({
                   teamANom: nomEquipe.get(m.team_a_id!) ?? "?",
                   teamBNom: nomEquipe.get(m.team_b_id!) ?? "?",
                   winnerId: m.winner_id,
+                  formatOverride: m.format_override as unknown as MatchFormat | null,
                   sets: [...m.match_sets]
                     .sort((a, b) => a.numero - b.numero)
                     .map((s) => ({

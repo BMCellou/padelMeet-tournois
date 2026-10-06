@@ -21,6 +21,7 @@ function liensTournoi(id: string) {
   return [
     { href: `/admin/tournois/${id}`, label: "Vue d'ensemble" },
     { href: `/admin/tournois/${id}/inscriptions`, label: "Inscriptions" },
+    { href: `/admin/tournois/${id}/format`, label: "Format & règles" },
     { href: `/admin/tournois/${id}/poules`, label: "Poules et tirage" },
     { href: `/admin/tournois/${id}/calendrier`, label: "Calendrier" },
     { href: `/admin/tournois/${id}/rappels`, label: "Rappels" },

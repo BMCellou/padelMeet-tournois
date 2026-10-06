@@ -23,6 +23,8 @@ import {
 
 export interface MatchAffiche {
   id: string;
+  /** Format propre à ce match (phase configurée), sinon celui du tournoi. */
+  formatOverride?: MatchFormat | null;
   round: number;
   statut: string;
   teamAId: string;
@@ -160,7 +162,7 @@ export function MatchScoreCard({
               </DialogTitle>
             </DialogHeader>
             <SetsForm
-              format={format}
+              format={match.formatOverride ?? format}
               initialSets={match.sets}
               onSubmit={soumettreSets}
               isPending={isPending}

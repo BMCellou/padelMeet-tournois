@@ -43,7 +43,7 @@ Chaque tournoi reçoit un **lien public non devinable** (identifiant aléatoire 
 
 Réglages de la vue d'ensemble d'un tournoi : choix du club, terrains utilisés par le tournoi, lien public, **arbitres/scoreurs** (invitation par e-mail, voir §4.3).
 
-Le **format de match** et l'**ordre de départage** du classement sont stockés par tournoi mais **n'ont pas d'écran de réglage** : un tournoi est créé avec les valeurs par défaut (§8.1 et §9) ; les modifier se fait directement en base.
+Le **format de match**, le format propre à chaque phase et l'**ordre de départage** se règlent dans l'onglet **Format & règles** (§4.6) ; un tournoi est créé avec les valeurs par défaut (§8.1 et §9).
 
 ### 4.2 Clubs et terrains
 
@@ -69,6 +69,18 @@ Vue de **tous les joueurs du système**, tous tournois confondus, avec leurs aff
 - Bouton « Sauvegarder maintenant », liste des sauvegardes (date, taille) et téléchargement (lien valable 1 h).
 - Il n'existe **pas d'outil de restauration** : c'est une opération manuelle, volontairement non exposée.
 - La sauvegarde couvre les données, pas la structure (celle-ci vit dans les migrations du dépôt).
+
+### 4.6 Format & règles (onglet du tournoi, admin)
+
+Trois sections, chacune avec son bouton d'enregistrement :
+
+1. **Format de match par défaut** : nombre de sets gagnants (1 ou 2), jeux pour gagner, écart requis, point décisif à 40-40 (et choix du côté par le receveur), jeu décisif (activé, seuil de déclenchement, points, écart), super tie-break (et ses points), limite de temps (durée, règle de fin : le leader gagne / on termine le jeu), durée estimée. Les réglages sans objet sont masqués : pas de réglage de tie-break s'il est désactivé, pas de règle de fin sans limite de temps, pas de choix du receveur sans point décisif. À un seul set, l'option devient « match joué en super tie-break seul » ; à 2 sets, « set décisif joué en super tie-break ». Un **résumé en français** est affiché en permanence (ex. « 1 set en 7 jeux, point décisif, tie-break en 7 points à 6-6, limité à 25 min (le leader gagne) »). **Quatre préréglages** en un clic : Tournoi amical (1 set en 7 jeux), Format court (2 sets en 4 jeux + super tie-break de 10 points), FFT B1 (2 sets en 6 jeux + super tie-break de 10 points), Super tie-break seul.
+2. **Format par phase** : pour Poules, Quarts de finale (et tours antérieurs), Demi-finales, Finale et Matchs de classement (3e et 5e place), chaque ligne est « identique au format par défaut » ou a **son propre format** (même formulaire). Le réglage est conservé au niveau du tournoi et recopié sur les matchs **pas encore commencés** — y compris ceux générés plus tard (calendrier, tableau final, régénération).
+3. **Ordre de départage des poules** : liste réordonnable par glisser-déposer (ou flèches), avec activation/désactivation de chaque critère. « Victoires » reste figé en premier. Des **avertissements** signalent les critères qui ne départageront rien avec le format choisi (différence / ratio de sets avec un seul set gagnant) ou qui seront faussés (critères de jeux avec un super tie-break, dont les points comptent comme des jeux).
+
+Validation (identique à l'écran et au serveur) : le seuil du tie-break ne peut pas dépasser le nombre de jeux pour gagner ; l'écart requis ne peut pas dépasser ce nombre ; une limite de temps exige une règle de fin ; un super tie-break exige son nombre de points ; au moins un critère de départage, sans doublon.
+
+**Verrouillage** : un champ se verrouille avec la raison affichée dès que des matchs concernés ont commencé (score saisi, validé ou forfait). Une phase commencée ne peut plus changer de format ; le format par défaut se verrouille si une phase commencée l'utilise (on peut alors donner un format propre aux phases à venir) ; l'ordre de départage se verrouille dès le premier match de poule joué. Les phases pas encore commencées restent modifiables. Chaque modification est tracée dans le journal d'audit (avant / après).
 
 ## 5. Inscriptions
 
@@ -141,7 +153,7 @@ La régénération du calendrier est interdite dès qu'un score de poule est sai
 
 ### 8.1 Format de match
 
-Format par défaut : **1 set de 7 jeux**, écart requis 1, **point décisif** à 40-40, **jeu décisif à 7 points à 6-6** (écart 2), limite de temps 25 min avec règle « le leader gagne » à l'expiration, durée estimée 25 min. Le format est paramétrable (nombre de sets gagnants 1 ou 2, jeux pour gagner, super tie-break en set décisif, règle de fin de temps…) au niveau du tournoi, et surchargeable par match, mais sans écran de réglage à ce jour (voir §4.1). Les scores sont toujours stockés set par set, jamais en texte.
+Format par défaut : **1 set de 7 jeux**, écart requis 1, **point décisif** à 40-40, **jeu décisif à 7 points à 6-6** (écart 2), limite de temps 25 min avec règle « le leader gagne » à l'expiration, durée estimée 25 min. Le format est paramétrable par tournoi et par phase (§4.6). Lors de la saisie d'un score, le set décisif d'un format à super tie-break se saisit en points (sans tie-break à l'intérieur). Les scores sont toujours stockés set par set, jamais en texte.
 
 ### 8.2 Saisie et validation
 
@@ -236,7 +248,7 @@ Un onglet **Rappels** par tournoi liste les **matchs à venir ayant un horaire**
 - Optimisation du calendrier (le placement glouton + ajustement manuel suffit).
 - Matchs de classement au-delà de la 3e et 5e place (pas de tableau de consolation complet).
 - Rappels de date de tournoi (seuls les rappels de match existent) ; rappels pour les matchs du tableau final (pas d'horaire planifié).
-- Écrans de réglage du format de match et de l'ordre de départage.
+- Format de match propre à un seul match (le réglage se fait par phase).
 - Outil de restauration d'une sauvegarde.
 - Remboursement / liste d'attente automatique quand une place se libère (une équipe supprimée libère simplement des places).
 

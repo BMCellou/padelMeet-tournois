@@ -9,6 +9,7 @@ import type { createClient } from "@/lib/supabase/server";
 import { selectionnerQualifies, type ClassementPoule } from "@/lib/engine/qualification";
 import { genererTableau, type Qualifie } from "@/lib/engine/tableau";
 import { calculerMatch5eDePoule, type Match5e } from "@/lib/engine/classement5e";
+import { appliquerFormatsParPhase } from "./formatParPhase";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -277,6 +278,7 @@ export async function genererTableauAvecQualifies(
     });
   }
 
+  await appliquerFormatsParPhase(supabase, tournamentId);
   return { success: true };
 }
 

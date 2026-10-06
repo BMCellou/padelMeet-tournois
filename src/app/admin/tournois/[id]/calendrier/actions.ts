@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { genererTours } from "@/lib/engine/tours";
 import { planifier, type MatchAPlanifier } from "@/lib/engine/planification";
 import { heureLocaleVersISO } from "@/lib/temps";
+import { appliquerFormatsParPhase } from "@/lib/tournoi/formatParPhase";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -133,6 +134,8 @@ export async function genererCalendrier(
   if (insertError || !matchesInseres) {
     return { error: "Impossible de créer les matchs." };
   }
+
+  await appliquerFormatsParPhase(supabase, tournamentId);
 
   const aPlanifier: MatchAPlanifier[] = matchesInseres.map((m) => ({
     id: m.id,

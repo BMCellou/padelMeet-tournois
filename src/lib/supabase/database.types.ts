@@ -687,6 +687,7 @@ export type Database = {
           date: string
           duree_match_min: number | null
           format_config: Json
+          format_par_phase: Json
           genre: string | null
           heure_debut: string
           id: string
@@ -707,6 +708,7 @@ export type Database = {
           date: string
           duree_match_min?: number | null
           format_config?: Json
+          format_par_phase?: Json
           genre?: string | null
           heure_debut?: string
           id?: string
@@ -727,6 +729,7 @@ export type Database = {
           date?: string
           duree_match_min?: number | null
           format_config?: Json
+          format_par_phase?: Json
           genre?: string | null
           heure_debut?: string
           id?: string

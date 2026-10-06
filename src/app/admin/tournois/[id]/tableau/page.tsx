@@ -66,7 +66,7 @@ export default async function TableauPage({
     const { data: matchsPouleBruts } = await supabase
       .from("matches")
       .select(
-        "id, round, statut, team_a_id, team_b_id, winner_id, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+        "id, round, statut, team_a_id, team_b_id, winner_id, format_override, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
       )
       .eq("tournament_id", tournamentId)
       .eq("group_id", groupes[0].id)
@@ -83,6 +83,7 @@ export default async function TableauPage({
         teamANom: nomEquipe.get(m.team_a_id!) ?? "?",
         teamBNom: nomEquipe.get(m.team_b_id!) ?? "?",
         winnerId: m.winner_id,
+        formatOverride: m.format_override as unknown as MatchFormat | null,
         sets: [...m.match_sets]
           .sort((a, b) => a.numero - b.numero)
           .map((s) => ({
@@ -111,7 +112,7 @@ export default async function TableauPage({
     const { data: matchsBruts } = await supabase
       .from("matches")
       .select(
-        "id, round, statut, team_a_id, team_b_id, winner_id, next_match_id, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+        "id, round, statut, team_a_id, team_b_id, winner_id, next_match_id, format_override, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
       )
       .eq("tournament_id", tournamentId)
       .eq("phase", "tableau")
@@ -120,7 +121,7 @@ export default async function TableauPage({
     const { data: matchPetiteFinaleBrut } = await supabase
       .from("matches")
       .select(
-        "id, statut, team_a_id, team_b_id, winner_id, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+        "id, statut, team_a_id, team_b_id, winner_id, format_override, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
       )
       .eq("tournament_id", tournamentId)
       .eq("phase", "classement")
@@ -129,7 +130,7 @@ export default async function TableauPage({
     const { data: matchClassement5eBrut } = await supabase
       .from("matches")
       .select(
-        "id, statut, team_a_id, team_b_id, winner_id, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
+        "id, statut, team_a_id, team_b_id, winner_id, format_override, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
       )
       .eq("tournament_id", tournamentId)
       .eq("phase", "classement_5e")
@@ -198,6 +199,7 @@ export default async function TableauPage({
               teamANom: nomEquipe.get(matchPetiteFinaleBrut.team_a_id) ?? "?",
               teamBNom: nomEquipe.get(matchPetiteFinaleBrut.team_b_id) ?? "?",
               winnerId: matchPetiteFinaleBrut.winner_id,
+              formatOverride: matchPetiteFinaleBrut.format_override as unknown as MatchFormat | null,
               sets: [...matchPetiteFinaleBrut.match_sets]
                 .sort((a, b) => a.numero - b.numero)
                 .map((s) => ({
@@ -220,6 +222,7 @@ export default async function TableauPage({
               teamANom: nomEquipe.get(matchClassement5eBrut.team_a_id) ?? "?",
               teamBNom: nomEquipe.get(matchClassement5eBrut.team_b_id) ?? "?",
               winnerId: matchClassement5eBrut.winner_id,
+              formatOverride: matchClassement5eBrut.format_override as unknown as MatchFormat | null,
               sets: [...matchClassement5eBrut.match_sets]
                 .sort((a, b) => a.numero - b.numero)
                 .map((s) => ({
@@ -266,6 +269,7 @@ export default async function TableauPage({
                     teamANom: nomEquipe.get(m.team_a_id) ?? "?",
                     teamBNom: nomEquipe.get(m.team_b_id) ?? "?",
                     winnerId: m.winner_id,
+                    formatOverride: m.format_override as unknown as MatchFormat | null,
                     sets: [...m.match_sets]
                       .sort((a, b) => a.numero - b.numero)
                       .map((s) => ({

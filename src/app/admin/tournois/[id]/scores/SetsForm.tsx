@@ -57,34 +57,42 @@ export function SetsForm({
 
   return (
     <div className="space-y-4">
-      {sets.map((s, i) => (
+      {sets.map((s, i) => {
+        // Set décisif joué en super tie-break : on saisit des points (pas
+        // de jeux), sans tie-break à l'intérieur.
+        const superTb = format.setDecisifSuperTiebreak && i === sets.length - 1;
+        const unite = superTb ? "Points" : "Jeux";
+        const plafond = superTb ? undefined : format.jeuxPourGagner + 2;
+        return (
         <div key={i} className="space-y-2 rounded-md border p-3">
-          <p className="text-xs font-medium text-muted-foreground">Set {i + 1}</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            {superTb ? "Super tie-break" : `Set ${i + 1}`}
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor={`set-${i}-jeuxA`}>Jeux équipe A</Label>
+              <Label htmlFor={`set-${i}-jeuxA`}>{unite} équipe A</Label>
               <Input
                 id={`set-${i}-jeuxA`}
                 type="number"
                 min={0}
-                max={format.jeuxPourGagner + 2}
+                max={plafond}
                 value={s.jeuxA}
                 onChange={(e) => maj(i, "jeuxA", e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor={`set-${i}-jeuxB`}>Jeux équipe B</Label>
+              <Label htmlFor={`set-${i}-jeuxB`}>{unite} équipe B</Label>
               <Input
                 id={`set-${i}-jeuxB`}
                 type="number"
                 min={0}
-                max={format.jeuxPourGagner + 2}
+                max={plafond}
                 value={s.jeuxB}
                 onChange={(e) => maj(i, "jeuxB", e.target.value)}
               />
             </div>
           </div>
-          {format.jeuDecisif?.actif ? (
+          {!superTb && format.jeuDecisif?.actif ? (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor={`set-${i}-tbA`}>
@@ -111,7 +119,8 @@ export function SetsForm({
             </div>
           ) : null}
         </div>
-      ))}
+        );
+      })}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="button" onClick={envoyer} disabled={isPending} className="w-full">
         {isPending ? "Enregistrement..." : libelleSubmit}
