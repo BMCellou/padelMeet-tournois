@@ -17,11 +17,14 @@ import type { MatchTableau, Qualifie } from "../tableau";
 import type { LibelleMatchTableau, MatchTableauStructure } from "../tableauLibelles";
 import type { EquipeAvecSeed, Poule } from "../tirage";
 import type { Tour as TourDeGroupe } from "../tours";
+import type { DefinitionPhases, PhaseDeFormat } from "../formatPhases";
+
+export type { PhaseDeFormat } from "../formatPhases";
 
 // ── Identité et propriétés d'un format ──────────────────────────────────
 
 /** Code d'un format enregistré (valeur de tournaments.format_animation). */
-export type CodeFormat = "poules_tableau";
+export type CodeFormat = "poules_tableau" | "americano";
 
 export interface Validation {
   ok: boolean;
@@ -55,8 +58,8 @@ export interface PlacementEtat {
 /** Un match connu du format, joué ou non. */
 export interface MatchEtat {
   id: string;
-  /** « groupe » = phase de groupes (poules) ; « finale » = tableau ; « classement » / « classement_5e » = matchs de classement. */
-  phase: "groupe" | "finale" | "classement" | "classement_5e";
+  /** « groupe » = phase de groupes (poules) ; « finale » = tableau ; « classement » / « classement_5e » = matchs de classement ; « manche » = manche d'un format à partenaires tournants. */
+  phase: "groupe" | "finale" | "classement" | "classement_5e" | "manche";
   groupeId: string | null;
   tour: number;
   teamAId: string | null;
@@ -80,6 +83,22 @@ export interface ConfigAnimation {
   criteres?: CritereDepartage[];
   /** Nombre de poules imposé par l'admin (sinon calculé). */
   nombreGroupesForce?: number;
+  /** Formats à rotation (Americano) : nombre de manches (tours) de la journée. */
+  nbTours?: number;
+  /** Classement individuel : critères de départage, dans l'ordre (sinon défaut du format). */
+  criteresJoueurs?: CritereJoueur[];
+  /** Classement individuel : total brut, ou points par manche (effectifs non multiples de 4). */
+  modeClassement?: ModeClassementJoueurs;
+}
+
+export type CritereJoueur = "points_marques" | "difference" | "victoires" | "confrontation_directe" | "moins_exemptions";
+export type ModeClassementJoueurs = "total" | "par_manche";
+
+/** Équipe éphémère : le binôme d'une manche (teams.ephemere = true, tour_origine renseigné). */
+export interface EquipeEphemere {
+  id: string;
+  joueurIds: [string, string];
+  tourOrigine: number;
 }
 
 export interface EtatTournoi {
@@ -93,6 +112,8 @@ export interface EtatTournoi {
   /** Composition des groupes déjà tirée ; sinon le format la tire. */
   groupes?: GroupeEtat[];
   matchs: MatchEtat[];
+  /** Équipes éphémères déjà créées (formats à partenaires tournants) : id d'équipe → joueurs. */
+  equipesEphemeres?: EquipeEphemere[];
 }
 
 // ── Sorties ─────────────────────────────────────────────────────────────
@@ -111,6 +132,10 @@ export interface MatchPrevu {
   loserNextSlot?: "a" | "b" | null;
   /** Terrain et créneau, quand l'état fournit les options de planification. */
   placement?: PlacementEtat;
+  /** Terrain de la manche (formats à rotation), même sans horaire. */
+  terrainId?: string;
+  /** Formats à partenaires tournants : les deux binômes éphémères de cette manche, à créer. */
+  equipesEphemeres?: [EquipeEphemere, EquipeEphemere];
 }
 
 export interface Tour {
@@ -127,8 +152,15 @@ export interface LigneClassement {
   joues: number;
   victoires: number;
   defaites: number;
-  /** Détail du format (sets, jeux, ratios…) tel que calculé par le moteur. */
-  detail: EquipeClassee;
+  /** Détail du format (sets, jeux, ratios…) tel que calculé par le moteur (formats d'équipes). */
+  detail?: EquipeClassee;
+  /** Formats à classement individuel. */
+  pointsMarques?: number;
+  pointsEncaisses?: number;
+  difference?: number;
+  toursExempt?: number;
+  /** Points marqués par manche jouée (0 sans manche) : le mode « points par manche ». */
+  pointsParManche?: number;
 }
 
 // ── Capacités de phase de groupes et de phase finale ────────────────────
@@ -182,7 +214,7 @@ export interface OperationsPhaseFinale {
 
 // ── L'interface ─────────────────────────────────────────────────────────
 
-export interface FormatAnimation {
+export interface FormatAnimation extends DefinitionPhases {
   code: CodeFormat;
   nom: string;
   description: string;
@@ -192,6 +224,13 @@ export interface FormatAnimation {
   partenaire: "fixe" | "tournant";
   modeScore: "jeux_sets" | "points";
   aUnTableauFinal: boolean;
+
+  /**
+   * Phases du format, auxquelles on peut donner un format de match propre. L'écran de
+   * réglage par phase et toute étiquette de phase lisent cette liste, jamais une constante.
+   * Poules + tableau : poules, quarts, demies, finale, matchs de classement ; Americano : manches.
+   */
+  phases: readonly PhaseDeFormat[];
 
   /** Nombre d'inscrits acceptable, et message d'aide si non. */
   validerEffectif(n: number, terrains: number): Validation;

@@ -73,6 +73,7 @@ export function FormatEditor({
   const resultat = validerFormat(value);
   const seul = value.nbSetsGagnants === 1 && value.setDecisifSuperTiebreak;
   const jd = value.jeuDecisif;
+  const points = value.modeScore === "points";
   const pointsST = value.superTiebreakPoints ?? 10;
 
   return (
@@ -107,6 +108,47 @@ export function FormatEditor({
         </ul>
       ) : null}
 
+      <Champ id={id("mode")} label="Mode de score">
+        <select
+          id={id("mode")}
+          className={selectClasse}
+          disabled={disabled}
+          value={value.modeScore ?? "jeux_sets"}
+          onChange={(e) =>
+            maj({ modeScore: e.target.value as MatchFormat["modeScore"] })
+          }
+        >
+          <option value="jeux_sets">Jeux et sets (padel classique)</option>
+          <option value="points">Points (une manche à total fixe)</option>
+        </select>
+      </Champ>
+
+      {points ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Champ id={id("cible")} label="Points de la manche (16, 21, 24, 32…)">
+            <Input
+              id={id("cible")}
+              type="number"
+              min={2}
+              disabled={disabled}
+              value={value.pointsCible ?? 24}
+              onChange={(e) => maj({ pointsCible: nombre(e.target.value) })}
+            />
+          </Champ>
+          <div className="self-end">
+            <Interrupteur
+              id={id("somme")}
+              label="Total exact (un seul score saisi, l'autre se déduit)"
+              checked={value.sommeExacte !== false}
+              disabled={disabled}
+              onChange={(v) => maj({ sommeExacte: v })}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {!points ? (
+      <>
       <div className="grid gap-4 sm:grid-cols-2">
         <Champ id={id("sets")} label="Sets gagnants">
           <select
@@ -251,6 +293,8 @@ export function FormatEditor({
           </div>
         ) : null}
       </div>
+      </>
+      ) : null}
 
       <div className="space-y-3 rounded-md border p-3">
         <Interrupteur
@@ -277,6 +321,7 @@ export function FormatEditor({
                 onChange={(e) => maj({ limiteTempsMin: nombre(e.target.value) })}
               />
             </Champ>
+            {!points ? (
             <Champ id={id("egalite")} label="Égalité au buzzer (ex. 4-4)">
               <select
                 id={id("egalite")}
@@ -290,6 +335,7 @@ export function FormatEditor({
                 <option value="nul_interdit">Nul interdit (le scoreur désigne le vainqueur)</option>
               </select>
             </Champ>
+            ) : null}
             <Champ id={id("regle")} label="À la fin du temps">
               <select
                 id={id("regle")}

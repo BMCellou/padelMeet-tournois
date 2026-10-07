@@ -10,13 +10,7 @@ import {
   resumerFormat,
   validerFormat,
 } from "@/lib/engine/formatMatch";
-import {
-  LIBELLES_PHASES,
-  PHASES_FORMAT,
-  type FormatsParPhase,
-  type PhaseFormat,
-  type Verrous,
-} from "@/lib/engine/formatPhases";
+import { type FormatsParPhase, type PhaseDeFormat, type PhaseFormat, type Verrous } from "@/lib/engine/formatPhases";
 import { FormatEditor } from "./FormatEditor";
 import { DepartageEditor } from "./DepartageEditor";
 import { enregistrerDepartage, enregistrerFormatDefaut, enregistrerFormatsParPhase } from "./actions";
@@ -43,16 +37,25 @@ export function FormatRegles({
   formatsParPhase,
   criteres,
   verrous,
+  phases: phasesDuFormat,
+  avecDepartageDePoules,
+  phaseDuDepartage,
 }: {
   tournamentId: string;
   formatDefaut: MatchFormat;
   formatsParPhase: FormatsParPhase;
   criteres: CritereDepartage[];
   verrous: Verrous;
+  /** Phases déclarées par le format du tournoi (jamais une liste figée dans l'écran). */
+  phases: PhaseDeFormat[];
+  /** Le format a une phase de poules : l'ordre de départage des poules est alors réglable. */
+  avecDepartageDePoules: boolean;
+  /** Phase dont le format de match conditionne les avertissements de départage. */
+  phaseDuDepartage: string;
 }) {
   const [defaut, setDefaut] = useState<MatchFormat>(formatDefaut);
   const [phases, setPhases] = useState<Record<PhaseFormat, MatchFormat | null>>(
-    () => Object.fromEntries(PHASES_FORMAT.map((p) => [p, formatsParPhase[p] ?? null])) as Record<PhaseFormat, MatchFormat | null>,
+    () => Object.fromEntries(phasesDuFormat.map((p) => [p.code, formatsParPhase[p.code] ?? null])) as Record<PhaseFormat, MatchFormat | null>,
   );
   const [actifs, setActifs] = useState<CritereDepartage[]>(criteres);
   const [retours, setRetours] = useState<Record<string, Retour>>({});
@@ -70,8 +73,8 @@ export function FormatRegles({
   }
 
   const defautValide = validerFormat(defaut).ok;
-  const phasesValides = PHASES_FORMAT.every((p) => !phases[p] || validerFormat(phases[p]).ok);
-  const formatPoules = phases.poule ?? defaut;
+  const phasesValides = phasesDuFormat.every(({ code }) => !phases[code] || validerFormat(phases[code]).ok);
+  const formatPoules = phases[phaseDuDepartage] ?? defaut;
   const avertissements = avertissementsDepartage(formatPoules, actifs);
 
   return (
@@ -105,13 +108,13 @@ export function FormatRegles({
             (tableau final).
           </p>
           <ul className="divide-y rounded-md border">
-            {PHASES_FORMAT.map((p) => {
+            {phasesDuFormat.map(({ code: p, libelle }) => {
               const verrou = verrous.phases[p];
               const propre = phases[p];
               return (
                 <li key={p} className="space-y-3 p-3">
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <p className="w-48 text-sm font-medium">{LIBELLES_PHASES[p]}</p>
+                    <p className="w-48 text-sm font-medium">{libelle}</p>
                     <label className="flex items-center gap-2 text-sm">
                       <input
                         type="radio"
@@ -156,7 +159,7 @@ export function FormatRegles({
               lancer("phases", () =>
                 enregistrerFormatsParPhase(
                   tournamentId,
-                  Object.fromEntries(PHASES_FORMAT.map((p) => [p, phases[p]])),
+                  Object.fromEntries(phasesDuFormat.map(({ code }) => [code, phases[code]])),
                 ),
               )
             }
@@ -166,6 +169,7 @@ export function FormatRegles({
         </CardContent>
       </Card>
 
+      {avecDepartageDePoules ? (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">3. Ordre de départage des poules</CardTitle>
@@ -194,6 +198,7 @@ export function FormatRegles({
           </Button>
         </CardContent>
       </Card>
+      ) : null}
     </div>
   );
 }

@@ -14,6 +14,9 @@ import type { CritereDepartage } from "./classement";
 
 export const matchFormatSchema = z
   .object({
+    modeScore: z.enum(["jeux_sets", "points"]).default("jeux_sets"),
+    pointsCible: z.number().int("Nombre entier requis.").min(2).max(100).default(24),
+    sommeExacte: z.boolean().default(true),
     nbSetsGagnants: z.union([z.literal(1), z.literal(2)]),
     jeuxPourGagner: z.number().int("Nombre entier requis.").min(1).max(20),
     ecartRequis: z.number().int("Nombre entier requis.").min(1).max(10),
@@ -68,6 +71,23 @@ export const matchFormatSchema = z
 /** Nettoie les champs sans objet pour que deux saisies équivalentes
  * donnent le même objet (et que rien d'inutile ne soit stocké). */
 export function normaliserFormat(f: MatchFormat): MatchFormat {
+  // Mode points : une manche à total fixe ; les réglages de sets et de jeux sont sans objet.
+  if (f.modeScore === "points") {
+    const manche: MatchFormat = {
+      ...f,
+      nbSetsGagnants: 1,
+      jeuxPourGagner: 1,
+      ecartRequis: 1,
+      choixReceveur: f.pointDecisif ? f.choixReceveur : false,
+      jeuDecisif: null,
+      setDecisifSuperTiebreak: false,
+      egaliteAuBuzzer: "point_en_or",
+      regleFinDeTemps: f.limiteTempsMin === null ? "aucune" : f.regleFinDeTemps,
+    };
+    delete manche.superTiebreakPoints;
+    return manche;
+  }
+
   const seul = f.nbSetsGagnants === 1 && f.setDecisifSuperTiebreak;
   const points = f.setDecisifSuperTiebreak ? f.superTiebreakPoints : undefined;
 
@@ -119,6 +139,19 @@ const REGLES_FIN: Record<MatchFormat["regleFinDeTemps"], string> = {
 export function resumerFormat(brut: MatchFormat): string {
   const f = normaliserFormat(brut);
   const parties: string[] = [];
+
+  if (f.modeScore === "points") {
+    parties.push(
+      f.sommeExacte
+        ? `Manche à ${f.pointsCible} points, total exact (un score saisi, l'autre se déduit)`
+        : `Manche à ${f.pointsCible} points, limitée par le temps (les deux scores sont saisis, l'égalité est un match nul)`,
+    );
+    parties.push(f.pointDecisif ? "point décisif" : "avantage");
+    if (f.sommeExacte && f.pointsCible % 2 === 0) parties.push("égalité : point en or");
+    parties.push(f.limiteTempsMin !== null ? `limitée à ${f.limiteTempsMin} min` : "sans limite de temps");
+    return parties.join(", ");
+  }
+
   const seul = f.nbSetsGagnants === 1 && f.setDecisifSuperTiebreak;
 
   if (seul) {
@@ -156,12 +189,15 @@ export interface PrereglageFormat {
   format: MatchFormat;
 }
 
+const MODE_JEUX_SETS = { modeScore: "jeux_sets" as const, pointsCible: 24, sommeExacte: true };
+
 export const PREREGLAGES_FORMAT: PrereglageFormat[] = [
   { id: "amical", libelle: "Tournoi amical (1 set en 7 jeux)", format: { ...FORMAT_PAR_DEFAUT } },
   {
     id: "court",
     libelle: "Format court (2 sets en 4 jeux + super tie-break)",
     format: {
+      ...MODE_JEUX_SETS,
       nbSetsGagnants: 2,
       jeuxPourGagner: 4,
       ecartRequis: 1,
@@ -180,6 +216,7 @@ export const PREREGLAGES_FORMAT: PrereglageFormat[] = [
     id: "fft_b1",
     libelle: "FFT B1 (2 sets en 6 jeux + super tie-break)",
     format: {
+      ...MODE_JEUX_SETS,
       nbSetsGagnants: 2,
       jeuxPourGagner: 6,
       ecartRequis: 2,
@@ -198,6 +235,7 @@ export const PREREGLAGES_FORMAT: PrereglageFormat[] = [
     id: "super_tiebreak",
     libelle: "Super tie-break seul",
     format: {
+      ...MODE_JEUX_SETS,
       nbSetsGagnants: 1,
       jeuxPourGagner: 10,
       ecartRequis: 2,

@@ -28,14 +28,14 @@ function etatInitial(sc: Scenario): EtatTournoi {
 }
 
 describe("registre", () => {
-  it("expose un seul format, poules + tableau, par défaut", () => {
-    expect(listerFormats().map((f) => f.code)).toEqual(["poules_tableau"]);
+  it("expose les formats enregistrés, poules + tableau restant le format par défaut", () => {
+    expect(listerFormats().map((f) => f.code)).toEqual(["poules_tableau", "americano"]);
     expect(CODE_FORMAT_PAR_DEFAUT).toBe("poules_tableau");
     expect(getFormat("poules_tableau")).toBe(listerFormats()[0]);
   });
 
   it("refuse un code inconnu avec un message clair", () => {
-    expect(() => getFormat("americano")).toThrow(/inconnu/);
+    expect(() => getFormat("mexicano")).toThrow(/inconnu/);
     expect(() => getFormat("constructor")).toThrow(/inconnu/);
   });
 

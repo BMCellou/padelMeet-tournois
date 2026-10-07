@@ -4,7 +4,28 @@
 /** Que faire d'un set à égalité quand le temps limite est écoulé (ex. 4-4 au buzzer). */
 export type EgaliteAuBuzzer = "point_en_or" | "jeu_decisif" | "nul_interdit";
 
+/**
+ * Ce que le scoreur saisit : des jeux et des sets (padel classique), ou un nombre
+ * de points par camp (Americano, Mexicano : une manche à total fixe).
+ */
+export type ModeScore = "jeux_sets" | "points";
+
 export type MatchFormat = {
+  /**
+   * « jeux_sets » : comportement historique (sets, jeux, tie-break). « points » : une
+   * manche, le vainqueur est le camp au score le plus élevé ; les réglages de sets et de
+   * jeux sont sans objet. Absent des formats enregistrés avant son ajout : lire avec
+   * `?? "jeux_sets"`.
+   */
+  modeScore: ModeScore;
+  /** Mode points : total de points d'une manche (16, 21, 24, 32…). */
+  pointsCible: number;
+  /**
+   * Mode points : vrai = la manche s'arrête net au total, les deux scores font
+   * exactement `pointsCible` (la saisie d'un camp déduit l'autre) ; faux = manche
+   * limitée par le temps, les deux scores sont saisis et une égalité est un match nul.
+   */
+  sommeExacte: boolean;
   nbSetsGagnants: 1 | 2;
   jeuxPourGagner: number;
   ecartRequis: number;
@@ -33,6 +54,9 @@ export type MatchFormat = {
 };
 
 export const FORMAT_PAR_DEFAUT: MatchFormat = {
+  modeScore: "jeux_sets",
+  pointsCible: 24,
+  sommeExacte: true,
   nbSetsGagnants: 1,
   jeuxPourGagner: 7,
   ecartRequis: 1,

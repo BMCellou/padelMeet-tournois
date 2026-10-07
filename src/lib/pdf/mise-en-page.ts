@@ -3,7 +3,7 @@
 
 import { CODE_FORMAT_PAR_DEFAUT, getFormat } from "@/lib/engine/formats";
 import { CRITERES_DEPARTAGE, normaliserFormat, resumerFormat } from "@/lib/engine/formatMatch";
-import { LIBELLES_PHASES, PHASES_FORMAT, dernierTourTableau, phaseDuMatch, type PhaseFormat } from "@/lib/engine/formatPhases";
+import type { PhaseFormat } from "@/lib/engine/formatPhases";
 import type { LibelleMatchTableau } from "@/lib/engine/tableauLibelles";
 import type { MatchFormat } from "@/lib/engine/types";
 import { formatHeureParis } from "@/lib/temps";
@@ -36,7 +36,7 @@ function formatDe(d: DonneesTournoi) {
 }
 
 export function matchsFinaux(d: DonneesTournoi): MatchPdf[] {
-  return d.matchs.filter((m) => m.phase !== "poule");
+  return d.matchs.filter((m) => m.phase === "tableau" || m.phase === "classement" || m.phase === "classement_5e");
 }
 
 /** Étiquettes (« Quart de finale n°1 ») et provenance des équipes inconnues, par match de phase finale. */
@@ -62,6 +62,7 @@ export function etiquetteMatch(d: DonneesTournoi, m: MatchPdf, libelles = libell
     const poule = d.poules.find((p) => p.id === m.groupId);
     return `Poule ${poule?.nom ?? "?"}`;
   }
+  if (m.phase === "manche") return `Tour ${m.round}`;
   return libelles.get(m.id)?.etiquette ?? "Phase finale";
 }
 
@@ -170,7 +171,7 @@ export function colonnesScore(brut: MatchFormat): ColonneScore[] {
 }
 
 export function formatDuMatch(d: DonneesTournoi, m: MatchPdf): MatchFormat {
-  const phase = phaseDuMatch(m, dernierTourTableau(d.matchs));
+  const phase = formatDe(d).resoudrePhases(d.matchs)(m);
   return m.formatOverride ?? (phase ? d.tournoi.formatsParPhase[phase] : undefined) ?? d.tournoi.formatDefaut;
 }
 
@@ -184,12 +185,12 @@ export interface GroupeFeuille {
 
 /** Matchs regroupés par phase (un format = un en-tête de colonnes), dans l'ordre de jeu. */
 export function groupesFeuilles(d: DonneesTournoi): GroupeFeuille[] {
-  const dernier = dernierTourTableau(d.matchs);
+  const phaseDe = formatDe(d).resoudrePhases(d.matchs);
   const ordre = (m: MatchPdf) => m.debut ?? "9999";
   const groupes: GroupeFeuille[] = [];
-  for (const phase of PHASES_FORMAT) {
+  for (const { code: phase, libelle } of formatDe(d).phases) {
     const matchs = d.matchs
-      .filter((m) => phaseDuMatch(m, dernier) === phase)
+      .filter((m) => phaseDe(m) === phase)
       .sort(
         (a, b) =>
           ordre(a).localeCompare(ordre(b)) ||
@@ -199,7 +200,7 @@ export function groupesFeuilles(d: DonneesTournoi): GroupeFeuille[] {
       );
     if (matchs.length === 0) continue;
     const format = formatDuMatch(d, matchs[0]);
-    groupes.push({ phase, titre: LIBELLES_PHASES[phase], format, resume: resumerFormat(format), matchs });
+    groupes.push({ phase, titre: libelle, format, resume: resumerFormat(format), matchs });
   }
   return groupes;
 }

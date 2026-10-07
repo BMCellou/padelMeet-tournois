@@ -24,7 +24,7 @@ export interface PoulePdf {
 
 export interface MatchPdf {
   id: string;
-  phase: "poule" | "tableau" | "classement" | "classement_5e";
+  phase: "poule" | "tableau" | "classement" | "classement_5e" | "manche";
   groupId: string | null;
   round: number;
   bracketSlot: number | null;

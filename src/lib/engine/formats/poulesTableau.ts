@@ -12,6 +12,7 @@ import { impactSurQualifies } from "../impactQualifies";
 import { planifier, planifierTableau, type MatchAPlanifier, type MatchPlanifie } from "../planification";
 import { calculerRepartitionPoules } from "../poules";
 import { selectionnerQualifies, type ClassementPoule } from "../qualification";
+import { DEFINITION_POULES_TABLEAU } from "../formatPhases";
 import { creerRng } from "../rng";
 import { genererTableau, type Qualifie } from "../tableau";
 import { alimentants, libellerTableau } from "../tableauLibelles";
@@ -99,6 +100,11 @@ export const poulesTableau: FormatAnimation = {
   partenaire: "fixe",
   modeScore: "jeux_sets",
   aUnTableauFinal: true,
+
+  // Phases du format : poules, quarts, demies, finale, matchs de classement (clés historiques de format_par_phase).
+  phases: DEFINITION_POULES_TABLEAU.phases,
+  resoudrePhases: DEFINITION_POULES_TABLEAU.resoudrePhases,
+  phaseDuDepartage: DEFINITION_POULES_TABLEAU.phaseDuDepartage,
 
   validerEffectif(n: number): Validation {
     try {

@@ -4,6 +4,7 @@ import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 import { FORMAT_PAR_DEFAUT, type MatchFormat } from "@/lib/engine/types";
 import type { CritereDepartage } from "@/lib/engine/classement";
+import { getFormat } from "@/lib/engine/formats";
 import { calculerVerrous, type FormatsParPhase, type PhaseFormat } from "@/lib/engine/formatPhases";
 import { FormatRegles } from "./FormatRegles";
 
@@ -13,7 +14,7 @@ export default async function FormatPage({ params }: { params: Promise<{ id: str
 
   const { data: tournoi } = await supabase
     .from("tournaments")
-    .select("id, nom, format_config, format_par_phase, tiebreak_rules")
+    .select("id, nom, format_config, format_par_phase, tiebreak_rules, format_animation")
     .eq("id", tournamentId)
     .single();
   if (!tournoi) notFound();
@@ -24,7 +25,8 @@ export default async function FormatPage({ params }: { params: Promise<{ id: str
     .eq("tournament_id", tournamentId);
 
   const formatsParPhase = (tournoi.format_par_phase ?? {}) as FormatsParPhase;
-  const verrous = calculerVerrous(matchs ?? [], new Set(Object.keys(formatsParPhase) as PhaseFormat[]));
+  const format = getFormat(tournoi.format_animation);
+  const verrous = calculerVerrous(matchs ?? [], new Set(Object.keys(formatsParPhase) as PhaseFormat[]), format);
   const formatDefaut: MatchFormat = { ...FORMAT_PAR_DEFAUT, ...(tournoi.format_config as object as Partial<MatchFormat>) };
 
   return (
@@ -40,6 +42,9 @@ export default async function FormatPage({ params }: { params: Promise<{ id: str
             formatsParPhase={formatsParPhase}
             criteres={tournoi.tiebreak_rules as unknown as CritereDepartage[]}
             verrous={verrous}
+            phases={[...format.phases]}
+            avecDepartageDePoules={!!format.groupes}
+            phaseDuDepartage={format.phaseDuDepartage}
           />
         </div>
       </div>

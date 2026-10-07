@@ -3,7 +3,7 @@
 // A4, français, heures de Paris, noir et blanc.
 
 import { resumerFormat } from "@/lib/engine/formatMatch";
-import { LIBELLES_PHASES, PHASES_FORMAT } from "@/lib/engine/formatPhases";
+import { CODE_FORMAT_PAR_DEFAUT, getFormat } from "@/lib/engine/formats";
 import { formatHeureParis } from "@/lib/temps";
 import { dessinerArbre, dessinerBoite } from "./arbre-dessin";
 import {
@@ -88,9 +88,9 @@ function couverture(r: Rendu, d: DonneesTournoi, maintenant: Date): void {
   r.texte(MARGE, r.y - 11, "Format de match", { taille: 12, gras: true });
   r.y -= 20;
   const formats: [string, string][] = [["Format par défaut", resumerFormat(t.formatDefaut)]];
-  for (const phase of PHASES_FORMAT) {
-    const f = t.formatsParPhase[phase];
-    if (f) formats.push([LIBELLES_PHASES[phase], resumerFormat(f)]);
+  for (const { code, libelle } of getFormat(d.formatAnimation ?? CODE_FORMAT_PAR_DEFAUT).phases) {
+    const f = t.formatsParPhase[code];
+    if (f) formats.push([libelle, resumerFormat(f)]);
   }
   for (const [titre, texte] of formats) {
     r.texte(MARGE, r.y - 10, titre, { taille: 10, gras: true });

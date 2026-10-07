@@ -3,7 +3,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { determinerVainqueurMatch, expliquerScoreIndetermine, type SetSaisi } from "@/lib/engine/score";
+import {
+  determinerVainqueurMatch,
+  expliquerScoreIndetermine,
+  verifierSaisiePoints,
+  type SetSaisi,
+} from "@/lib/engine/score";
 import type { CritereDepartage } from "@/lib/engine/classement";
 import { recalculerClassementPoule } from "@/lib/tournoi/classementPoule";
 import type { MatchFormat } from "@/lib/engine/types";
@@ -177,6 +182,10 @@ export async function enregistrerScore(
   const contexte = await chargerMatchEtFormat(supabase, matchId, tournamentId);
   if (!contexte) return { error: "Match introuvable." };
 
+  // Mode points : total exact (les deux scores font la cible) ; sans objet en jeux/sets.
+  const erreurPoints = verifierSaisiePoints(parsed.data, contexte.format);
+  if (erreurPoints) return { error: erreurPoints };
+
   const resultat = determinerVainqueurMatch(parsed.data, contexte.format);
   const winnerId =
     resultat.vainqueur === "a"
@@ -213,13 +222,21 @@ export async function validerScore(tournamentId: string, matchId: string): Promi
     tiebreakB: s.tiebreak_b,
   }));
 
+  const erreurPoints = verifierSaisiePoints(sets, contexte.format);
+  if (erreurPoints) return { error: erreurPoints };
+
   const resultat = determinerVainqueurMatch(sets, contexte.format);
-  if (!resultat.vainqueur) {
+  // Manche à points sans total exact : une égalité est un match nul valide (aucun vainqueur).
+  const nul = !resultat.vainqueur && resultat.nul === true && contexte.match.phase === "manche";
+  if (!resultat.vainqueur && !nul) {
     return { error: expliquerScoreIndetermine(sets, contexte.format) ?? "Le score ne désigne pas encore de vainqueur clair." };
   }
 
-  const winnerId =
-    resultat.vainqueur === "a" ? contexte.match.team_a_id : contexte.match.team_b_id;
+  const winnerId = nul
+    ? null
+    : resultat.vainqueur === "a"
+      ? contexte.match.team_a_id
+      : contexte.match.team_b_id;
 
   await supabase.from("matches").update({ statut: "valide", winner_id: winnerId }).eq("id", matchId);
 
@@ -230,7 +247,7 @@ export async function validerScore(tournamentId: string, matchId: string): Promi
     payload: { matchId, sets } as unknown as Json,
   });
 
-  await apresValidation(supabase, tournamentId, contexte.match, winnerId!, contexte.tiebreakRules);
+  await apresValidation(supabase, tournamentId, contexte.match, winnerId ?? "", contexte.tiebreakRules);
   if (contexte.match.phase === "poule") {
     await tenterGenerationAutomatique(supabase, tournamentId);
   }
@@ -258,16 +275,23 @@ export async function corrigerScore(
     return { error: "Seul un match déjà validé peut être corrigé." };
   }
 
+  const erreurPoints = verifierSaisiePoints(parsed.data, contexte.format);
+  if (erreurPoints) return { error: erreurPoints };
+
   const resultat = determinerVainqueurMatch(parsed.data, contexte.format);
-  if (!resultat.vainqueur) {
+  const nul = !resultat.vainqueur && resultat.nul === true && contexte.match.phase === "manche";
+  if (!resultat.vainqueur && !nul) {
     return {
       error:
         expliquerScoreIndetermine(parsed.data, contexte.format) ?? "Le score corrigé ne désigne pas de vainqueur clair.",
     };
   }
 
-  const winnerId =
-    resultat.vainqueur === "a" ? contexte.match.team_a_id : contexte.match.team_b_id;
+  const winnerId = nul
+    ? null
+    : resultat.vainqueur === "a"
+      ? contexte.match.team_a_id
+      : contexte.match.team_b_id;
 
   // Une correction de poule peut changer les qualifiés alors que le tableau
   // existe déjà : on mesure l'impact avant d'écrire quoi que ce soit.
@@ -310,7 +334,7 @@ export async function corrigerScore(
     } as unknown as Json,
   });
 
-  await apresValidation(supabase, tournamentId, contexte.match, winnerId!, contexte.tiebreakRules);
+  await apresValidation(supabase, tournamentId, contexte.match, winnerId ?? "", contexte.tiebreakRules);
   const suite = await regenererApresCorrection(supabase, tournamentId, matchId, garde, "correction");
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);

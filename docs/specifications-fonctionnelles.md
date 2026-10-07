@@ -94,6 +94,10 @@ Trois sections, chacune avec son bouton d'enregistrement :
 2. **Format par phase** : pour Poules, Quarts de finale (et tours antérieurs), Demi-finales, Finale et Matchs de classement (3e et 5e place), chaque ligne est « identique au format par défaut » ou a **son propre format** (même formulaire). Le réglage est conservé au niveau du tournoi et recopié sur les matchs **pas encore commencés** — y compris ceux générés plus tard (calendrier, tableau final, régénération).
 3. **Ordre de départage des poules** : liste réordonnable par glisser-déposer (ou flèches), avec activation/désactivation de chaque critère. « Victoires » reste figé en premier. Des **avertissements** signalent les critères qui ne départageront rien avec le format choisi (différence / ratio de sets avec un seul set gagnant) ou qui seront faussés (critères de jeux avec un super tie-break, dont les points comptent comme des jeux).
 
+**Mode de score « Points »** : à la place des jeux et des sets, une manche se joue en un nombre de points fixé (`pointsCible`, par défaut 24) ; les réglages de jeux, sets, point décisif, jeu décisif et super tie-break disparaissent de l'écran. Case « Total exact » (par défaut) : le scoreur ne saisit que les points d'une équipe, l'autre est déduite (24 − x). Le vainqueur est l'équipe au score le plus élevé. Avec un total exact et une cible paire, une égalité (12-12) est refusée : le formulaire propose de désigner le gagnant d'un point en or. Sans total exact, les deux scores sont saisis et une égalité à la fin du temps est un match nul valide.
+
+**Phases du format** : la liste des phases (et leurs étiquettes) est déclarée par le format d'animation, jamais écrite en dur. Poules + tableau : Poules, Quarts de finale, Demi-finales, Finale, Matchs de classement ; Americano : « Manches ». L'écran « Format par phase », le verrouillage et les étiquettes des documents lisent cette liste. L'ordre de départage des poules n'apparaît que si le format a des poules.
+
 Validation (identique à l'écran et au serveur) : le seuil du tie-break ne peut pas dépasser le nombre de jeux pour gagner ; l'écart requis ne peut pas dépasser ce nombre ; une limite de temps exige une règle de fin ; un super tie-break exige son nombre de points ; au moins un critère de départage, sans doublon.
 
 **Verrouillage** : un champ se verrouille avec la raison affichée dès que des matchs concernés ont commencé (score saisi, validé ou forfait). Une phase commencée ne peut plus changer de format ; le format par défaut se verrouille si une phase commencée l'utilise (on peut alors donner un format propre aux phases à venir) ; l'ordre de départage se verrouille dès le premier match de poule joué. Les phases pas encore commencées restent modifiables. Chaque modification est tracée dans le journal d'audit (avant / après).
@@ -199,6 +203,14 @@ Statuts d'un match : à venir → prêt → en cours → saisi → validé / for
 - **Réinitialiser** un score : remet le match à venir. Bloqué si le tour suivant a déjà commencé. Pour un match de poule, bloqué dès que le tableau final a commencé ; autorisé tant que rien n'y a été joué (l'admin peut alors régénérer les qualifiés).
 - Chaque validation, correction et réinitialisation est tracée (qui, quoi, quand).
 - Admins **et** scoreurs saisissent et valident les scores. Les pages publiques se rafraîchissent en direct.
+
+### 8.3 Americano (format d'animation « americano »)
+
+Le classement est **individuel** : chaque joueur joue chaque manche avec un partenaire différent. Pas de poules ni de tableau final ; le calendrier (toutes les manches de la journée) est généré d'avance.
+
+- **Rotation** : appariement qui évite d'abord les partenariats répétés (poids fort), puis les adversaires répétés (poids faible). 8 joueurs sur 7 tours : chacun joue exactement une fois avec chacun des sept autres. 12 et 16 joueurs : aucun partenariat répété. Quand l'effectif n'est pas un multiple de 4, les exemptions sont réparties à ±1 près. La graine du tirage est mémorisée : même graine, même rotation. Au-delà de **40 joueurs**, un avertissement est affiché (aucun blocage).
+- **Manche** : deux équipes éphémères (`teams.ephemere`, `tour_origine`) et un match ordinaire de phase « manche » : saisie de score, audit et temps réel sont ceux des autres matchs.
+- **Classement individuel** : manches jouées, victoires, points marqués, points encaissés, différence, tours d'exemption. Départage par défaut : points marqués, différence, victoires, confrontation directe, moins d'exemptions (ordre configurable). Mode alternatif « points par manche » pour les effectifs non multiples de 4 (les exemptés ne sont pas pénalisés).
 
 ## 9. Classement de poule
 

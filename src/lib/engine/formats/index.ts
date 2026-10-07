@@ -1,6 +1,7 @@
 // Registre des formats d'animation. Les écrans et les routes demandent un format
 // ici et ne connaissent jamais un format en particulier.
 
+import { americano } from "./americano";
 import { poulesTableau } from "./poulesTableau";
 import type { CodeFormat, FormatAnimation } from "./types";
 
@@ -8,6 +9,7 @@ export type * from "./types";
 
 const FORMATS: Record<CodeFormat, FormatAnimation> = {
   poules_tableau: poulesTableau,
+  americano,
 };
 
 /** Format de tout tournoi dont la colonne format_animation vaut sa valeur par défaut en base. */
