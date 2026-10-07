@@ -99,7 +99,7 @@ Toute inscription en ligne est **« en attente de validation par le club »**. L
 - **Ajouter une paire** : chaque joueur est soit repris d'une fiche existante (recherche parmi tous les joueurs connus, hors joueurs déjà inscrits au tournoi), soit saisi à la main (prénom, nom, sexe H/F, classement FFT comme « 15/1 »). L'équipe est **validée d'emblée**.
 - **Inscrire un joueur seul** (en attente d'appariement).
 - **Valider** une équipe en attente, **renommer**, **supprimer** une équipe, **modifier** la fiche d'un joueur, **remplacer** un joueur d'une équipe.
-- **Générer des équipes** à partir des joueurs seuls en attente, selon une stratégie : **Aléatoire**, **Équilibré (par classement)**, **Mixte forcé (H/F)**. Les équipes créées sont validées. Un joueur qui reste sans partenaire (nombre impair, ou contrainte non satisfiable) est **signalé, jamais supprimé**.
+- **Générer des équipes** à partir des joueurs seuls en attente, selon une stratégie : **Aléatoire**, **Équilibré (par classement)** (le classement FFT saisi en texte — « 15/1 », « 30/2 », « NC »… — est converti selon l'échelle officielle, de -30 jusqu'à NC ; un classement vide ou non reconnu est classé tout en bas sans bloquer), **Mixte forcé (H/F)**. Les équipes créées sont validées. Un joueur qui reste sans partenaire (nombre impair, ou contrainte non satisfiable) est **signalé, jamais supprimé**.
 - Seules les équipes **validées** participent au tirage.
 
 ### 5.3 Compte participant (`/compte`)

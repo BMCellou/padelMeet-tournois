@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { apparierSolos, type JoueurSolo, type StrategieAppariement } from "@/lib/engine/appariement";
 import { creerRng } from "@/lib/engine/rng";
+import { niveauDepuisClassementFft } from "@/lib/engine/classementFft";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -353,13 +354,9 @@ export async function genererEquipesAleatoires(
     if (!p) continue;
 
     if (strategie === "equilibre") {
-      const niveau = Number(p.classement_fft);
-      if (!p.classement_fft || Number.isNaN(niveau)) {
-        return {
-          error: `La stratégie "équilibré" demande un classement numérique pour chaque joueur seul (manquant pour ${p.prenom} ${p.nom}).`,
-        };
-      }
-      joueurs.push({ id: p.id, niveau });
+      // Classement FFT en texte libre (« 15/1 », « NC »…) converti selon l'échelle
+      // officielle ; vide ou non reconnu = classé tout en bas, sans bloquer.
+      joueurs.push({ id: p.id, niveau: niveauDepuisClassementFft(p.classement_fft) });
     } else if (strategie === "mixte") {
       if (p.sexe !== "H" && p.sexe !== "F") {
         return {
