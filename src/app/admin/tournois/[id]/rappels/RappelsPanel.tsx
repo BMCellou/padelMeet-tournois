@@ -255,7 +255,7 @@ export function RappelsPanel({
             <CardHeader>
               <CardTitle className="text-base">
                 {formaterQuand(m.scheduledAt)}
-                {m.terrain ? ` · ${m.terrain}` : ""} — {m.teamANom} vs {m.teamBNom}
+                {m.terrain ? ` · ${m.terrain}` : ""}{m.etiquette ? ` · ${m.etiquette}` : ""} — {m.teamANom} vs {m.teamBNom}
               </CardTitle>
             </CardHeader>
             <CardContent>

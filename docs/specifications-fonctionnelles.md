@@ -147,7 +147,18 @@ Chaque poule joue en tournante complète (algorithme du cercle) : poule de 4 = 3
 
 L'admin peut déplacer un match vers un autre terrain / créneau. Les conflits sont détectés en direct : **même terrain occupé deux fois**, **équipe convoquée deux fois en même temps**, **repos insuffisant**.
 
-La régénération du calendrier est interdite dès qu'un score de poule est saisi. Seuls les matchs de poule sont planifiés : les matchs du tableau final n'ont pas d'horaire planifié.
+La régénération du calendrier est interdite dès qu'un score de poule est saisi. La phase finale est planifiée aussi (§7.4).
+
+### 7.4 Phase finale
+
+À la génération du tableau (automatique en fin de poules, ou depuis « Modifier les qualifiés »), tous ses matchs reçoivent un **terrain et un horaire**, **même quand leurs équipes sont inconnues** : on réserve un créneau pour « le quart de finale n°3 », et l'affiche se remplit à la validation du tour précédent. Le placement est contraint par la structure du tableau, pas par les équipes :
+- la phase finale démarre **à la suite des poules** ;
+- **tous les matchs d'un tour avant tous ceux du tour suivant** (tous les quarts avant toutes les demies, toutes les demies avant la finale), avec le **repos minimum** du tournoi entre deux tours ;
+- les équipes déjà connues (quarts, match pour la 5e place) respectent aussi le repos depuis leur dernier match de poule ;
+- les terrains sont remplis avant d'ouvrir un nouveau créneau ;
+- le **match pour la 5e place** se joue en parallèle des demi-finales si un terrain est libre ; le **match pour la 3e place** se joue avec la finale (ses équipes ne sont connues qu'après les demies, il ne peut pas être placé avant).
+
+La grille du calendrier affiche la phase finale avec les poules ; une case dont l'équipe est inconnue indique sa provenance (« Vainqueur du quart n°1 », « Perdant de la demi n°2 »). Le glisser-déposer et la détection de conflits s'appliquent : en plus des conflits des poules, le calendrier signale **un match placé avant (ou sans le repos minimum après) le match qui l'alimente**. Le bouton **Replanifier le tableau final** refait le placement automatique (en effaçant les ajustements manuels, après confirmation). **Dès qu'un match du tableau est validé** (ou forfait), le calendrier de la phase finale est figé : plus de déplacement ni de replanification.
 
 ## 8. Scores
 
@@ -219,19 +230,19 @@ Une poule unique : classement final = classement de poule. Le **cumul de jeux ga
 
 ## 13. Rappels de match
 
-Un onglet **Rappels** par tournoi liste les **matchs à venir ayant un horaire** (donc les matchs de poule) avec les joueurs des deux équipes.
+Un onglet **Rappels** par tournoi liste les **matchs à venir ayant un horaire** — poules **et phase finale** — avec les joueurs des deux équipes. Un match de tableau n'est rappelable que lorsque ses deux équipes sont connues ; le message mentionne alors la phase (« demi-finale n°1 »).
 
 - **Canal par joueur** : e-mail (par défaut) ou WhatsApp, modifiable par l'admin avec saisie de l'e-mail ou du numéro (utile pour les joueurs sans compte) ; le joueur peut aussi choisir son canal dans son profil. Les numéros français locaux (06…) sont convertis au format international.
 - **Message** : prénom, tournoi, adversaires, date et heure (Europe/Paris), terrain.
 - **Envoi manuel** : e-mail via le service d'envoi ; WhatsApp au choix **par lien** (WhatsApp s'ouvre avec le message prêt, l'admin envoie lui-même) ou **par API** (envoi automatique). Un bouton prévient d'un coup tous les joueurs pas encore rappelés des matchs des N prochaines heures (WhatsApp y passe toujours par l'API).
 - **Un seul rappel par joueur et par match** : l'écran indique « Envoyé » avec canal, origine (manuel / automatique) et date ; on peut renvoyer. Un joueur sans contact valable donne une erreur sans bloquer les autres.
 - **Envoi automatique (cron)** : réglage global (tous tournois) **désactivé par défaut**, avec délai en heures (1 à 72, 24 par défaut). Une fois activé, la tâche planifiée envoie e-mails et WhatsApp (API) aux matchs dans le délai. La fréquence actuelle est **quotidienne** (7 h UTC), limite du plan d'hébergement ; elle se resserre en changeant le planning.
-- Seuls les matchs encore « à venir / prêt » avec les deux équipes connues sont rappelés.
+- Seuls les matchs encore « à venir / prêt » avec un horaire et les deux équipes connues sont rappelés.
 
 ## 14. Pages publiques
 
 - **Accueil** : tournois publiés, en cours et terminés (en cours d'abord, puis à venir par date croissante, puis terminés du plus récent).
-- **Page d'un tournoi** (`/t/<lien>`) : en-tête (nom, date, niveau, statut), carte d'inscription avec places restantes, classement final si disponible, chaque poule (classement + matchs avec scores, terrain et heure), tableau final avec match pour la 3e place et pour la 5e place. **Mise à jour en direct** (sans recharger) à chaque score validé.
+- **Page d'un tournoi** (`/t/<lien>`) : en-tête (nom, date, niveau, statut), carte d'inscription avec places restantes, classement final si disponible, chaque poule (classement + matchs avec scores, terrain et heure), tableau final avec match pour la 3e place et pour la 5e place, chaque case affichant terrain et heure — et, tant qu'une équipe est inconnue, sa provenance (« Vainqueur du quart n°1 »). **Mise à jour en direct** (sans recharger) à chaque score validé.
 - Une poule unique affiche directement son classement comme classement final.
 
 ## 15. Données et sécurité (résumé)
@@ -247,7 +258,7 @@ Un onglet **Rappels** par tournoi liste les **matchs à venir ayant un horaire**
 - Paiement des inscriptions.
 - Optimisation du calendrier (le placement glouton + ajustement manuel suffit).
 - Matchs de classement au-delà de la 3e et 5e place (pas de tableau de consolation complet).
-- Rappels de date de tournoi (seuls les rappels de match existent) ; rappels pour les matchs du tableau final (pas d'horaire planifié).
+- Rappels de date de tournoi (seuls les rappels de match existent).
 - Format de match propre à un seul match (le réglage se fait par phase).
 - Outil de restauration d'une sauvegarde.
 - Remboursement / liste d'attente automatique quand une place se libère (une équipe supprimée libère simplement des places).

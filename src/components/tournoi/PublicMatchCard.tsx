@@ -8,6 +8,9 @@ export interface MatchPublicAffiche {
   statut: string;
   teamANom: string;
   teamBNom: string;
+  /** Équipe pas encore connue : teamANom/teamBNom décrit alors sa provenance. */
+  teamAInconnue?: boolean;
+  teamBInconnue?: boolean;
   vainqueur: "a" | "b" | null;
   sets: SetSaisi[];
   courtNom?: string | null;
@@ -51,7 +54,13 @@ export function PublicMatchCard({ match }: { match: MatchPublicAffiche }) {
         </Badge>
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className={cn("truncate", match.vainqueur === "a" && "font-semibold")}>
+        <span
+          className={cn(
+            "truncate",
+            match.vainqueur === "a" && "font-semibold",
+            match.teamAInconnue && "italic text-muted-foreground",
+          )}
+        >
           {match.teamANom}
         </span>
         <span className="shrink-0 text-muted-foreground">
@@ -59,7 +68,13 @@ export function PublicMatchCard({ match }: { match: MatchPublicAffiche }) {
             ? `Forfait (${match.vainqueur === "a" ? match.teamANom : match.teamBNom})`
             : scoreResume(match.sets)}
         </span>
-        <span className={cn("truncate", match.vainqueur === "b" && "font-semibold")}>
+        <span
+          className={cn(
+            "truncate",
+            match.vainqueur === "b" && "font-semibold",
+            match.teamBInconnue && "italic text-muted-foreground",
+          )}
+        >
           {match.teamBNom}
         </span>
       </div>

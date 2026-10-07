@@ -49,6 +49,18 @@ describe("message", () => {
     expect(m.texte).toContain("dimanche 27 septembre à 14:00 sur Terrain 2");
     expect(m.texte).toContain("Dupont / Martin");
   });
+  it("mentionne la phase d'un match de tableau", () => {
+    const m = construireMessage({
+      prenom: "Léa",
+      tournoiNom: "Open",
+      adversaires: "Vainqueur de la demi n°2",
+      debutISO: "2026-09-27T12:00:00.000Z",
+      terrain: "Terrain 1",
+      etiquette: "Demi-finale n°1",
+    });
+    expect(m.texte).toContain("votre match (demi-finale n°1) du tournoi");
+    expect(m.sujet).toContain("(demi-finale n°1)");
+  });
   it("omet le terrain s'il est inconnu", () => {
     const m = construireMessage({
       prenom: "Léa",

@@ -10,6 +10,7 @@ import { selectionnerQualifies, type ClassementPoule } from "@/lib/engine/qualif
 import { genererTableau, type Qualifie } from "@/lib/engine/tableau";
 import { calculerMatch5eDePoule, type Match5e } from "@/lib/engine/classement5e";
 import { appliquerFormatsParPhase } from "./formatParPhase";
+import { planifierTableauFinal } from "./planificationTableau";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -279,6 +280,9 @@ export async function genererTableauAvecQualifies(
   }
 
   await appliquerFormatsParPhase(supabase, tournamentId);
+  // Horaires et terrains de la phase finale, à la suite des poules. Sans
+  // terrain assigné, le tableau reste simplement sans horaire.
+  await planifierTableauFinal(supabase, tournamentId);
   return { success: true };
 }
 

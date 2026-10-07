@@ -1,18 +1,28 @@
 // §4.4 étape 3 — Détection de conflits en direct après un ajustement
 // manuel du calendrier : un même terrain occupé deux fois, une équipe
-// convoquée deux fois en même temps, ou un repos insuffisant entre deux
-// matchs d'une même équipe.
+// convoquée deux fois en même temps, un repos insuffisant entre deux
+// matchs d'une même équipe, ou — en phase finale — un match placé avant
+// (ou trop près d') un match qui l'alimente. Les équipes d'un match de
+// tableau peuvent être inconnues (null) : elles ne créent alors aucun
+// conflit d'équipe, seule la structure du tableau contraint.
 
 export interface MatchPlanifieAvecEquipes {
   matchId: string;
   courtId: string;
-  teamAId: string;
-  teamBId: string;
+  teamAId: string | null;
+  teamBId: string | null;
   debut: string; // ISO
   fin: string; // ISO
+  /** Matchs de tableau dont le résultat alimente celui-ci (vainqueurs, ou
+   * perdants pour le match de 3e place). */
+  alimentePar?: string[];
 }
 
-export type TypeConflit = "meme_terrain" | "equipe_double_reservee" | "repos_insuffisant";
+export type TypeConflit =
+  | "meme_terrain"
+  | "equipe_double_reservee"
+  | "repos_insuffisant"
+  | "avant_match_alimentant";
 
 export interface Conflit {
   type: TypeConflit;
@@ -24,12 +34,8 @@ function seChevauchent(aDebut: number, aFin: number, bDebut: number, bFin: numbe
 }
 
 function equipesCommunes(a: MatchPlanifieAvecEquipes, b: MatchPlanifieAvecEquipes): boolean {
-  return (
-    a.teamAId === b.teamAId ||
-    a.teamAId === b.teamBId ||
-    a.teamBId === b.teamAId ||
-    a.teamBId === b.teamBId
-  );
+  const equipesA = [a.teamAId, a.teamBId].filter((t): t is string => !!t);
+  return equipesA.some((t) => t === b.teamAId || t === b.teamBId);
 }
 
 export function detecterConflits(
@@ -62,6 +68,23 @@ export function detecterConflits(
             conflits.push({ type: "repos_insuffisant", matchIds: [a.matchId, b.matchId] });
           }
         }
+      }
+    }
+  }
+
+  const parId = new Map(matches.map((m) => [m.matchId, m]));
+  for (const m of matches) {
+    const debut = new Date(m.debut).getTime();
+    for (const idAlimentant of m.alimentePar ?? []) {
+      const alimentant = parId.get(idAlimentant);
+      if (!alimentant) continue;
+      const finAlimentant = new Date(alimentant.fin).getTime();
+      // Avant la fin du match qui l'alimente : impossible. Après, mais
+      // sans le repos minimum : les joueurs pas encore connus enchaînent.
+      if (debut < finAlimentant) {
+        conflits.push({ type: "avant_match_alimentant", matchIds: [m.matchId, idAlimentant] });
+      } else if (debut - finAlimentant < reposMinMs) {
+        conflits.push({ type: "repos_insuffisant", matchIds: [m.matchId, idAlimentant] });
       }
     }
   }

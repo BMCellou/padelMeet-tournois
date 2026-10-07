@@ -5,6 +5,7 @@ import { genererTours } from "@/lib/engine/tours";
 import { planifier, type MatchAPlanifier } from "@/lib/engine/planification";
 import { heureLocaleVersISO } from "@/lib/temps";
 import { appliquerFormatsParPhase } from "@/lib/tournoi/formatParPhase";
+import { planifierTableauFinal } from "@/lib/tournoi/planificationTableau";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -177,8 +178,24 @@ export async function deplacerMatch(
   matchId: string,
   courtId: string,
   scheduledAtISO: string,
-): Promise<void> {
+): Promise<ActionResult> {
   const supabase = await createClient();
+
+  // Le calendrier de la phase finale se fige dès qu'un match du tableau
+  // est validé : déplacer un match de tableau (ou en replacer un autre
+  // autour) ne serait plus cohérent avec ce qui a été joué.
+  const { data: match } = await supabase
+    .from("matches")
+    .select("phase")
+    .eq("id", matchId)
+    .eq("tournament_id", tournamentId)
+    .single();
+  if (!match) return { error: "Match introuvable." };
+
+  if (match.phase !== "poule" && (await tableauDejaJoue(supabase, tournamentId))) {
+    return { error: "Un match du tableau final est déjà validé : le calendrier de la phase finale ne peut plus changer." };
+  }
+
   await supabase
     .from("matches")
     .update({ court_id: courtId, scheduled_at: scheduledAtISO })
@@ -186,4 +203,29 @@ export async function deplacerMatch(
     .eq("tournament_id", tournamentId);
 
   revalidatePath(`/admin/tournois/${tournamentId}/calendrier`);
+  return { success: true };
+}
+
+async function tableauDejaJoue(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tournamentId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("matches")
+    .select("id")
+    .eq("tournament_id", tournamentId)
+    .in("phase", ["tableau", "classement", "classement_5e"])
+    .in("statut", ["valide", "forfait"])
+    .limit(1);
+  return (data ?? []).length > 0;
+}
+
+/** Replace tous les matchs de la phase finale selon l'algorithme (efface les ajustements manuels). */
+export async function replanifierTableau(tournamentId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const resultat = await planifierTableauFinal(supabase, tournamentId);
+  if (!resultat.ok) return { error: resultat.message };
+  revalidatePath(`/admin/tournois/${tournamentId}/calendrier`);
+  revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
+  return { success: true };
 }

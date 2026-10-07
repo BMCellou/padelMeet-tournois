@@ -8,6 +8,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { construireMessage, formaterDateHeure } from "./message";
 import { contactPourCanal, lienWhatsApp, type CanalRappel } from "./contact";
 import { matchsDansFenetre } from "./selection";
+import { libellerTableau, type MatchTableauStructure } from "@/lib/engine/tableauLibelles";
 import { envoyeursReels, type Envoyeurs } from "./envoi";
 
 type Client = SupabaseClient<Database>;
@@ -42,6 +43,8 @@ export interface MatchRappel {
   teamANom: string;
   teamBNom: string;
   terrain: string | null;
+  /** Phase du match (« Demi-finale n°1 »…) ; null pour un match de poule. */
+  etiquette: string | null;
   joueursA: JoueurRappel[];
   joueursB: JoueurRappel[];
 }
@@ -53,7 +56,7 @@ export async function chargerMatchsRappel(
   let requete = supabase
     .from("matches")
     .select(
-      "id, tournament_id, scheduled_at, statut, team_a_id, team_b_id, court_id, tournaments(nom)",
+      "id, tournament_id, phase, scheduled_at, statut, team_a_id, team_b_id, court_id, tournaments(nom)",
     )
     .not("scheduled_at", "is", null)
     .not("team_a_id", "is", null)
@@ -69,8 +72,9 @@ export async function chargerMatchsRappel(
   const teamIds = [...new Set(matchs.flatMap((m) => [m.team_a_id!, m.team_b_id!]))];
   const courtIds = [...new Set(matchs.map((m) => m.court_id).filter((id): id is string => !!id))];
   const matchIds = matchs.map((m) => m.id);
+  const tournoiIds = [...new Set(matchs.map((m) => m.tournament_id))];
 
-  const [{ data: teams }, { data: courts }, { data: rappels }] = await Promise.all([
+  const [{ data: teams }, { data: courts }, { data: rappels }, { data: tableauBrut }] = await Promise.all([
     supabase
       .from("teams")
       .select("id, nom_affiche, team_players(players(id, prenom, nom, email, telephone, canal_rappel))")
@@ -82,7 +86,32 @@ export async function chargerMatchsRappel(
       .from("rappels_envoyes")
       .select("match_id, player_id, canal, envoye_par, envoye_at")
       .in("match_id", matchIds),
+    supabase
+      .from("matches")
+      .select(
+        "id, tournament_id, phase, round, bracket_slot, next_match_id, next_slot, loser_next_match_id, loser_next_slot",
+      )
+      .in("tournament_id", tournoiIds)
+      .in("phase", ["tableau", "classement", "classement_5e"]),
   ]);
+
+  // Étiquettes de phase, calculées par tournoi (le dernier tour en dépend).
+  const etiquettes = new Map<string, string>();
+  for (const tid of tournoiIds) {
+    const structure: MatchTableauStructure[] = (tableauBrut ?? [])
+      .filter((m) => m.tournament_id === tid)
+      .map((m) => ({
+        id: m.id,
+        phase: m.phase as MatchTableauStructure["phase"],
+        round: m.round,
+        bracketSlot: m.bracket_slot,
+        nextMatchId: m.next_match_id,
+        nextSlot: m.next_slot as "a" | "b" | null,
+        loserNextMatchId: m.loser_next_match_id,
+        loserNextSlot: m.loser_next_slot as "a" | "b" | null,
+      }));
+    for (const [id, l] of libellerTableau(structure)) etiquettes.set(id, l.etiquette);
+  }
 
   const equipe = new Map((teams ?? []).map((t) => [t.id, t]));
   const nomTerrain = new Map((courts ?? []).map((c) => [c.id, c.nom]));
@@ -97,6 +126,7 @@ export async function chargerMatchsRappel(
     const teamBNom = equipeB?.nom_affiche ?? "?";
     const terrain = m.court_id ? (nomTerrain.get(m.court_id) ?? null) : null;
     const tournoiNom = m.tournaments?.nom ?? "Tournoi";
+    const etiquette = etiquettes.get(m.id) ?? null;
 
     function joueursDe(t: typeof equipeA, adversaires: string): JoueurRappel[] {
       return (t?.team_players ?? [])
@@ -109,6 +139,7 @@ export async function chargerMatchsRappel(
             adversaires,
             debutISO: m.scheduled_at!,
             terrain,
+            etiquette,
           });
           const tel = contactPourCanal(p, "whatsapp");
           const deja = dejaEnvoye.get(`${m.id}:${p.id}`);
@@ -151,6 +182,7 @@ export async function chargerMatchsRappel(
       teamANom,
       teamBNom,
       terrain,
+      etiquette,
       joueursA: joueursDe(equipeA, teamBNom),
       joueursB: joueursDe(equipeB, teamANom),
     };

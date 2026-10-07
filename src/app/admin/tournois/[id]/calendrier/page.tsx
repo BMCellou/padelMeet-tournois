@@ -7,6 +7,8 @@ import { GenerationForm } from "./GenerationForm";
 import { CalendrierGrid, type MatchAffiche } from "./CalendrierGrid";
 import { ExemptsList, type ExemptParPoule } from "./ExemptsList";
 import { genererTours } from "@/lib/engine/tours";
+import { alimentants, libellerTableau, type MatchTableauStructure } from "@/lib/engine/tableauLibelles";
+import { ReplanifierTableau } from "./ReplanifierTableau";
 
 export default async function CalendrierPage({
   params,
@@ -53,25 +55,45 @@ export default async function CalendrierPage({
   const { data: matchsBruts } = await supabase
     .from("matches")
     .select(
-      "id, court_id, scheduled_at, duree_estimee, group_id, round, team_a_id, team_b_id",
+      "id, phase, court_id, scheduled_at, duree_estimee, group_id, round, bracket_slot, statut, team_a_id, team_b_id, next_match_id, next_slot, loser_next_match_id, loser_next_slot",
     )
     .eq("tournament_id", tournamentId)
-    .eq("phase", "poule");
+    .in("phase", ["poule", "tableau", "classement", "classement_5e"]);
 
   const nomPoule = new Map((groupes ?? []).map((g) => [g.id, g.nom]));
 
-  const matches: MatchAffiche[] = (matchsBruts ?? []).map((m) => ({
+  const finaux = (matchsBruts ?? []).filter((m) => m.phase !== "poule");
+  const structure: MatchTableauStructure[] = finaux.map((m) => ({
     id: m.id,
-    courtId: m.court_id,
-    debut: m.scheduled_at,
-    dureeMin: m.duree_estimee ?? tournoi.duree_match_min ?? 25,
-    teamAId: m.team_a_id!,
-    teamBId: m.team_b_id!,
-    teamANom: nomEquipe.get(m.team_a_id!) ?? "?",
-    teamBNom: nomEquipe.get(m.team_b_id!) ?? "?",
-    pouleNom: nomPoule.get(m.group_id!) ?? "?",
+    phase: m.phase as MatchTableauStructure["phase"],
     round: m.round,
+    bracketSlot: m.bracket_slot,
+    nextMatchId: m.next_match_id,
+    nextSlot: m.next_slot as "a" | "b" | null,
+    loserNextMatchId: m.loser_next_match_id,
+    loserNextSlot: m.loser_next_slot as "a" | "b" | null,
   }));
+  const libelles = libellerTableau(structure);
+  const alimentantsParMatch = alimentants(structure);
+  const tableauJoue = finaux.some((m) => m.statut === "valide" || m.statut === "forfait");
+
+  const matches: MatchAffiche[] = (matchsBruts ?? []).map((m) => {
+    const libelle = libelles.get(m.id);
+    return {
+      id: m.id,
+      courtId: m.court_id,
+      debut: m.scheduled_at,
+      dureeMin: m.duree_estimee ?? tournoi.duree_match_min ?? 25,
+      teamAId: m.team_a_id,
+      teamBId: m.team_b_id,
+      teamANom: m.team_a_id ? (nomEquipe.get(m.team_a_id) ?? "?") : (libelle?.sourceA ?? "À déterminer"),
+      teamBNom: m.team_b_id ? (nomEquipe.get(m.team_b_id) ?? "?") : (libelle?.sourceB ?? "À déterminer"),
+      etiquette: m.phase === "poule" ? `Poule ${nomPoule.get(m.group_id!) ?? "?"}` : (libelle?.etiquette ?? "Tableau"),
+      round: m.round,
+      alimentePar: alimentantsParMatch.get(m.id),
+      verrouille: m.phase !== "poule" && tableauJoue,
+    };
+  });
 
   const exempts: ExemptParPoule[] = (groupes ?? []).map((g) => {
     const equipeIds = [...g.group_teams]
@@ -90,6 +112,7 @@ export default async function CalendrierPage({
   });
 
   const dejaGenere = matches.length > 0;
+  const aTableau = finaux.length > 0;
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -116,6 +139,17 @@ export default async function CalendrierPage({
                   matches={matches}
                   reposMinMin={tournoi.repos_min_min}
                 />
+              ) : null}
+
+              {aTableau ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Phase finale</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ReplanifierTableau tournamentId={tournamentId} verrouille={tableauJoue} />
+                  </CardContent>
+                </Card>
               ) : null}
 
               <ExemptsList donnees={exempts} />

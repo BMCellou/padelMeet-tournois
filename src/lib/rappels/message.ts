@@ -10,6 +10,8 @@ export interface DonneesMessage {
   /** Instant ISO du match. */
   debutISO: string;
   terrain: string | null;
+  /** « Demi-finale n°1 », « Finale »… pour un match de phase finale. */
+  etiquette?: string | null;
 }
 
 /** "samedi 27 septembre à 14:00", en heure murale Europe/Paris. */
@@ -33,8 +35,9 @@ export function formaterDateHeure(iso: string): string {
 export function construireMessage(d: DonneesMessage): { sujet: string; texte: string } {
   const quand = formaterDateHeure(d.debutISO);
   const terrain = d.terrain ? ` sur ${d.terrain}` : "";
+  const phase = d.etiquette ? ` (${d.etiquette.toLowerCase()})` : "";
   return {
-    sujet: `Rappel : votre match ${quand} — ${d.tournoiNom}`,
-    texte: `Bonjour ${d.prenom}, rappel de votre match du tournoi « ${d.tournoiNom} » : ${quand}${terrain}, contre ${d.adversaires}. Bon match !`,
+    sujet: `Rappel : votre match${phase} ${quand} — ${d.tournoiNom}`,
+    texte: `Bonjour ${d.prenom}, rappel de votre match${phase} du tournoi « ${d.tournoiNom} » : ${quand}${terrain}, contre ${d.adversaires}. Bon match !`,
   };
 }
