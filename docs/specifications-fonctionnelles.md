@@ -70,6 +70,22 @@ Vue de **tous les joueurs du système**, tous tournois confondus, avec leurs aff
 - Il n'existe **pas d'outil de restauration** : c'est une opération manuelle, volontairement non exposée.
 - La sauvegarde couvre les données, pas la structure (celle-ci vit dans les migrations du dépôt).
 
+### 4.5 bis Documents PDF à imprimer
+
+Sur la vue d'ensemble d'un tournoi, deux boutons génèrent un PDF **A4, en français, heures de Paris, lisible en noir et blanc**, produit côté serveur sans service externe. Réservés aux admins.
+
+- **Dossier d'organisation (PDF)**, disponible à tout moment, une section par page :
+  1. **Couverture** : nom du tournoi, club, date en lettres, format de match en toutes lettres (par défaut et par phase), nombre d'équipes, poules, qualifiés, terrains utilisés, ordre de départage.
+  2. **Composition des poules**, avec les noms complets des deux joueurs de chaque équipe.
+  3. **Calendrier complet** : un tableau par créneau horaire, une colonne par terrain, plus une colonne **Repos** qui indique l'équipe exempte de chaque tour de poule ; la phase finale y figure aussi, avec la provenance des équipes inconnues.
+  4. **Feuilles de score vierges** (paysage) : une ligne par match, avec des cases set par set selon le format de la phase (tie-break, super tie-break), un rappel du départage et de la règle d'égalité au buzzer en bas de page.
+  5. **Grilles de classement vierges**, une par poule : Équipe, Victoires, Jeux gagnés, Jeux perdus, Différence, Rang.
+  6. **Arbre du tableau final vierge** (paysage), dimensionné selon le nombre de qualifiés, avec les cases pour la 3e place (et la 5e place quand elle existe).
+  Si les poules ou le calendrier n'existent pas encore, la section concernée l'indique au lieu de bloquer la génération.
+- **Résultats (PDF)**, **disponible une fois le tournoi « Terminé »** (bouton inactif avant ; le serveur refuse aussi) : classements de poule remplis avec les scores des matchs, tableau final rempli, classement final. C'est le document à envoyer au club après le tournoi.
+
+Aucune donnée de contact (e-mail, téléphone) n'entre dans ces documents : seuls les noms des joueurs y figurent.
+
 ### 4.6 Format & règles (onglet du tournoi, admin)
 
 Trois sections, chacune avec son bouton d'enregistrement :

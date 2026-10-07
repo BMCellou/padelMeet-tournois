@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TerrainForm } from "./TerrainForm";
 import { LienPublic } from "./LienPublic";
@@ -136,6 +137,47 @@ export default async function FicheTournoiPage({
                 </span>
                 {(terrainsSelectionnes ?? []).length}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Documents à imprimer</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={`/admin/tournois/${tournoi.id}/dossier`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: "default" })}
+                >
+                  Dossier d&apos;organisation (PDF)
+                </a>
+                {tournoi.statut === "termine" ? (
+                  <a
+                    href={`/admin/tournois/${tournoi.id}/resultats`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Résultats (PDF)
+                  </a>
+                ) : (
+                  <span
+                    className={`${buttonVariants({ variant: "outline" })} pointer-events-none opacity-50`}
+                    aria-disabled="true"
+                    title="Disponible une fois le tournoi terminé"
+                  >
+                    Résultats (PDF)
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Le dossier (couverture, poules, calendrier, feuilles de score, grilles de classement, tableau
+                vierge) se génère à tout moment. Les résultats sont disponibles une fois le statut du tournoi
+                passé à « Terminé ».
+              </p>
             </CardContent>
           </Card>
 
