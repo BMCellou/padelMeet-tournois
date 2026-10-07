@@ -31,6 +31,7 @@ export const matchFormatSchema = z
     superTiebreakPoints: z.number().int().min(2).max(30).optional(),
     limiteTempsMin: z.number().int().min(1).max(240).nullable(),
     regleFinDeTemps: z.enum(["leader_gagne", "finir_le_jeu", "aucune"]),
+    egaliteAuBuzzer: z.enum(["point_en_or", "jeu_decisif", "nul_interdit"]).default("point_en_or"),
     dureeEstimeeMin: z.number().int().min(1).max(240),
   })
   .superRefine((f, ctx) => {
@@ -101,6 +102,12 @@ export function validerFormat(brut: unknown): ResultatValidationFormat {
   return { ok: true, format: parsed.data as MatchFormat };
 }
 
+const REGLES_EGALITE: Record<MatchFormat["egaliteAuBuzzer"], string> = {
+  point_en_or: "point en or",
+  jeu_decisif: "jeu décisif",
+  nul_interdit: "nul interdit, le scoreur désigne le vainqueur",
+};
+
 const REGLES_FIN: Record<MatchFormat["regleFinDeTemps"], string> = {
   leader_gagne: "le leader gagne",
   finir_le_jeu: "on termine le jeu en cours",
@@ -135,7 +142,8 @@ export function resumerFormat(brut: MatchFormat): string {
 
   if (f.limiteTempsMin !== null) {
     const regle = REGLES_FIN[f.regleFinDeTemps];
-    parties.push(`limité à ${f.limiteTempsMin} min${regle ? ` (${regle})` : ""}`);
+    const egalite = `égalité : ${REGLES_EGALITE[f.egaliteAuBuzzer ?? "point_en_or"]}`;
+    parties.push(`limité à ${f.limiteTempsMin} min (${regle ? `${regle}, ` : ""}${egalite})`);
   } else {
     parties.push("sans limite de temps");
   }
@@ -164,6 +172,7 @@ export const PREREGLAGES_FORMAT: PrereglageFormat[] = [
       superTiebreakPoints: 10,
       limiteTempsMin: null,
       regleFinDeTemps: "aucune",
+      egaliteAuBuzzer: "point_en_or",
       dureeEstimeeMin: 30,
     },
   },
@@ -181,6 +190,7 @@ export const PREREGLAGES_FORMAT: PrereglageFormat[] = [
       superTiebreakPoints: 10,
       limiteTempsMin: null,
       regleFinDeTemps: "aucune",
+      egaliteAuBuzzer: "point_en_or",
       dureeEstimeeMin: 60,
     },
   },
@@ -198,6 +208,7 @@ export const PREREGLAGES_FORMAT: PrereglageFormat[] = [
       superTiebreakPoints: 10,
       limiteTempsMin: null,
       regleFinDeTemps: "aucune",
+      egaliteAuBuzzer: "point_en_or",
       dureeEstimeeMin: 10,
     },
   },

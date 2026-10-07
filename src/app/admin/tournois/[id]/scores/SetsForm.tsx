@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { MatchFormat } from "@/lib/engine/types";
-import type { SetSaisi } from "@/lib/engine/score";
+import { estEgaliteAuBuzzer, expliquerScoreIndetermine, type SetSaisi } from "@/lib/engine/score";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,71 @@ function setsVides(format: MatchFormat): SetSaisi[] {
     tiebreakA: null,
     tiebreakB: null,
   }));
+}
+
+function DepartageBuzzer({
+  index,
+  set,
+  regle,
+  onGagnant,
+  onPoints,
+}: {
+  index: number;
+  set: SetSaisi;
+  regle: "point_en_or" | "jeu_decisif" | "nul_interdit";
+  onGagnant: (g: "a" | "b") => void;
+  onPoints: (champ: "tiebreakA" | "tiebreakB", valeur: string) => void;
+}) {
+  const consigne =
+    regle === "jeu_decisif"
+      ? `Égalité ${set.jeuxA}-${set.jeuxB} au buzzer : score du jeu décisif`
+      : regle === "nul_interdit"
+        ? `Égalité ${set.jeuxA}-${set.jeuxB} au buzzer : un nul est impossible, quelle équipe est déclarée vainqueur ?`
+        : `Égalité ${set.jeuxA}-${set.jeuxB} au buzzer : qui a gagné le point en or ?`;
+
+  return (
+    <div className="space-y-2 rounded-md bg-muted/40 p-2">
+      <p className="text-xs font-medium">{consigne}</p>
+      {regle === "jeu_decisif" ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label htmlFor={`set-${index}-bzA`}>Points équipe A</Label>
+            <Input
+              id={`set-${index}-bzA`}
+              type="number"
+              min={0}
+              value={set.tiebreakA ?? ""}
+              onChange={(e) => onPoints("tiebreakA", e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`set-${index}-bzB`}>Points équipe B</Label>
+            <Input
+              id={`set-${index}-bzB`}
+              type="number"
+              min={0}
+              value={set.tiebreakB ?? ""}
+              onChange={(e) => onPoints("tiebreakB", e.target.value)}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-4 text-sm">
+          {(["a", "b"] as const).map((g) => (
+            <label key={g} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name={`buzzer-${index}`}
+                checked={g === "a" ? (set.tiebreakA ?? 0) > (set.tiebreakB ?? 0) : (set.tiebreakB ?? 0) > (set.tiebreakA ?? 0)}
+                onChange={() => onGagnant(g)}
+              />
+              Équipe {g.toUpperCase()}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function SetsForm({
@@ -48,12 +113,26 @@ export function SetsForm({
     );
   }
 
+  function departager(index: number, gagnant: "a" | "b") {
+    setSets((prev) =>
+      prev.map((s, i) =>
+        i === index ? { ...s, tiebreakA: gagnant === "a" ? 1 : 0, tiebreakB: gagnant === "a" ? 0 : 1 } : s,
+      ),
+    );
+  }
+
   function envoyer() {
     const setsAEnvoyer = sets.filter(
       (s, i) => i === 0 || s.jeuxA > 0 || s.jeuxB > 0 || s.tiebreakA != null || s.tiebreakB != null,
     );
     onSubmit(setsAEnvoyer);
   }
+
+  // Dès qu'un set est saisi, dit tout de suite pourquoi le score ne désigne
+  // pas encore de vainqueur et quoi faire, plutôt que d'attendre un refus à la validation.
+  const saisis = sets.filter((s, i) => i === 0 || s.jeuxA > 0 || s.jeuxB > 0 || s.tiebreakA != null || s.tiebreakB != null);
+  const aSaisiQuelqueChose = saisis.some((s) => s.jeuxA > 0 || s.jeuxB > 0);
+  const indication = aSaisiQuelqueChose ? expliquerScoreIndetermine(saisis, format) : null;
 
   return (
     <div className="space-y-4">
@@ -92,7 +171,16 @@ export function SetsForm({
               />
             </div>
           </div>
-          {!superTb && format.jeuDecisif?.actif ? (
+          {!superTb && estEgaliteAuBuzzer(s, format) ? (
+            <DepartageBuzzer
+              index={i}
+              set={s}
+              regle={format.egaliteAuBuzzer ?? "point_en_or"}
+              onGagnant={(g) => departager(i, g)}
+              onPoints={(champ, valeur) => maj(i, champ, valeur)}
+            />
+          ) : null}
+          {!superTb && format.jeuDecisif?.actif && !estEgaliteAuBuzzer(s, format) ? (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor={`set-${i}-tbA`}>
@@ -121,6 +209,11 @@ export function SetsForm({
         </div>
         );
       })}
+      {indication ? (
+        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm" role="status">
+          {indication}
+        </p>
+      ) : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="button" onClick={envoyer} disabled={isPending} className="w-full">
         {isPending ? "Enregistrement..." : libelleSubmit}

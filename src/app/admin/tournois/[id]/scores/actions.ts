@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { determinerVainqueurMatch, type SetSaisi } from "@/lib/engine/score";
+import { determinerVainqueurMatch, expliquerScoreIndetermine, type SetSaisi } from "@/lib/engine/score";
 import type { CritereDepartage } from "@/lib/engine/classement";
 import { recalculerClassementPoule } from "@/lib/tournoi/classementPoule";
 import type { MatchFormat } from "@/lib/engine/types";
@@ -215,7 +215,7 @@ export async function validerScore(tournamentId: string, matchId: string): Promi
 
   const resultat = determinerVainqueurMatch(sets, contexte.format);
   if (!resultat.vainqueur) {
-    return { error: "Le score ne désigne pas encore de vainqueur clair." };
+    return { error: expliquerScoreIndetermine(sets, contexte.format) ?? "Le score ne désigne pas encore de vainqueur clair." };
   }
 
   const winnerId =
@@ -260,7 +260,10 @@ export async function corrigerScore(
 
   const resultat = determinerVainqueurMatch(parsed.data, contexte.format);
   if (!resultat.vainqueur) {
-    return { error: "Le score corrigé ne désigne pas de vainqueur clair." };
+    return {
+      error:
+        expliquerScoreIndetermine(parsed.data, contexte.format) ?? "Le score corrigé ne désigne pas de vainqueur clair.",
+    };
   }
 
   const winnerId =

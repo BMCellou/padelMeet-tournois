@@ -101,6 +101,18 @@ describe("validerFormat", () => {
     if (r.ok) expect(r.format.regleFinDeTemps).toBe("aucune");
   });
 
+  it("un format enregistré avant l'ajout de la règle d'égalité reçoit « point en or » par défaut", () => {
+    const ancien = { ...base } as Partial<MatchFormat>;
+    delete ancien.egaliteAuBuzzer;
+    const r = validerFormat(ancien);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.format.egaliteAuBuzzer).toBe("point_en_or");
+  });
+
+  it("refuse une règle d'égalité inconnue", () => {
+    expect(validerFormat({ ...base, egaliteAuBuzzer: "tirage_au_sort" }).ok).toBe(false);
+  });
+
   it("refuse un super tie-break sans nombre de points", () => {
     const r = validerFormat({ ...base, nbSetsGagnants: 2, setDecisifSuperTiebreak: true });
     expect(r.ok).toBe(false);
@@ -123,7 +135,7 @@ describe("validerFormat", () => {
 describe("resumerFormat", () => {
   it("format par défaut", () => {
     expect(resumerFormat(base)).toBe(
-      "1 set en 7 jeux, point décisif, tie-break en 7 points à 6-6, limité à 25 min (le leader gagne)",
+      "1 set en 7 jeux, point décisif, tie-break en 7 points à 6-6, limité à 25 min (le leader gagne, égalité : point en or)",
     );
   });
 
@@ -139,10 +151,15 @@ describe("resumerFormat", () => {
     expect(resumerFormat(st)).toBe("Super tie-break seul : 10 points, 2 points d'écart, sans limite de temps");
   });
 
+  it("annonce la règle d'égalité au buzzer choisie", () => {
+    expect(resumerFormat({ ...base, egaliteAuBuzzer: "jeu_decisif" })).toContain("égalité : jeu décisif");
+    expect(resumerFormat({ ...base, egaliteAuBuzzer: "nul_interdit" })).toContain("nul interdit");
+  });
+
   it("avantage, sans tie-break, règle « finir le jeu »", () => {
     expect(
       resumerFormat({ ...base, pointDecisif: false, jeuDecisif: null, regleFinDeTemps: "finir_le_jeu" }),
-    ).toBe("1 set en 7 jeux, avantage, sans tie-break, limité à 25 min (on termine le jeu en cours)");
+    ).toBe("1 set en 7 jeux, avantage, sans tie-break, limité à 25 min (on termine le jeu en cours, égalité : point en or)");
   });
 });
 

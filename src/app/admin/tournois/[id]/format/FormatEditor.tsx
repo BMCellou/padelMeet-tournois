@@ -277,6 +277,19 @@ export function FormatEditor({
                 onChange={(e) => maj({ limiteTempsMin: nombre(e.target.value) })}
               />
             </Champ>
+            <Champ id={id("egalite")} label="Égalité au buzzer (ex. 4-4)">
+              <select
+                id={id("egalite")}
+                className={selectClasse}
+                disabled={disabled}
+                value={value.egaliteAuBuzzer ?? "point_en_or"}
+                onChange={(e) => maj({ egaliteAuBuzzer: e.target.value as MatchFormat["egaliteAuBuzzer"] })}
+              >
+                <option value="point_en_or">Point en or (un dernier point décide)</option>
+                <option value="jeu_decisif">Jeu décisif (un tie-break décide)</option>
+                <option value="nul_interdit">Nul interdit (le scoreur désigne le vainqueur)</option>
+              </select>
+            </Champ>
             <Champ id={id("regle")} label="À la fin du temps">
               <select
                 id={id("regle")}

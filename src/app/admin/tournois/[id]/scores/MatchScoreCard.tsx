@@ -9,7 +9,7 @@ import {
   reinitialiserScore,
 } from "./actions";
 import type { MatchFormat } from "@/lib/engine/types";
-import type { SetSaisi } from "@/lib/engine/score";
+import { libelleSet, type SetSaisi } from "@/lib/engine/score";
 import { SetsForm } from "./SetsForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,12 +46,7 @@ const LIBELLES_STATUT: Record<string, string> = {
 
 function scoreResume(sets: SetSaisi[]): string {
   if (sets.length === 0) return "—";
-  return sets
-    .map((s) => {
-      const tb = s.tiebreakA != null && s.tiebreakB != null ? `(${Math.min(s.tiebreakA, s.tiebreakB)})` : "";
-      return `${s.jeuxA}-${s.jeuxB}${tb}`;
-    })
-    .join(", ");
+  return sets.map(libelleSet).join(", ");
 }
 
 export function MatchScoreCard({

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { SetSaisi } from "@/lib/engine/score";
+import { libelleSet, type SetSaisi } from "@/lib/engine/score";
 import { cn } from "@/lib/utils";
 
 export interface MatchPublicAffiche {
@@ -28,15 +28,7 @@ const LIBELLES_STATUT: Record<string, string> = {
 
 function scoreResume(sets: SetSaisi[]): string {
   if (sets.length === 0) return "—";
-  return sets
-    .map((s) => {
-      const tb =
-        s.tiebreakA != null && s.tiebreakB != null
-          ? `(${Math.min(s.tiebreakA, s.tiebreakB)})`
-          : "";
-      return `${s.jeuxA}-${s.jeuxB}${tb}`;
-    })
-    .join(", ");
+  return sets.map(libelleSet).join(", ");
 }
 
 export function PublicMatchCard({ match }: { match: MatchPublicAffiche }) {
