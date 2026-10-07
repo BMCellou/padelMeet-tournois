@@ -3,7 +3,8 @@
 // Mêmes paramètres que poule-unique-5.test.ts.
 
 import type { Scenario } from "./scenario";
-import { CRITERES_14, simulerMatchParNumero } from "./tournoi-25-juillet";
+import { DEPARTAGE_PAR_DEFAUT } from "@/lib/engine/formatMatch";
+import { simulerMatchParNumero } from "./tournoi-25-juillet";
 
 export const POULE_UNIQUE_5: Scenario = {
   nom: "poule-unique-5",
@@ -17,7 +18,8 @@ export const POULE_UNIQUE_5: Scenario = {
   dureeJeuMin: 25,
   rotationMin: 5,
   reposMinMin: 15,
-  criteres: CRITERES_14,
+  // Le défaut réel d'un tournoi (chemin courant) ; le scénario à 14 équipes garde sa liste exotique.
+  criteres: DEPARTAGE_PAR_DEFAUT,
   nbQualifies: 0,
   simulerMatch: simulerMatchParNumero,
 };
