@@ -698,6 +698,7 @@ export type Database = {
           pause_min: number | null
           public_slug: string | null
           repos_min_min: number
+          selection_manuelle: boolean
           statut: string
           tiebreak_rules: Json
           tirage_seed: number | null
@@ -719,6 +720,7 @@ export type Database = {
           pause_min?: number | null
           public_slug?: string | null
           repos_min_min?: number
+          selection_manuelle?: boolean
           statut?: string
           tiebreak_rules?: Json
           tirage_seed?: number | null
@@ -740,6 +742,7 @@ export type Database = {
           pause_min?: number | null
           public_slug?: string | null
           repos_min_min?: number
+          selection_manuelle?: boolean
           statut?: string
           tiebreak_rules?: Json
           tirage_seed?: number | null

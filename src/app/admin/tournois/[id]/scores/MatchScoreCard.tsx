@@ -65,6 +65,7 @@ export function MatchScoreCard({
 }) {
   const [dialogOuvert, setDialogOuvert] = useState<"score" | "forfait" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const modeCorrection = match.statut === "valide" || match.statut === "forfait";
@@ -77,6 +78,7 @@ export function MatchScoreCard({
         setError(resultat.error);
       } else {
         setError(null);
+        setInfo(resultat.info ?? null);
         setDialogOuvert(null);
       }
     });
@@ -96,6 +98,7 @@ export function MatchScoreCard({
       if ("error" in resultat) setError(resultat.error);
       else {
         setError(null);
+        setInfo(resultat.info ?? null);
         setDialogOuvert(null);
       }
     });
@@ -140,6 +143,11 @@ export function MatchScoreCard({
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {info ? (
+        <p className="rounded-md border border-primary/40 bg-primary/10 p-2 text-sm" role="status">
+          ℹ️ {info}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap gap-2 pt-1">
         {match.statut === "saisi" ? (

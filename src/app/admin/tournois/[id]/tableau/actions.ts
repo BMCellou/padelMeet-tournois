@@ -49,7 +49,17 @@ export async function regenererTableauAvecQualifies(
     qualifiesIds,
   );
 
-  const resultat = await genererTableauAvecQualifies(supabase, tournamentId, qualifies, classement5e);
+  // Sélection différente de celle du classement = choix manuel (repêchage).
+  const auto = new Set(contexte.equipes.filter((e) => e.qualifieAuto).map((e) => e.teamId));
+  const selectionManuelle = auto.size !== qualifiesIds.size || [...qualifiesIds].some((id) => !auto.has(id));
+
+  const resultat = await genererTableauAvecQualifies(
+    supabase,
+    tournamentId,
+    qualifies,
+    classement5e,
+    selectionManuelle,
+  );
   if ("success" in resultat) {
     revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
   }

@@ -81,6 +81,42 @@ export async function verifierPoulesTerminees(
   return { ok: true, nbQualifies: tournoi.nb_qualifies };
 }
 
+type LigneStanding = {
+  group_id: string | null;
+  team_id: string;
+  joues: number;
+  v: number;
+  d: number;
+  sets_g: number;
+  sets_p: number;
+  jeux_g: number;
+  jeux_p: number;
+  ratio_sets: number | null;
+  ratio_jeux: number | null;
+  rang: number | null;
+};
+
+export function classementsDepuisStandings(groupIds: string[], standings: LigneStanding[]): ClassementPoule[] {
+  return groupIds.map((groupId) => ({
+    groupId,
+    equipes: standings
+      .filter((s) => s.group_id === groupId)
+      .map((s) => ({
+        teamId: s.team_id,
+        joues: s.joues,
+        v: s.v,
+        d: s.d,
+        setsG: s.sets_g,
+        setsP: s.sets_p,
+        jeuxG: s.jeux_g,
+        jeuxP: s.jeux_p,
+        ratioSets: s.ratio_sets ?? 0,
+        ratioJeux: s.ratio_jeux ?? 0,
+        rang: s.rang ?? 0,
+      })),
+  }));
+}
+
 /**
  * Calcule le contexte complet de qualification : toutes les équipes de
  * poule avec leur rang et si elles sont qualifiées par la sélection
@@ -110,24 +146,10 @@ export async function calculerContexteQualification(
     .select("group_id, team_id, joues, v, d, sets_g, sets_p, jeux_g, jeux_p, ratio_sets, ratio_jeux, rang")
     .eq("tournament_id", tournamentId);
 
-  const classementsParPoule: ClassementPoule[] = (groupes ?? []).map((g) => ({
-    groupId: g.id,
-    equipes: (standingsBrutes ?? [])
-      .filter((s) => s.group_id === g.id)
-      .map((s) => ({
-        teamId: s.team_id,
-        joues: s.joues,
-        v: s.v,
-        d: s.d,
-        setsG: s.sets_g,
-        setsP: s.sets_p,
-        jeuxG: s.jeux_g,
-        jeuxP: s.jeux_p,
-        ratioSets: s.ratio_sets ?? 0,
-        ratioJeux: s.ratio_jeux ?? 0,
-        rang: s.rang ?? 0,
-      })),
-  }));
+  const classementsParPoule = classementsDepuisStandings(
+    (groupes ?? []).map((g) => g.id),
+    standingsBrutes ?? [],
+  );
 
   const qualification = selectionnerQualifies(classementsParPoule, pret.nbQualifies);
   const qualifiesIds = new Set(qualification.qualifies);
@@ -185,6 +207,7 @@ export async function genererTableauAvecQualifies(
   tournamentId: string,
   qualifies: Qualifie[],
   classement5e: Match5e | null = null,
+  selectionManuelle = false,
 ): Promise<ResultatAction> {
   if (qualifies.length < 2 || (qualifies.length & (qualifies.length - 1)) !== 0) {
     return { error: `Le nombre de qualifiés doit être une puissance de 2 (reçu ${qualifies.length}).` };
@@ -283,6 +306,9 @@ export async function genererTableauAvecQualifies(
   // Horaires et terrains de la phase finale, à la suite des poules. Sans
   // terrain assigné, le tableau reste simplement sans horaire.
   await planifierTableauFinal(supabase, tournamentId);
+  // Retient si la sélection est celle du classement ou un choix manuel : seul
+  // le second cas échappe à la régénération après une correction de score.
+  await supabase.from("tournaments").update({ selection_manuelle: selectionManuelle }).eq("id", tournamentId);
   return { success: true };
 }
 
@@ -307,17 +333,31 @@ export async function tenterGenerationAutomatique(
 
   if (tableauExistant && tableauExistant.length > 0) return;
 
+  await regenererTableauAuto(supabase, tournamentId);
+}
+
+/**
+ * (Re)génère le tableau à partir de la sélection automatique des qualifiés
+ * d'après les classements de poule actuels. Sert à la génération de fin de
+ * poules et à la régénération qui suit une correction de score de poule.
+ */
+export async function regenererTableauAuto(
+  supabase: SupabaseServerClient,
+  tournamentId: string,
+): Promise<ResultatAction> {
   const contexte = await calculerContexteQualification(supabase, tournamentId);
-  if ("error" in contexte) return;
+  if ("error" in contexte) return { error: contexte.error };
 
   const qualifies: Qualifie[] = contexte.equipes
     .filter((e) => e.qualifieAuto)
     .map((e) => ({ teamId: e.teamId, groupId: e.groupId }));
 
-  if (qualifies.length !== contexte.tailleTableau) return;
+  if (qualifies.length !== contexte.tailleTableau) {
+    return { error: "Les poules ne désignent pas assez d'équipes qualifiables pour le tableau." };
+  }
 
   const qualifiesIds = new Set(qualifies.map((q) => q.teamId));
   const classement5e = await calculerMatchClassement5e(supabase, tournamentId, contexte.equipes, qualifiesIds);
 
-  await genererTableauAvecQualifies(supabase, tournamentId, qualifies, classement5e);
+  return genererTableauAvecQualifies(supabase, tournamentId, qualifies, classement5e, false);
 }

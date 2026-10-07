@@ -7,6 +7,7 @@ import { QualifiesEditor } from "./QualifiesEditor";
 import { ClassementFinalList, type LigneFinale } from "@/components/tournoi/ClassementFinalList";
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
 import { calculerContexteQualification } from "@/lib/tournoi/tableauFinal";
+import { comparerQualifies, messageIncoherenceTableau } from "@/lib/engine/impactQualifies";
 import { estAdmin, getTournoisScoreur } from "@/lib/staff/session";
 import type { MatchFormat } from "@/lib/engine/types";
 
@@ -22,7 +23,7 @@ export default async function TableauPage({
 
   const { data: tournoi } = await supabase
     .from("tournaments")
-    .select("id, nom, format_config")
+    .select("id, nom, format_config, selection_manuelle")
     .eq("id", tournamentId)
     .single();
 
@@ -145,8 +146,65 @@ export default async function TableauPage({
     // admins — un scoreur ne voit que le tableau déjà généré (ou un
     // message d'attente), jamais ce panneau d'édition.
     let editeurQualifies: React.ReactNode = null;
+    let bandeaux: React.ReactNode = null;
+    const contexte = await calculerContexteQualification(supabase, tournamentId);
+
+    // Incohérence : les qualifiés du tableau ne sont plus ceux que désignent
+    // les classements de poule (ex. tournoi dont une correction a été
+    // appliquée avant le garde-fou). Les choix manuels (repêchage) ne comptent pas.
+    if (!("error" in contexte) && (matchsBruts ?? []).length > 0 && !tournoi.selection_manuelle) {
+      const premierTour = Math.min(...matchsBruts!.map((m) => m.round));
+      const dansLeTableau = [
+        ...new Set(
+          matchsBruts!
+            .filter((m) => m.round === premierTour)
+            .flatMap((m) => [m.team_a_id, m.team_b_id])
+            .filter((id): id is string => !!id),
+        ),
+      ];
+      const selonClassement = contexte.equipes.filter((e) => e.qualifieAuto).map((e) => e.teamId);
+      const ecart = comparerQualifies(dansLeTableau, selonClassement);
+      if (ecart.modifie) {
+        bandeaux = (
+          <div className="space-y-1 rounded-md border border-destructive bg-destructive/10 p-3 text-sm" role="alert">
+            <p className="font-medium text-destructive">⚠️ Incohérence entre les poules et le tableau</p>
+            <p>{messageIncoherenceTableau({ ...ecart, entrants: ecart.entrants, sortants: ecart.sortants }, (id) => nomEquipe.get(id) ?? "?")}</p>
+            <p className="text-muted-foreground">
+              {!admin
+                ? "Préviens l'organisateur."
+                : tableauCommence
+                  ? "Le tableau a déjà commencé : seul un retour en arrière manuel (réinitialiser ses matchs joués) permet de le remettre en accord avec les poules."
+                  : "Aucun match du tableau n'est joué : ouvre « Modifier les qualifiés » puis « Régénérer le tableau » pour le remettre en accord."}
+            </p>
+          </div>
+        );
+      }
+    }
+
+    // Information : tableau refait automatiquement après une correction de poule.
+    if (!tableauCommence && (matchsBruts ?? []).length > 0) {
+      const { data: derniereRegeneration } = await supabase
+        .from("audit_log")
+        .select("created_at")
+        .eq("tournament_id", tournamentId)
+        .eq("action", "regeneration_tableau_correction")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (derniereRegeneration) {
+        bandeaux = (
+          <>
+            {bandeaux}
+            <div className="rounded-md border border-primary/40 bg-primary/10 p-3 text-sm" role="status">
+              ℹ️ Le tableau a été régénéré suite à la correction d&apos;un score de poule (
+              {new Date(derniereRegeneration.created_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}).
+            </div>
+          </>
+        );
+      }
+    }
+
     if (!tableauCommence) {
-      const contexte = await calculerContexteQualification(supabase, tournamentId);
       if ("error" in contexte) {
         editeurQualifies = admin ? (
           <p className="text-sm text-muted-foreground">{contexte.error}</p>
@@ -236,6 +294,7 @@ export default async function TableauPage({
 
       contenu = (
         <>
+          {bandeaux}
           {editeurQualifies}
           <div className="flex gap-4 overflow-x-auto pb-2">
             {tours.map((tour) => (

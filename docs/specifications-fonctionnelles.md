@@ -172,7 +172,11 @@ Pour chaque match, on saisit les jeux de chaque set (et le tie-break le cas éch
 
 Statuts d'un match : à venir → prêt → en cours → saisi → validé / forfait.
 
-- **Corriger** un match validé (les anciens sets sont conservés dans le journal d'audit).
+- **Corriger** un match validé (les anciens sets sont conservés dans le journal d'audit). Pour un **match de poule dont le tableau final existe déjà**, la correction est d'abord comparée à la liste des qualifiés (l'ensemble des équipes qualifiées) : classements actuels contre classement recalculé avec la correction.
+  - **Liste inchangée** (y compris si le classement change sans toucher aux qualifiés, par exemple le 3e et le 4e qui s'échangent sans être qualifiés) : correction appliquée normalement, tracée dans le journal.
+  - **Liste modifiée, aucun match du tableau joué** : correction appliquée, **tableau régénéré automatiquement** (planning compris), avec un bandeau « le tableau a été régénéré suite à la correction » sur le match corrigé et sur l'écran Tableau final ; trace dans le journal (équipes entrantes et sortantes).
+  - **Liste modifiée, au moins un match du tableau commencé** (score saisi, validé ou forfait) : correction **refusée**, avec un message qui nomme les équipes qui entreraient et sortiraient du tableau et précise que seul un retour en arrière manuel sur le tableau (réinitialiser ses matchs joués) permet de corriger ; le refus est tracé.
+  - Le même contrôle s'applique à un forfait déclaré sur un match de poule. Un tableau dont les qualifiés ont été choisis à la main (§11.2) n'est jamais régénéré par une correction : le choix de l'organisateur prime. Un simple échange de rang entre deux qualifiés ne change pas la liste et ne régénère rien.
 - **Forfait** : l'admin désigne l'équipe gagnante ; le match compte comme une victoire sans jeux ni sets.
 - **Réinitialiser** un score : remet le match à venir. Bloqué si le tour suivant a déjà commencé. Pour un match de poule, bloqué dès que le tableau final a commencé ; autorisé tant que rien n'y a été joué (l'admin peut alors régénérer les qualifiés).
 - Chaque validation, correction et réinitialisation est tracée (qui, quoi, quand).
@@ -207,6 +211,8 @@ Le tableau est **généré automatiquement dès que le dernier match de poule es
 ### 11.2 Repêchage / modification des qualifiés (admin)
 
 Sur l'écran **Tableau final**, « Modifier les qualifiés » montre toutes les équipes par poule avec leur rang, cochées selon la sélection automatique. L'admin peut échanger des équipes (le nombre doit rester celui du tableau) puis **régénérer** le tableau. C'est impossible dès qu'un match du tableau a été joué. Le scoreur ne voit jamais ce panneau.
+
+Un **bandeau d'alerte permanent** s'affiche sur l'écran Tableau final quand les qualifiés du tableau ne correspondent plus au classement des poules (par exemple après une réinitialisation de score de poule, ou pour un tournoi corrigé avant ce garde-fou) : il nomme les équipes concernées et indique la marche à suivre (régénérer depuis « Modifier les qualifiés » si rien n'est joué, sinon retour en arrière manuel). Les sélections choisies à la main ne déclenchent pas ce bandeau.
 
 ### 11.3 Match pour la 3e place
 

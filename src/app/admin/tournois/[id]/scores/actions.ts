@@ -4,13 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { determinerVainqueurMatch, type SetSaisi } from "@/lib/engine/score";
-import { calculerClassement, type MatchTermine, type CritereDepartage } from "@/lib/engine/classement";
+import type { CritereDepartage } from "@/lib/engine/classement";
+import { recalculerClassementPoule } from "@/lib/tournoi/classementPoule";
 import type { MatchFormat } from "@/lib/engine/types";
 import type { Json } from "@/lib/supabase/database.types";
-import { tenterGenerationAutomatique } from "@/lib/tournoi/tableauFinal";
+import { regenererTableauAuto, tenterGenerationAutomatique } from "@/lib/tournoi/tableauFinal";
+import { evaluerCorrectionPoule, type ResultatEvaluation } from "@/lib/tournoi/correctionPoule";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
-type ActionResult = { error: string } | { success: true };
+type ActionResult = { error: string } | { success: true; info?: string };
 
 const setSchema = z.object({
   jeuxA: z.number().int().min(0),
@@ -54,80 +56,6 @@ async function enregistrerActeur(supabase: SupabaseServerClient): Promise<string
   return user?.email ?? "admin";
 }
 
-async function recalculerClassementPoule(
-  supabase: SupabaseServerClient,
-  tournamentId: string,
-  groupId: string,
-  tiebreakRules: CritereDepartage[],
-): Promise<void> {
-  const { data: groupTeams } = await supabase
-    .from("group_teams")
-    .select("team_id")
-    .eq("group_id", groupId);
-  const equipeIds = (groupTeams ?? []).map((g) => g.team_id);
-
-  const { data: matchesTermines } = await supabase
-    .from("matches")
-    .select("team_a_id, team_b_id, winner_id, statut, match_sets(jeux_a, jeux_b, tiebreak_a, tiebreak_b)")
-    .eq("group_id", groupId)
-    .in("statut", ["valide", "forfait"]);
-
-  const donnees: MatchTermine[] = (matchesTermines ?? []).map((m) => {
-    if (m.statut === "forfait") {
-      return {
-        teamAId: m.team_a_id!,
-        teamBId: m.team_b_id!,
-        vainqueurId: m.winner_id!,
-        setsA: 0,
-        setsB: 0,
-        jeuxA: 0,
-        jeuxB: 0,
-      };
-    }
-
-    let setsA = 0;
-    let setsB = 0;
-    let jeuxA = 0;
-    let jeuxB = 0;
-
-    for (const s of m.match_sets) {
-      jeuxA += s.jeux_a;
-      jeuxB += s.jeux_b;
-      if (s.jeux_a > s.jeux_b) setsA++;
-      else if (s.jeux_b > s.jeux_a) setsB++;
-      else if (s.tiebreak_a != null && s.tiebreak_b != null) {
-        if (s.tiebreak_a > s.tiebreak_b) setsA++;
-        else if (s.tiebreak_b > s.tiebreak_a) setsB++;
-      }
-    }
-
-    return { teamAId: m.team_a_id!, teamBId: m.team_b_id!, vainqueurId: m.winner_id!, setsA, setsB, jeuxA, jeuxB };
-  });
-
-  const classement = calculerClassement(donnees, equipeIds, tiebreakRules);
-
-  await supabase.from("standings").delete().eq("group_id", groupId);
-  if (classement.length > 0) {
-    await supabase.from("standings").insert(
-      classement.map((e) => ({
-        tournament_id: tournamentId,
-        group_id: groupId,
-        team_id: e.teamId,
-        joues: e.joues,
-        v: e.v,
-        d: e.d,
-        sets_g: e.setsG,
-        sets_p: e.setsP,
-        jeux_g: e.jeuxG,
-        jeux_p: e.jeuxP,
-        ratio_sets: e.ratioSets,
-        ratio_jeux: e.ratioJeux,
-        rang: e.rang,
-      })),
-    );
-  }
-}
-
 /**
  * Après validation/correction/forfait : recalcule le classement de poule
  * (phase='poule'), ou propage le vainqueur vers le match suivant du
@@ -169,6 +97,56 @@ async function apresValidation(
     const champ = match.loser_next_slot === "a" ? { team_a_id: loserId } : { team_b_id: loserId };
     await supabase.from("matches").update(champ).eq("id", match.loser_next_match_id);
   }
+}
+
+/**
+ * Suite d'une correction de poule jugée « appliquer et régénérer » : le
+ * classement vient d'être recalculé, on refait le tableau (aucun de ses
+ * matchs n'a été joué, vérifié avant) et on laisse une trace.
+ */
+async function regenererApresCorrection(
+  supabase: SupabaseServerClient,
+  tournamentId: string,
+  matchId: string,
+  garde: ResultatEvaluation | null,
+  origine: "correction" | "forfait",
+): Promise<ActionResult> {
+  if (!garde || garde.decision !== "appliquer_et_regenerer" || !garde.impact) return { success: true };
+
+  const resultat = await regenererTableauAuto(supabase, tournamentId);
+  if ("error" in resultat) {
+    return {
+      error: `Correction appliquée, mais le tableau n'a pas pu être régénéré (${resultat.error}). Régénère-le depuis « Modifier les qualifiés ».`,
+    };
+  }
+
+  await supabase.from("audit_log").insert({
+    tournament_id: tournamentId,
+    acteur: await enregistrerActeur(supabase),
+    action: "regeneration_tableau_correction",
+    payload: {
+      matchId,
+      origine,
+      entrants: garde.impact.entrants,
+      sortants: garde.impact.sortants,
+    } as unknown as Json,
+  });
+  return { success: true, info: "Le tableau a été régénéré suite à la correction : la liste des qualifiés a changé." };
+}
+
+/** Trace d'une correction refusée parce qu'elle changerait les qualifiés d'un tableau commencé. */
+async function tracerRefus(
+  supabase: SupabaseServerClient,
+  tournamentId: string,
+  matchId: string,
+  garde: ResultatEvaluation,
+): Promise<void> {
+  await supabase.from("audit_log").insert({
+    tournament_id: tournamentId,
+    acteur: await enregistrerActeur(supabase),
+    action: "correction_refusee",
+    payload: { matchId, entrants: garde.impact?.entrants, sortants: garde.impact?.sortants } as unknown as Json,
+  });
 }
 
 async function remplacerSets(supabase: SupabaseServerClient, matchId: string, sets: SetSaisi[]): Promise<void> {
@@ -288,6 +266,22 @@ export async function corrigerScore(
   const winnerId =
     resultat.vainqueur === "a" ? contexte.match.team_a_id : contexte.match.team_b_id;
 
+  // Une correction de poule peut changer les qualifiés alors que le tableau
+  // existe déjà : on mesure l'impact avant d'écrire quoi que ce soit.
+  const garde =
+    contexte.match.phase === "poule"
+      ? await evaluerCorrectionPoule(
+          supabase,
+          tournamentId,
+          { matchId, groupId: contexte.match.group_id!, vainqueurId: winnerId!, forfait: false, sets: parsed.data },
+          contexte.tiebreakRules,
+        )
+      : null;
+  if (garde?.decision === "refuser") {
+    await tracerRefus(supabase, tournamentId, matchId, garde);
+    return { error: garde.message! };
+  }
+
   const { data: ancienSets } = await supabase
     .from("match_sets")
     .select("numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b")
@@ -303,14 +297,22 @@ export async function corrigerScore(
     tournament_id: tournamentId,
     acteur: await enregistrerActeur(supabase),
     action: "correction_score",
-    payload: { matchId, ancienSets, nouveauxSets: parsed.data } as unknown as Json,
+    payload: {
+      matchId,
+      ancienSets,
+      nouveauxSets: parsed.data,
+      qualifies: garde?.impact
+        ? { modifie: garde.impact.modifie, entrants: garde.impact.entrants, sortants: garde.impact.sortants }
+        : null,
+    } as unknown as Json,
   });
 
   await apresValidation(supabase, tournamentId, contexte.match, winnerId!, contexte.tiebreakRules);
+  const suite = await regenererApresCorrection(supabase, tournamentId, matchId, garde, "correction");
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);
   revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
-  return { success: true };
+  return suite;
 }
 
 export async function declarerForfait(
@@ -324,6 +326,20 @@ export async function declarerForfait(
 
   if (equipeGagnanteId !== contexte.match.team_a_id && equipeGagnanteId !== contexte.match.team_b_id) {
     return { error: "Équipe invalide pour ce match." };
+  }
+
+  const garde =
+    contexte.match.phase === "poule"
+      ? await evaluerCorrectionPoule(
+          supabase,
+          tournamentId,
+          { matchId, groupId: contexte.match.group_id!, vainqueurId: equipeGagnanteId, forfait: true, sets: [] },
+          contexte.tiebreakRules,
+        )
+      : null;
+  if (garde?.decision === "refuser") {
+    await tracerRefus(supabase, tournamentId, matchId, garde);
+    return { error: garde.message! };
   }
 
   await supabase.from("match_sets").delete().eq("match_id", matchId);
@@ -343,10 +359,11 @@ export async function declarerForfait(
   if (contexte.match.phase === "poule") {
     await tenterGenerationAutomatique(supabase, tournamentId);
   }
+  const suite = await regenererApresCorrection(supabase, tournamentId, matchId, garde, "forfait");
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);
   revalidatePath(`/admin/tournois/${tournamentId}/tableau`);
-  return { success: true };
+  return suite;
 }
 
 /**
