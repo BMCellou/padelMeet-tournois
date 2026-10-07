@@ -7,10 +7,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ORDRE_RACINE, premierEcart, rejouerScenario, serialiser } from "../scripts/lib/golden";
+import { DEPARTAGES } from "./fixtures/departages";
 import { POULE_UNIQUE_5 } from "./fixtures/poule-unique-5";
 import { TOURNOI_25_JUILLET } from "./fixtures/tournoi-25-juillet";
 
-describe.each([TOURNOI_25_JUILLET, POULE_UNIQUE_5])("golden : $nom", (scenario) => {
+describe.each([TOURNOI_25_JUILLET, POULE_UNIQUE_5, DEPARTAGES])("golden : $nom", (scenario) => {
   const chemin = join(__dirname, "golden", `${scenario.nom}.json`);
 
   it("le rejeu est strictement déterministe (deux exécutions identiques)", () => {
@@ -31,7 +32,7 @@ describe.each([TOURNOI_25_JUILLET, POULE_UNIQUE_5])("golden : $nom", (scenario) 
 });
 
 describe("ordre des clés : celui du pipeline, pas l'alphabet", () => {
-  it.each([TOURNOI_25_JUILLET, POULE_UNIQUE_5])("$nom : les clés racine suivent ORDRE_RACINE", (scenario) => {
+  it.each([TOURNOI_25_JUILLET, POULE_UNIQUE_5, DEPARTAGES])("$nom : les clés racine suivent ORDRE_RACINE", (scenario) => {
     const cles = Object.keys(JSON.parse(serialiser(rejouerScenario(scenario))));
     expect(cles).toEqual(ORDRE_RACINE.filter((c) => cles.includes(c)));
   });
