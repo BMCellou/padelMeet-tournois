@@ -74,6 +74,7 @@ Les composants et les routes ne font qu'appeler le moteur et persister le résul
 - `tests/fixtures/poule-unique-5.test.ts` : 5 équipes, poule unique, 2 terrains,
   5 tours avec un exempt par tour, classement final = classement de poule.
 Toute modification du moteur doit garder ces deux tests au vert.
+- `tests/golden/*.json` figent l'état final de ces scénarios (`tests/golden.test.ts`) : ne jamais les régénérer (`npm run golden:update`) pour faire passer un test — un écart signifie que le comportement a changé.
 
 ## Sécurité auth
 - IMPORTANT : ne réintroduis jamais `signInWithOtp` comme méthode de connexion.

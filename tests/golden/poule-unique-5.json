@@ -1,0 +1,552 @@
+{
+  "calendrierPoules": [
+    {
+      "courtId": "court1",
+      "debut": "2026-07-25T09:00:00.000Z",
+      "fin": "2026-07-25T09:25:00.000Z",
+      "matchId": "poule-A-t1-m1"
+    },
+    {
+      "courtId": "court2",
+      "debut": "2026-07-25T09:00:00.000Z",
+      "fin": "2026-07-25T09:25:00.000Z",
+      "matchId": "poule-A-t1-m2"
+    },
+    {
+      "courtId": "court1",
+      "debut": "2026-07-25T10:00:00.000Z",
+      "fin": "2026-07-25T10:25:00.000Z",
+      "matchId": "poule-A-t2-m1"
+    },
+    {
+      "courtId": "court2",
+      "debut": "2026-07-25T10:00:00.000Z",
+      "fin": "2026-07-25T10:25:00.000Z",
+      "matchId": "poule-A-t2-m2"
+    },
+    {
+      "courtId": "court1",
+      "debut": "2026-07-25T11:00:00.000Z",
+      "fin": "2026-07-25T11:25:00.000Z",
+      "matchId": "poule-A-t3-m1"
+    },
+    {
+      "courtId": "court2",
+      "debut": "2026-07-25T11:00:00.000Z",
+      "fin": "2026-07-25T11:25:00.000Z",
+      "matchId": "poule-A-t3-m2"
+    },
+    {
+      "courtId": "court1",
+      "debut": "2026-07-25T12:00:00.000Z",
+      "fin": "2026-07-25T12:25:00.000Z",
+      "matchId": "poule-A-t4-m1"
+    },
+    {
+      "courtId": "court2",
+      "debut": "2026-07-25T12:00:00.000Z",
+      "fin": "2026-07-25T12:25:00.000Z",
+      "matchId": "poule-A-t4-m2"
+    },
+    {
+      "courtId": "court1",
+      "debut": "2026-07-25T13:00:00.000Z",
+      "fin": "2026-07-25T13:25:00.000Z",
+      "matchId": "poule-A-t5-m1"
+    },
+    {
+      "courtId": "court2",
+      "debut": "2026-07-25T13:00:00.000Z",
+      "fin": "2026-07-25T13:25:00.000Z",
+      "matchId": "poule-A-t5-m2"
+    }
+  ],
+  "classementFinal": [
+    {
+      "rang": 1,
+      "teamId": "equipe1"
+    },
+    {
+      "rang": 2,
+      "teamId": "equipe2"
+    },
+    {
+      "rang": 3,
+      "teamId": "equipe3"
+    },
+    {
+      "rang": 4,
+      "teamId": "equipe4"
+    },
+    {
+      "rang": 5,
+      "teamId": "equipe5"
+    }
+  ],
+  "classementsPoule": [
+    {
+      "equipes": [
+        {
+          "d": 0,
+          "jeuxG": 28,
+          "jeuxP": 10,
+          "joues": 4,
+          "rang": 1,
+          "ratioJeux": 0.7368421052631579,
+          "ratioSets": 1,
+          "setsG": 4,
+          "setsP": 0,
+          "teamId": "equipe1",
+          "v": 4
+        },
+        {
+          "d": 1,
+          "jeuxG": 25,
+          "jeuxP": 16,
+          "joues": 4,
+          "rang": 2,
+          "ratioJeux": 0.6097560975609756,
+          "ratioSets": 0.75,
+          "setsG": 3,
+          "setsP": 1,
+          "teamId": "equipe2",
+          "v": 3
+        },
+        {
+          "d": 2,
+          "jeuxG": 21,
+          "jeuxP": 21,
+          "joues": 4,
+          "rang": 3,
+          "ratioJeux": 0.5,
+          "ratioSets": 0.5,
+          "setsG": 2,
+          "setsP": 2,
+          "teamId": "equipe3",
+          "v": 2
+        },
+        {
+          "d": 3,
+          "jeuxG": 16,
+          "jeuxP": 25,
+          "joues": 4,
+          "rang": 4,
+          "ratioJeux": 0.3902439024390244,
+          "ratioSets": 0.25,
+          "setsG": 1,
+          "setsP": 3,
+          "teamId": "equipe4",
+          "v": 1
+        },
+        {
+          "d": 4,
+          "jeuxG": 10,
+          "jeuxP": 28,
+          "joues": 4,
+          "rang": 5,
+          "ratioJeux": 0.2631578947368421,
+          "ratioSets": 0,
+          "setsG": 0,
+          "setsP": 4,
+          "teamId": "equipe5",
+          "v": 0
+        }
+      ],
+      "groupId": "poule-A"
+    }
+  ],
+  "cumulJeuxGagnes": [
+    {
+      "jeuxGagnes": 28,
+      "teamId": "equipe1"
+    },
+    {
+      "jeuxGagnes": 25,
+      "teamId": "equipe2"
+    },
+    {
+      "jeuxGagnes": 21,
+      "teamId": "equipe3"
+    },
+    {
+      "jeuxGagnes": 16,
+      "teamId": "equipe4"
+    },
+    {
+      "jeuxGagnes": 10,
+      "teamId": "equipe5"
+    }
+  ],
+  "matchsPoule": [
+    {
+      "bracketSlot": null,
+      "courtId": "court1",
+      "debut": "2026-07-25T09:00:00.000Z",
+      "fin": "2026-07-25T09:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t1-m1",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 1,
+      "sets": [
+        {
+          "jeuxA": 3,
+          "jeuxB": 7
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe4",
+      "teamBId": "equipe2",
+      "winnerId": "equipe2"
+    },
+    {
+      "bracketSlot": null,
+      "courtId": "court2",
+      "debut": "2026-07-25T09:00:00.000Z",
+      "fin": "2026-07-25T09:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t1-m2",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 1,
+      "sets": [
+        {
+          "jeuxA": 7,
+          "jeuxB": 1
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe1",
+      "teamBId": "equipe5",
+      "winnerId": "equipe1"
+    },
+    {
+      "bracketSlot": null,
+      "courtId": "court1",
+      "debut": "2026-07-25T10:00:00.000Z",
+      "fin": "2026-07-25T10:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t2-m1",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 2,
+      "sets": [
+        {
+          "jeuxA": 4,
+          "jeuxB": 7
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe3",
+      "teamBId": "equipe2",
+      "winnerId": "equipe2"
+    },
+    {
+      "bracketSlot": null,
+      "courtId": "court2",
+      "debut": "2026-07-25T10:00:00.000Z",
+      "fin": "2026-07-25T10:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t2-m2",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 2,
+      "sets": [
+        {
+          "jeuxA": 2,
+          "jeuxB": 7
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe4",
+      "teamBId": "equipe1",
+      "winnerId": "equipe1"
+    },
+    {
+      "bracketSlot": null,
+      "courtId": "court1",
+      "debut": "2026-07-25T11:00:00.000Z",
+      "fin": "2026-07-25T11:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t3-m1",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 3,
+      "sets": [
+        {
+          "jeuxA": 7,
+          "jeuxB": 3
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe3",
+      "teamBId": "equipe5",
+      "winnerId": "equipe3"
+    },
+    {
+      "bracketSlot": null,
+      "courtId": "court2",
+      "debut": "2026-07-25T11:00:00.000Z",
+      "fin": "2026-07-25T11:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t3-m2",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 3,
+      "sets": [
+        {
+          "jeuxA": 4,
+          "jeuxB": 7
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe2",
+      "teamBId": "equipe1",
+      "winnerId": "equipe1"
+    },
+    {
+      "bracketSlot": null,
+      "courtId": "court1",
+      "debut": "2026-07-25T12:00:00.000Z",
+      "fin": "2026-07-25T12:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t4-m1",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 4,
+      "sets": [
+        {
+          "jeuxA": 3,
+          "jeuxB": 7
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe3",
+      "teamBId": "equipe1",
+      "winnerId": "equipe1"
+    },
+    {
+      "bracketSlot": null,
+      "courtId": "court2",
+      "debut": "2026-07-25T12:00:00.000Z",
+      "fin": "2026-07-25T12:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t4-m2",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 4,
+      "sets": [
+        {
+          "jeuxA": 4,
+          "jeuxB": 7
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe5",
+      "teamBId": "equipe4",
+      "winnerId": "equipe4"
+    },
+    {
+      "bracketSlot": null,
+      "courtId": "court1",
+      "debut": "2026-07-25T13:00:00.000Z",
+      "fin": "2026-07-25T13:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t5-m1",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 5,
+      "sets": [
+        {
+          "jeuxA": 7,
+          "jeuxB": 4
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe3",
+      "teamBId": "equipe4",
+      "winnerId": "equipe3"
+    },
+    {
+      "bracketSlot": null,
+      "courtId": "court2",
+      "debut": "2026-07-25T13:00:00.000Z",
+      "fin": "2026-07-25T13:25:00.000Z",
+      "groupId": "poule-A",
+      "id": "poule-A-t5-m2",
+      "loserNextMatchId": null,
+      "loserNextSlot": null,
+      "nextMatchId": null,
+      "nextSlot": null,
+      "phase": "poule",
+      "round": 5,
+      "sets": [
+        {
+          "jeuxA": 2,
+          "jeuxB": 7
+        }
+      ],
+      "statut": "valide",
+      "teamAId": "equipe5",
+      "teamBId": "equipe2",
+      "winnerId": "equipe2"
+    }
+  ],
+  "parametres": {
+    "criteres": [
+      "victoires",
+      "confrontation_directe",
+      "mini_classement",
+      "ratio_sets",
+      "ratio_jeux"
+    ],
+    "dureeJeuMin": 25,
+    "graineTirage": 20260725,
+    "heureDebut": "2026-07-25T09:00:00.000Z",
+    "nbEquipes": 5,
+    "nbQualifies": 0,
+    "reposMinMin": 15,
+    "rotationMin": 5,
+    "terrains": [
+      {
+        "id": "court1",
+        "ordre": 1
+      },
+      {
+        "id": "court2",
+        "ordre": 2
+      }
+    ]
+  },
+  "poules": [
+    {
+      "equipeIds": [
+        "equipe3",
+        "equipe4",
+        "equipe1",
+        "equipe5",
+        "equipe2"
+      ],
+      "id": "poule-A",
+      "nom": "A",
+      "tours": [
+        {
+          "exempt": "equipe3",
+          "numero": 1,
+          "rencontres": [
+            [
+              "equipe4",
+              "equipe2"
+            ],
+            [
+              "equipe1",
+              "equipe5"
+            ]
+          ]
+        },
+        {
+          "exempt": "equipe5",
+          "numero": 2,
+          "rencontres": [
+            [
+              "equipe3",
+              "equipe2"
+            ],
+            [
+              "equipe4",
+              "equipe1"
+            ]
+          ]
+        },
+        {
+          "exempt": "equipe4",
+          "numero": 3,
+          "rencontres": [
+            [
+              "equipe3",
+              "equipe5"
+            ],
+            [
+              "equipe2",
+              "equipe1"
+            ]
+          ]
+        },
+        {
+          "exempt": "equipe2",
+          "numero": 4,
+          "rencontres": [
+            [
+              "equipe3",
+              "equipe1"
+            ],
+            [
+              "equipe5",
+              "equipe4"
+            ]
+          ]
+        },
+        {
+          "exempt": "equipe1",
+          "numero": 5,
+          "rencontres": [
+            [
+              "equipe3",
+              "equipe4"
+            ],
+            [
+              "equipe5",
+              "equipe2"
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "repartition": {
+    "nombrePoules": 1,
+    "tailles": [
+      5
+    ]
+  },
+  "scenario": "poule-unique-5",
+  "tirage": [
+    {
+      "equipeIds": [
+        "equipe3",
+        "equipe4",
+        "equipe1",
+        "equipe5",
+        "equipe2"
+      ],
+      "nom": "A"
+    }
+  ]
+}
