@@ -84,3 +84,48 @@ describe("calculerClassement — critère non discriminant ignoré silencieuseme
     expect(rang(classement, "M")).toBeLessThan(rang(classement, "N"));
   });
 });
+
+describe("calculerClassement — ratios : jamais d'Infinity ni de NaN", () => {
+  const matches: MatchTermine[] = [
+    { teamAId: "A", teamBId: "B", vainqueurId: "A", setsA: 1, setsB: 0, jeuxA: 7, jeuxB: 3 },
+    { teamAId: "A", teamBId: "C", vainqueurId: "A", setsA: 1, setsB: 0, jeuxA: 7, jeuxB: 2 },
+  ];
+  const classement = calculerClassement(matches, ["A", "B", "C", "D"], ["victoires", "ratio_sets", "ratio_jeux"]);
+  const stats = (id: string) => classement.find((e) => e.teamId === id)!;
+
+  it("équipe invaincue en format 1 set : ratio de sets = 1, fini (pas Infinity)", () => {
+    expect(stats("A").setsP).toBe(0);
+    expect(stats("A").ratioSets).toBe(1);
+    expect(Number.isFinite(stats("A").ratioSets)).toBe(true);
+    expect(stats("A").ratioJeux).toBeCloseTo(14 / 19);
+  });
+
+  it("équipe à zéro match joué : tous ses ratios valent 0 (pas NaN)", () => {
+    expect(stats("D").joues).toBe(0);
+    expect(stats("D").ratioSets).toBe(0);
+    expect(stats("D").ratioJeux).toBe(0);
+    expect(Number.isNaN(stats("D").ratioSets)).toBe(false);
+  });
+
+  it("équipe qui a tout perdu : ratio 0, distinct d'une équipe à zéro match seulement par les victoires", () => {
+    expect(stats("B").ratioSets).toBe(0);
+    expect(stats("B").d).toBe(1);
+  });
+
+  it("aucune valeur numérique du classement n'est NaN ou infinie, et les rangs sont des entiers 1..n", () => {
+    for (const e of classement) {
+      for (const v of [e.ratioSets, e.ratioJeux, e.rang, e.v, e.d, e.joues]) {
+        expect(Number.isFinite(v)).toBe(true);
+      }
+    }
+    expect(classement.map((e) => e.rang).sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  it("le tri ne dépend pas de l'ordre d'entrée avec une équipe à zéro match", () => {
+    const a = calculerClassement(matches, ["A", "B", "C", "D"], ["victoires", "ratio_sets", "ratio_jeux"]);
+    const b = calculerClassement(matches, ["D", "C", "B", "A"], ["victoires", "ratio_sets", "ratio_jeux"]);
+    expect(rang(a, "A")).toBe(1);
+    expect(rang(b, "A")).toBe(1);
+    expect(rang(a, "D")).toBeGreaterThan(rang(a, "A"));
+  });
+});

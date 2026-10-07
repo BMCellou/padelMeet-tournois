@@ -188,8 +188,8 @@ Une victoire fait gagner le match ; le classement trie d'abord par **nombre de v
 
 1. **Victoires**
 2. **Confrontation directe** (uniquement quand exactement 2 équipes sont à égalité)
-3. **Ratio de sets** (sets gagnés / sets perdus)
-4. **Ratio de jeux** (jeux gagnés / jeux perdus)
+3. **Ratio de sets** (sets gagnés / sets joués)
+4. **Ratio de jeux** (jeux gagnés / jeux joués)
 
 Critères disponibles dans le moteur : victoires, confrontation directe, mini-classement (3 équipes ou plus à égalité), différence ou ratio de sets, différence ou ratio de jeux. Un critère qui ne départage personne parmi les équipes encore à égalité est ignoré et on passe au suivant (ce qui neutralise d'office la différence de sets en format 1 set, toujours égale à ±1). Aucune règle de départage n'est codée en dur dans les écrans.
 

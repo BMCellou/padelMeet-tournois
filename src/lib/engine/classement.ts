@@ -41,9 +41,15 @@ export interface EquipeClassee extends StatsEquipe {
   rang: number;
 }
 
+/**
+ * Ratio « gagnés / joués » (joués = gagnés + perdus) : toujours dans [0, 1],
+ * jamais Infinity (équipe invaincue : 1) ni NaN (aucun set ou jeu joué : 0).
+ * Un NaN dans un comparateur de tri réordonne silencieusement : le
+ * dénominateur est donc borné ici, une fois pour toutes.
+ */
 function ratio(gagne: number, perdu: number): number {
-  const total = gagne + perdu;
-  return total > 0 ? gagne / total : 0;
+  const joues = gagne + perdu;
+  return joues > 0 ? gagne / joues : 0;
 }
 
 function construireStats(matches: MatchTermine[], equipeIds: string[]): StatsEquipe[] {

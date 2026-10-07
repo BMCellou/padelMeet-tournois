@@ -221,9 +221,9 @@ export const CRITERES_DEPARTAGE: { id: CritereDepartage; libelle: string; aide: 
   { id: "confrontation_directe", libelle: "Confrontation directe", aide: "Résultat du match entre les deux équipes à égalité (seulement quand elles sont exactement 2)." },
   { id: "mini_classement", libelle: "Mini-classement", aide: "Victoires entre elles des équipes à égalité (seulement quand elles sont 3 ou plus)." },
   { id: "difference_sets", libelle: "Différence de sets", aide: "Sets gagnés moins sets perdus." },
-  { id: "ratio_sets", libelle: "Ratio de sets", aide: "Sets gagnés / sets perdus." },
+  { id: "ratio_sets", libelle: "Ratio de sets", aide: "Sets gagnés / sets joués (entre 0 et 1)." },
   { id: "difference_jeux", libelle: "Différence de jeux", aide: "Jeux gagnés moins jeux perdus." },
-  { id: "ratio_jeux", libelle: "Ratio de jeux", aide: "Jeux gagnés / jeux perdus." },
+  { id: "ratio_jeux", libelle: "Ratio de jeux", aide: "Jeux gagnés / jeux joués (entre 0 et 1)." },
 ];
 
 export const DEPARTAGE_PAR_DEFAUT: CritereDepartage[] = [

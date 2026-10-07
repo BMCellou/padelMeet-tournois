@@ -84,3 +84,17 @@ describe("selectionnerQualifies", () => {
     expect(resultat.qualifies).toEqual(["A1", "A2"]);
   });
 });
+
+describe("selectionnerQualifies — ratios bornés", () => {
+  it("une équipe à zéro match (ratio de victoires indéfini) n'est jamais prise pour une équipe invaincue", () => {
+    const poules: ClassementPoule[] = [
+      { groupId: "A", equipes: [equipe({ teamId: "A1", rang: 1, v: 3, joues: 3, ratioSets: 1, ratioJeux: 1 }), equipe({ teamId: "A2", rang: 2, v: 0, joues: 0 })] },
+      { groupId: "B", equipes: [equipe({ teamId: "B1", rang: 1, v: 2, joues: 3, ratioSets: 0.7, ratioJeux: 0.6 }), equipe({ teamId: "B2", rang: 2, v: 0, joues: 3, ratioSets: 0, ratioJeux: 0.3 })] },
+    ];
+    // 3 places : les deux 1ers, puis le meilleur des deux 2es.
+    const q = selectionnerQualifies(poules, 3);
+    expect(q.qualifies.slice(0, 2)).toEqual(["A1", "B1"]);
+    // A2 (0 match) ne doit pas passer devant B2 (0 victoire sur 3 matchs) à cause d'un NaN.
+    expect(q.qualifies).toEqual(["A1", "B1", "B2"]);
+  });
+});
