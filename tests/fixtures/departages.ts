@@ -1,38 +1,39 @@
 // Scénario de référence « departages » : une poule unique de 7 équipes, scores
-// fabriqués pour forcer chaque critère de DEPARTAGE_PAR_DEFAUT (victoires,
-// confrontation directe, ratio de sets, ratio de jeux) à trancher.
+// fabriqués pour forcer les critères de DEPARTAGE_PAR_DEFAUT à trancher et pour
+// exercer la chaîne RÉENTRANTE du moteur.
 //
-// Ordre appliqué (DEPARTAGE_PAR_DEFAUT) : 1. victoires  2. confrontation
-// directe  3. ratio de sets  4. ratio de jeux. NB : `mini_classement` n'est PAS
-// dans le défaut ; il n'est donc pas exercé ici (le scénario à 14 équipes, qui
-// l'inclut dans sa liste, est le seul à le couvrir).
+// Ordre appliqué (DEPARTAGE_PAR_DEFAUT) : 1. victoires  2. confrontation directe
+// (égalité à 2)  3. mini-classement (égalité à 3 ou plus)  4. ratio de sets
+// 5. ratio de jeux. Quand un critère sépare un groupe, chaque sous-groupe repart
+// du premier critère : les critères déjà passés s'appliquent de nouveau.
 //
-// Victoires finales : equipe1 = 5 ; equipe2, equipe3, equipe4 = 4 ; equipe5,
-// equipe6 = 2 ; equipe7 = 0. Chaque match se joue en un set : le vainqueur marque
-// 7 jeux, le perdant la valeur du tableau ci-dessous.
+// Victoires finales : equipe1 = 5 ; equipe2, 3, 4, 5 = 3 ; equipe6, 7 = 2. Chaque
+// match se joue en un set : le vainqueur marque 7 jeux, le perdant la valeur du
+// tableau ci-dessous.
 //
-// Égalités forcées et critère censé les exercer :
-//  A. equipe1 seule en tête (5 victoires) et equipe7 seule dernière (0) :
-//     VICTOIRES tranche, aucun départage nécessaire.
-//  B. equipe5 / equipe6, 2 victoires chacune : seule égalité à DEUX équipes.
-//     CONFRONTATION DIRECTE tranche : equipe5 a battu equipe6. Piège voulu :
-//     equipe6 a un meilleur ratio de jeux (0,477 contre 0,426) ; si la
-//     confrontation directe passait après les ratios, l'ordre s'inverserait.
-//     Attendu : equipe5 5e, equipe6 6e.
-//  C. equipe2 / equipe3 / equipe4, 4 victoires chacune : égalité à TROIS. La
-//     confrontation directe est inapplicable à 3 équipes et le RATIO DE SETS ne
-//     sépare personne (1 set par match : à victoires égales, ratio égal). Le
-//     RATIO DE JEUX tranche : equipe2 (0,647) devant equipe3 et equipe4.
-//     Attendu : equipe2 2e.
-//  D. equipe3 / equipe4 : égalité PARFAITE jusqu'au dernier critère (30 jeux
-//     gagnés et 26 perdus chacune, mêmes victoires, mêmes sets). Après le ratio de
-//     jeux le moteur n'a plus de critère : elles restent ex æquo (rang 3 toutes
-//     les deux, l'équipe suivante est 5e) et gardent l'ordre d'entrée.
+// Égalités forcées, critère censé les exercer, et rang attendu :
+//  A. VICTOIRES : equipe1 (5) seule en tête. Rang 1.
+//  B. CONFRONTATION DIRECTE (égalité à DEUX au niveau des victoires) : equipe6 et
+//     equipe7 ont 2 victoires ; equipe6 a battu equipe7. Piège voulu : equipe7 a un
+//     ratio de jeux légèrement meilleur (0,419 contre 0,418) ; si la confrontation
+//     directe passait après les ratios, l'ordre s'inverserait. Rangs 6 et 7.
+//  C. MINI-CLASSEMENT (égalité à QUATRE : equipe2, 3, 4, 5, 3 victoires chacune) :
+//     la confrontation directe est inapplicable à 4 équipes ; le mini-classement
+//     compte les victoires entre elles : equipe2 en a 3 (elle bat les trois autres),
+//     equipe3, 4, 5 en ont 1 chacune (cycle 3 > 4 > 5 > 3). Il sépare equipe2 du
+//     reste. Piège voulu : equipe2 a le MOINS BON ratio de jeux du groupe (0,471) ;
+//     sans mini-classement elle finirait dernière du groupe. Rang 2.
+//  D. RATIO DE JEUX (sur les trois restantes equipe3, 4, 5, cycle sans vainqueur au
+//     mini-classement ; ratio de sets égal pour tous : 1 set par match) : equipe3
+//     (0,586) devant equipe4 et equipe5. Rang 3.
+//  E. RÉENTRANCE : equipe4 et equipe5 ont exactement les mêmes jeux (29 gagnés, 31
+//     perdus) donc le ratio de jeux ne les sépare pas ; elles forment un groupe de
+//     DEUX qui repart du premier critère : la CONFRONTATION DIRECTE s'applique de
+//     nouveau (equipe4 a battu equipe5). Rangs 4 et 5. Avant la réentrance, ces deux
+//     équipes restaient ex æquo (rang 4 toutes les deux).
 //
-// Comportement figé à noter : après la séparation d'un lot de 3 par le ratio de
-// jeux, la confrontation directe n'est pas rejouée entre les équipes restées
-// ex æquo (elle est déjà derrière dans la chaîne) — c'est le comportement actuel
-// du moteur, pas nécessairement celui d'un règlement FFT.
+// Non couvert ici : l'égalité parfaite en bout de chaîne (voir classement.test.ts) et
+// un ratio de sets qui tranche (il faudrait des matchs en plusieurs sets).
 
 import type { MatchTermine } from "@/lib/engine/classement";
 import { DEPARTAGE_PAR_DEFAUT } from "@/lib/engine/formatMatch";
@@ -40,11 +41,11 @@ import type { Scenario } from "./scenario";
 
 /** Clé « petit-grand » → [numéro du vainqueur, jeux du vainqueur, jeux du perdant]. */
 export const RESULTATS_DEPARTAGES: Record<string, [number, number, number]> = {
-  "1-2": [1, 7, 4], "1-3": [3, 7, 0], "1-4": [1, 7, 1], "1-5": [1, 7, 5], "1-6": [1, 7, 6], "1-7": [1, 7, 0],
-  "2-3": [2, 7, 2], "2-4": [2, 7, 1], "2-5": [2, 7, 1], "2-6": [6, 7, 1], "2-7": [2, 7, 0],
-  "3-4": [4, 7, 0], "3-5": [3, 7, 1], "3-6": [3, 7, 5], "3-7": [3, 7, 6],
-  "4-5": [4, 7, 5], "4-6": [4, 7, 5], "4-7": [4, 7, 2],
-  "5-6": [5, 7, 1], "5-7": [5, 7, 6],
+  "1-2": [1, 7, 0], "1-3": [1, 7, 6], "1-4": [1, 7, 3], "1-5": [5, 7, 5], "1-6": [1, 7, 4], "1-7": [1, 7, 1],
+  "2-3": [2, 7, 5], "2-4": [2, 7, 5], "2-5": [2, 7, 6], "2-6": [6, 7, 6], "2-7": [7, 7, 6],
+  "3-4": [3, 7, 0], "3-5": [5, 7, 2], "3-6": [3, 7, 2], "3-7": [3, 7, 1],
+  "4-5": [4, 7, 0], "4-6": [4, 7, 5], "4-7": [4, 7, 5],
+  "5-6": [5, 7, 3], "5-7": [7, 7, 2],
   "6-7": [6, 7, 5],
 };
 

@@ -206,8 +206,11 @@ Une victoire fait gagner le match ; le classement trie d'abord par **nombre de v
 
 1. **Victoires**
 2. **Confrontation directe** (uniquement quand exactement 2 équipes sont à égalité)
-3. **Ratio de sets** (sets gagnés / sets joués)
-4. **Ratio de jeux** (jeux gagnés / jeux joués)
+3. **Mini-classement** (uniquement quand 3 équipes ou plus sont à égalité : leurs victoires entre elles)
+4. **Ratio de sets** (sets gagnés / sets joués)
+5. **Ratio de jeux** (jeux gagnés / jeux joués)
+
+La chaîne est **réentrante** : dès qu'un critère sépare un groupe d'égalité en plusieurs sous-groupes, chaque sous-groupe repart du premier critère. Par exemple, trois équipes à égalité dont le ratio de jeux n'en isole qu'une : les deux restantes se départagent alors par leur confrontation directe. Un groupe qu'aucun critère ne sépare reste ex æquo (même rang). Ce défaut s'applique aux nouveaux tournois ; un tournoi existant garde l'ordre qu'il a déjà.
 
 Critères disponibles dans le moteur : victoires, confrontation directe, mini-classement (3 équipes ou plus à égalité), différence ou ratio de sets, différence ou ratio de jeux. Un critère qui ne départage personne parmi les équipes encore à égalité est ignoré et on passe au suivant (ce qui neutralise d'office la différence de sets en format 1 set, toujours égale à ±1). Aucune règle de départage n'est codée en dur dans les écrans.
 

@@ -4,6 +4,7 @@
     "criteres": [
       "victoires",
       "confrontation_directe",
+      "mini_classement",
       "ratio_sets",
       "ratio_jeux"
     ],
@@ -333,7 +334,7 @@
       "round": 1,
       "sets": [
         {
-          "jeuxA": 1,
+          "jeuxA": 5,
           "jeuxB": 7
         }
       ],
@@ -357,14 +358,14 @@
       "round": 1,
       "sets": [
         {
-          "jeuxA": 1,
-          "jeuxB": 7
+          "jeuxA": 7,
+          "jeuxB": 2
         }
       ],
       "statut": "valide",
       "teamAId": "equipe5",
       "teamBId": "equipe3",
-      "winnerId": "equipe3"
+      "winnerId": "equipe5"
     },
     {
       "bracketSlot": null,
@@ -406,7 +407,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 4
+          "jeuxB": 0
         }
       ],
       "statut": "valide",
@@ -430,7 +431,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 2
+          "jeuxB": 5
         }
       ],
       "statut": "valide",
@@ -454,7 +455,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 1
+          "jeuxB": 3
         }
       ],
       "statut": "valide",
@@ -477,14 +478,14 @@
       "round": 3,
       "sets": [
         {
-          "jeuxA": 0,
-          "jeuxB": 7
+          "jeuxA": 7,
+          "jeuxB": 6
         }
       ],
       "statut": "valide",
       "teamAId": "equipe1",
       "teamBId": "equipe3",
-      "winnerId": "equipe3"
+      "winnerId": "equipe1"
     },
     {
       "bracketSlot": null,
@@ -501,14 +502,14 @@
       "round": 3,
       "sets": [
         {
-          "jeuxA": 7,
-          "jeuxB": 0
+          "jeuxA": 6,
+          "jeuxB": 7
         }
       ],
       "statut": "valide",
       "teamAId": "equipe2",
       "teamBId": "equipe7",
-      "winnerId": "equipe2"
+      "winnerId": "equipe7"
     },
     {
       "bracketSlot": null,
@@ -526,7 +527,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 5
+          "jeuxB": 0
         }
       ],
       "statut": "valide",
@@ -550,7 +551,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 0
+          "jeuxB": 1
         }
       ],
       "statut": "valide",
@@ -574,7 +575,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 5
+          "jeuxB": 2
         }
       ],
       "statut": "valide",
@@ -598,7 +599,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 1
+          "jeuxB": 6
         }
       ],
       "statut": "valide",
@@ -622,7 +623,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 6
+          "jeuxB": 4
         }
       ],
       "statut": "valide",
@@ -645,14 +646,14 @@
       "round": 5,
       "sets": [
         {
-          "jeuxA": 6,
-          "jeuxB": 7
+          "jeuxA": 7,
+          "jeuxB": 2
         }
       ],
       "statut": "valide",
       "teamAId": "equipe7",
       "teamBId": "equipe5",
-      "winnerId": "equipe5"
+      "winnerId": "equipe7"
     },
     {
       "bracketSlot": null,
@@ -669,14 +670,14 @@
       "round": 5,
       "sets": [
         {
-          "jeuxA": 0,
-          "jeuxB": 7
+          "jeuxA": 7,
+          "jeuxB": 0
         }
       ],
       "statut": "valide",
       "teamAId": "equipe3",
       "teamBId": "equipe4",
-      "winnerId": "equipe4"
+      "winnerId": "equipe3"
     },
     {
       "bracketSlot": null,
@@ -693,14 +694,14 @@
       "round": 6,
       "sets": [
         {
-          "jeuxA": 7,
-          "jeuxB": 5
+          "jeuxA": 5,
+          "jeuxB": 7
         }
       ],
       "statut": "valide",
       "teamAId": "equipe1",
       "teamBId": "equipe5",
-      "winnerId": "equipe1"
+      "winnerId": "equipe5"
     },
     {
       "bracketSlot": null,
@@ -741,7 +742,7 @@
       "round": 6,
       "sets": [
         {
-          "jeuxA": 2,
+          "jeuxA": 5,
           "jeuxB": 7
         }
       ],
@@ -766,7 +767,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 1
+          "jeuxB": 3
         }
       ],
       "statut": "valide",
@@ -790,7 +791,7 @@
       "sets": [
         {
           "jeuxA": 7,
-          "jeuxB": 1
+          "jeuxB": 6
         }
       ],
       "statut": "valide",
@@ -813,7 +814,7 @@
       "round": 7,
       "sets": [
         {
-          "jeuxA": 6,
+          "jeuxA": 1,
           "jeuxB": 7
         }
       ],
@@ -828,11 +829,11 @@
       "equipes": [
         {
           "d": 1,
-          "jeuxG": 35,
-          "jeuxP": 23,
+          "jeuxG": 40,
+          "jeuxP": 21,
           "joues": 6,
           "rang": 1,
-          "ratioJeux": 0.603448275862069,
+          "ratioJeux": 0.6557377049180327,
           "ratioSets": 0.8333333333333334,
           "setsG": 5,
           "setsP": 1,
@@ -840,64 +841,64 @@
           "v": 5
         },
         {
-          "d": 2,
+          "d": 3,
           "jeuxG": 33,
-          "jeuxP": 18,
+          "jeuxP": 37,
           "joues": 6,
           "rang": 2,
-          "ratioJeux": 0.6470588235294118,
-          "ratioSets": 0.6666666666666666,
-          "setsG": 4,
-          "setsP": 2,
+          "ratioJeux": 0.4714285714285714,
+          "ratioSets": 0.5,
+          "setsG": 3,
+          "setsP": 3,
           "teamId": "equipe2",
-          "v": 4
+          "v": 3
         },
         {
-          "d": 2,
-          "jeuxG": 30,
-          "jeuxP": 26,
+          "d": 3,
+          "jeuxG": 34,
+          "jeuxP": 24,
           "joues": 6,
           "rang": 3,
-          "ratioJeux": 0.5357142857142857,
-          "ratioSets": 0.6666666666666666,
-          "setsG": 4,
-          "setsP": 2,
-          "teamId": "equipe4",
-          "v": 4
-        },
-        {
-          "d": 2,
-          "jeuxG": 30,
-          "jeuxP": 26,
-          "joues": 6,
-          "rang": 3,
-          "ratioJeux": 0.5357142857142857,
-          "ratioSets": 0.6666666666666666,
-          "setsG": 4,
-          "setsP": 2,
+          "ratioJeux": 0.5862068965517241,
+          "ratioSets": 0.5,
+          "setsG": 3,
+          "setsP": 3,
           "teamId": "equipe3",
-          "v": 4
+          "v": 3
         },
         {
-          "d": 4,
-          "jeuxG": 26,
-          "jeuxP": 35,
+          "d": 3,
+          "jeuxG": 29,
+          "jeuxP": 31,
+          "joues": 6,
+          "rang": 4,
+          "ratioJeux": 0.48333333333333334,
+          "ratioSets": 0.5,
+          "setsG": 3,
+          "setsP": 3,
+          "teamId": "equipe4",
+          "v": 3
+        },
+        {
+          "d": 3,
+          "jeuxG": 29,
+          "jeuxP": 31,
           "joues": 6,
           "rang": 5,
-          "ratioJeux": 0.4262295081967213,
-          "ratioSets": 0.3333333333333333,
-          "setsG": 2,
-          "setsP": 4,
+          "ratioJeux": 0.48333333333333334,
+          "ratioSets": 0.5,
+          "setsG": 3,
+          "setsP": 3,
           "teamId": "equipe5",
-          "v": 2
+          "v": 3
         },
         {
           "d": 4,
-          "jeuxG": 31,
-          "jeuxP": 34,
+          "jeuxG": 28,
+          "jeuxP": 39,
           "joues": 6,
           "rang": 6,
-          "ratioJeux": 0.47692307692307695,
+          "ratioJeux": 0.417910447761194,
           "ratioSets": 0.3333333333333333,
           "setsG": 2,
           "setsP": 4,
@@ -905,17 +906,17 @@
           "v": 2
         },
         {
-          "d": 6,
-          "jeuxG": 19,
-          "jeuxP": 42,
+          "d": 4,
+          "jeuxG": 26,
+          "jeuxP": 36,
           "joues": 6,
           "rang": 7,
-          "ratioJeux": 0.3114754098360656,
-          "ratioSets": 0,
-          "setsG": 0,
-          "setsP": 6,
+          "ratioJeux": 0.41935483870967744,
+          "ratioSets": 0.3333333333333333,
+          "setsG": 2,
+          "setsP": 4,
           "teamId": "equipe7",
-          "v": 0
+          "v": 2
         }
       ],
       "groupId": "poule-A"
@@ -932,11 +933,11 @@
     },
     {
       "rang": 3,
-      "teamId": "equipe4"
+      "teamId": "equipe3"
     },
     {
-      "rang": 3,
-      "teamId": "equipe3"
+      "rang": 4,
+      "teamId": "equipe4"
     },
     {
       "rang": 5,
@@ -953,31 +954,31 @@
   ],
   "cumulJeuxGagnes": [
     {
-      "jeuxGagnes": 35,
+      "jeuxGagnes": 40,
       "teamId": "equipe1"
+    },
+    {
+      "jeuxGagnes": 34,
+      "teamId": "equipe3"
     },
     {
       "jeuxGagnes": 33,
       "teamId": "equipe2"
     },
     {
-      "jeuxGagnes": 31,
-      "teamId": "equipe6"
-    },
-    {
-      "jeuxGagnes": 30,
-      "teamId": "equipe3"
-    },
-    {
-      "jeuxGagnes": 30,
+      "jeuxGagnes": 29,
       "teamId": "equipe4"
     },
     {
-      "jeuxGagnes": 26,
+      "jeuxGagnes": 29,
       "teamId": "equipe5"
     },
     {
-      "jeuxGagnes": 19,
+      "jeuxGagnes": 28,
+      "teamId": "equipe6"
+    },
+    {
+      "jeuxGagnes": 26,
       "teamId": "equipe7"
     }
   ]

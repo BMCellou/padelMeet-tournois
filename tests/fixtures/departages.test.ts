@@ -12,35 +12,42 @@ const classement = calculerClassement(matchs, ids, DEPARTAGES.criteres);
 const e = (id: string) => classement.find((x) => x.teamId === id)!;
 
 describe("scénario departages : chaque égalité exerce le critère annoncé", () => {
-  it("poule unique de 7, 21 matchs, défaut réel de départage", () => {
+  it("poule unique de 7, 21 matchs, défaut réel de départage (mini-classement compris)", () => {
     expect(matchs).toHaveLength(21);
-    expect(DEPARTAGES.criteres).toEqual(["victoires", "confrontation_directe", "ratio_sets", "ratio_jeux"]);
+    expect(DEPARTAGES.criteres).toEqual(["victoires", "confrontation_directe", "mini_classement", "ratio_sets", "ratio_jeux"]);
   });
 
-  it("A. victoires : equipe1 (5) en tête, equipe7 (0) dernière", () => {
-    expect([e("equipe1").v, e("equipe7").v]).toEqual([5, 0]);
-    expect([e("equipe1").rang, e("equipe7").rang]).toEqual([1, 7]);
+  it("A. victoires : equipe1 (5) seule en tête", () => {
+    expect(e("equipe1").v).toBe(5);
+    expect(e("equipe1").rang).toBe(1);
   });
 
-  it("B. confrontation directe : equipe5 devant equipe6 malgré un moins bon ratio de jeux", () => {
-    expect(e("equipe5").v).toBe(e("equipe6").v);
-    expect(e("equipe6").ratioJeux).toBeGreaterThan(e("equipe5").ratioJeux);
-    expect([e("equipe5").rang, e("equipe6").rang]).toEqual([5, 6]);
+  it("B. confrontation directe (deux équipes) : equipe6 devant equipe7 malgré un moins bon ratio de jeux", () => {
+    expect(e("equipe6").v).toBe(e("equipe7").v);
+    expect(e("equipe7").ratioJeux).toBeGreaterThan(e("equipe6").ratioJeux);
+    expect([e("equipe6").rang, e("equipe7").rang]).toEqual([6, 7]);
   });
 
-  it("C. égalité à trois : ratio de sets égal pour tous, le ratio de jeux place equipe2 devant", () => {
-    const q = ["equipe2", "equipe3", "equipe4"].map(e);
-    expect(new Set(q.map((x) => x.v))).toEqual(new Set([4]));
-    expect(new Set(q.map((x) => x.ratioSets)).size).toBe(1);
-    expect(e("equipe2").ratioJeux).toBeGreaterThan(e("equipe3").ratioJeux);
+  it("C. mini-classement : equipe2 devant le reste du groupe de quatre malgré le plus mauvais ratio de jeux", () => {
+    const q = ["equipe2", "equipe3", "equipe4", "equipe5"].map(e);
+    expect(new Set(q.map((x) => x.v))).toEqual(new Set([3]));
+    expect(Math.min(...q.map((x) => x.ratioJeux))).toBe(e("equipe2").ratioJeux);
     expect(e("equipe2").rang).toBe(2);
   });
 
-  it("D. égalité parfaite : equipe3 et equipe4 ex æquo en bout de chaîne, la suivante est 5e", () => {
-    for (const cle of ["v", "setsG", "setsP", "jeuxG", "jeuxP", "ratioSets", "ratioJeux"] as const) {
-      expect(e("equipe3")[cle]).toBe(e("equipe4")[cle]);
-    }
-    expect([e("equipe3").rang, e("equipe4").rang]).toEqual([3, 3]);
-    expect(e("equipe5").rang).toBe(5);
+  it("D. ratio de jeux : equipe3 devant equipe4 et equipe5 (ratio de sets égal pour tous)", () => {
+    expect(new Set(["equipe3", "equipe4", "equipe5"].map((id) => e(id).ratioSets)).size).toBe(1);
+    expect(e("equipe3").ratioJeux).toBeGreaterThan(e("equipe4").ratioJeux);
+    expect(e("equipe3").rang).toBe(3);
+  });
+
+  it("E. réentrance : equipe4 et equipe5, même ratio de jeux, sont départagées par la confrontation directe", () => {
+    expect(e("equipe4").ratioJeux).toBe(e("equipe5").ratioJeux);
+    expect(e("equipe4").jeuxG).toBe(e("equipe5").jeuxG);
+    expect([e("equipe4").rang, e("equipe5").rang]).toEqual([4, 5]);
+  });
+
+  it("classement final : tous les rangs sont distincts", () => {
+    expect(classement.map((x) => x.rang).sort()).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
 });

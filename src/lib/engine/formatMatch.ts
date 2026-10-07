@@ -240,6 +240,7 @@ export const CRITERES_DEPARTAGE: { id: CritereDepartage; libelle: string; aide: 
 export const DEPARTAGE_PAR_DEFAUT: CritereDepartage[] = [
   "victoires",
   "confrontation_directe",
+  "mini_classement",
   "ratio_sets",
   "ratio_jeux",
 ];

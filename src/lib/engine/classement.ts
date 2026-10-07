@@ -161,28 +161,37 @@ function grouperParValeurDesc(
     .map(([, groupe]) => groupe);
 }
 
+/**
+ * Départage un groupe d'équipes à égalité avec la chaîne de critères complète.
+ * La chaîne est RÉENTRANTE : dès qu'un critère sépare le groupe en plusieurs
+ * sous-groupes, chacun repart du premier critère — les critères déjà passés
+ * (confrontation directe, mini-classement…) peuvent donc s'appliquer de nouveau
+ * à ce qui reste. Exemple : trois équipes à égalité sont séparées par le ratio
+ * de jeux en 1 + 2 ; les deux restantes se départagent alors par leur
+ * confrontation directe.
+ *
+ * Fin de récursion : un passage complet de la chaîne qui ne sépare plus le
+ * groupe en deux ou plus le laisse tel quel (égalité parfaite). Chaque appel
+ * récursif porte sur un groupe strictement plus petit : pas de boucle infinie.
+ * Un critère non applicable (confrontation directe hors égalité à deux,
+ * mini-classement hors égalité à trois ou plus) est simplement sauté.
+ */
 function departagerEnGroupes(
   equipes: StatsEquipe[],
   criteres: CritereDepartage[],
   matches: MatchTermine[],
 ): StatsEquipe[][] {
-  if (equipes.length <= 1 || criteres.length === 0) return [equipes];
+  if (equipes.length <= 1) return [equipes];
 
-  const [critere, ...reste] = criteres;
-
-  if (!critereApplicable(critere, equipes.length)) {
-    return departagerEnGroupes(equipes, reste, matches);
+  for (const critere of criteres) {
+    if (!critereApplicable(critere, equipes.length)) continue;
+    const groupes = grouperParValeurDesc(equipes, critere, matches);
+    // Un critère qui ne sépare personne est ignoré silencieusement.
+    if (groupes.length === 1) continue;
+    return groupes.flatMap((g) => departagerEnGroupes(g, criteres, matches));
   }
 
-  const groupes = grouperParValeurDesc(equipes, critere, matches);
-
-  if (groupes.length === 1) {
-    // Critère non discriminant pour ce lot d'équipes : on l'ignore
-    // silencieusement et on essaie le suivant.
-    return departagerEnGroupes(equipes, reste, matches);
-  }
-
-  return groupes.flatMap((g) => departagerEnGroupes(g, reste, matches));
+  return [equipes];
 }
 
 function assignerRangs(groupes: StatsEquipe[][]): EquipeClassee[] {

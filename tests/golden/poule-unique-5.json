@@ -4,6 +4,7 @@
     "criteres": [
       "victoires",
       "confrontation_directe",
+      "mini_classement",
       "ratio_sets",
       "ratio_jeux"
     ],

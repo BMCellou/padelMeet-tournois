@@ -129,3 +129,71 @@ describe("calculerClassement — ratios : jamais d'Infinity ni de NaN", () => {
     expect(rang(a, "D")).toBeGreaterThan(rang(a, "A"));
   });
 });
+
+describe("calculerClassement — chaîne de départage réentrante", () => {
+  const CRITERES: Parameters<typeof calculerClassement>[2] = [
+    "victoires",
+    "confrontation_directe",
+    "mini_classement",
+    "ratio_sets",
+    "ratio_jeux",
+  ];
+  const m = (a: string, b: string, jeuxA: number, jeuxB: number): MatchTermine => ({
+    teamAId: a,
+    teamBId: b,
+    vainqueurId: jeuxA > jeuxB ? a : b,
+    setsA: jeuxA > jeuxB ? 1 : 0,
+    setsB: jeuxA > jeuxB ? 0 : 1,
+    jeuxA,
+    jeuxB,
+  });
+
+  it("trois équipes à égalité : le ratio de jeux en isole une, puis la confrontation directe départage les deux restantes", () => {
+    // A bat tout le monde. B, C, D : cycle B>C, C>D, D>B (mini-classement 1-1-1, ratio de sets égal).
+    // C et D ont exactement les mêmes jeux (10 gagnés, 17 perdus) ; B a un meilleur ratio.
+    const matches = [
+      m("A", "B", 7, 6), m("A", "C", 7, 2), m("A", "D", 7, 0),
+      m("B", "C", 7, 1), m("C", "D", 7, 3), m("D", "B", 7, 3),
+    ];
+    const c = calculerClassement(matches, ["A", "B", "C", "D"], CRITERES);
+    const get = (id: string) => c.find((e) => e.teamId === id)!;
+    expect(get("C").ratioJeux).toBe(get("D").ratioJeux);
+    expect(get("B").ratioJeux).toBeGreaterThan(get("C").ratioJeux);
+    expect([get("A").rang, get("B").rang, get("C").rang, get("D").rang]).toEqual([1, 2, 3, 4]);
+  });
+
+  it("mini-classement : sépare un groupe de trois par leurs victoires entre elles, avant les ratios", () => {
+    // X, Y, Z ont 2 victoires chacune (P2 en a 3, P1 une). Entre elles : X>Y, X>Z, Y>Z (serrés, 7-6).
+    // Contre P1/P2 : X perd lourdement, Z gagne largement : les ratios de jeux classent Z>Y>X,
+    // à l'envers du mini-classement (X 2 victoires entre elles, Y 1, Z 0).
+    const matches = [
+      m("X", "Y", 7, 6), m("X", "Z", 7, 6), m("Y", "Z", 7, 6),
+      m("P1", "X", 7, 0), m("P2", "X", 7, 0),
+      m("Y", "P1", 7, 5), m("P2", "Y", 7, 5),
+      m("Z", "P1", 7, 0), m("Z", "P2", 7, 0),
+      m("P2", "P1", 7, 5),
+    ];
+    const c = calculerClassement(matches, ["P1", "P2", "X", "Y", "Z"], CRITERES);
+    const get = (id: string) => c.find((e) => e.teamId === id)!;
+    expect(["X", "Y", "Z"].map((id) => get(id).v)).toEqual([2, 2, 2]);
+    expect(get("Z").ratioJeux).toBeGreaterThan(get("Y").ratioJeux);
+    expect(get("Y").ratioJeux).toBeGreaterThan(get("X").ratioJeux);
+    expect([get("P2").rang, get("X").rang, get("Y").rang, get("Z").rang, get("P1").rang]).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("égalité parfaite en bout de chaîne : le groupe reste ex æquo et la récursion s'arrête", () => {
+    // Cycle X>Y>Z>X, tous les scores identiques : aucun critère ne sépare personne.
+    const matches = [m("X", "Y", 7, 3), m("Y", "Z", 7, 3), m("Z", "X", 7, 3)];
+    const c = calculerClassement(matches, ["X", "Y", "Z"], CRITERES);
+    expect(c.map((e) => e.rang)).toEqual([1, 1, 1]);
+  });
+
+  it("une liste de critères vide laisse tout le monde ex æquo sans boucler", () => {
+    expect(calculerClassement([m("A", "B", 7, 3)], ["A", "B"], []).map((e) => e.rang)).toEqual([1, 1]);
+  });
+
+  it("les critères d'une liste réduite à un critère non applicable sont sautés", () => {
+    const c = calculerClassement([m("A", "B", 7, 3)], ["A", "B"], ["mini_classement"]);
+    expect(c.map((e) => e.rang)).toEqual([1, 1]);
+  });
+});
