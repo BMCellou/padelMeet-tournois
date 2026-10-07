@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { COLONNES_PUBLIQUES, garantirChargePublique } from "@/lib/tournoi/colonnesPubliques";
 import { TournoisTabs, type TournoiAffiche } from "./TournoisTabs";
 
 function ordreStatut(statut: string): number {
@@ -10,13 +11,15 @@ function ordreStatut(statut: string): number {
 export default async function Accueil() {
   const supabase = await createClient();
 
-  const { data: clubs } = await supabase.from("clubs").select("id, nom, ville");
+  const { data: clubs } = await supabase.from("clubs").select(COLONNES_PUBLIQUES.accueilClubs);
   const clubsParId = new Map((clubs ?? []).map((c) => [c.id, c]));
 
   const { data: tournoisBruts } = await supabase
     .from("tournaments")
-    .select("id, nom, date, statut, genre, niveau, public_slug, club_id")
+    .select(COLONNES_PUBLIQUES.accueilTournois)
     .in("statut", ["publie", "en_cours", "termine"]);
+
+  garantirChargePublique({ clubs, tournoisBruts });
 
   const tournois: TournoiAffiche[] = [...(tournoisBruts ?? [])]
     .sort((a, b) => {

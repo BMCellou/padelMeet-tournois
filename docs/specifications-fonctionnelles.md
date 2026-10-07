@@ -257,6 +257,7 @@ Un onglet **Rappels** par tournoi liste les **matchs à venir ayant un horaire**
 
 - Données dans Supabase (Postgres, authentification, temps réel) ; sécurité au niveau des lignes : le public ne lit que ce qui concerne les tournois publiés, en cours ou terminés ; le détail des inscriptions et des compositions d'équipes n'est lisible que par les admins (les pages publiques passent par des accès serveur contrôlés).
 - Connexion admin par e-mail + mot de passe ; le lien envoyé par e-mail ne sert qu'à activer un compte ou réinitialiser un mot de passe, jamais à se connecter au quotidien. L'inscription libre côté fournisseur d'authentification est désactivée : les comptes se créent via l'application.
+- Les pages publiques ne lisent que des **colonnes explicites** (jamais de `select *`) et ne reçoivent ni e-mail, ni téléphone, ni canal de rappel, ni identifiant de compte : un test échoue si l'une de ces clés apparaît, et la page plante plutôt que de servir une donnée privée.
 - Heures affichées et saisies en **heure de Paris**, quel que soit le fuseau de la machine.
 - Les tâches planifiées exigent un secret partagé ; les envois de rappels et les sauvegardes ne sont jamais déclenchables sans lui.
 - Fonctionnement interne : toute la logique de tournoi (répartition, tirage, tours, planification, scores, classements, qualification, tableau) est un moteur de fonctions pures, couvert par une suite de tests dont un scénario de référence de **14 équipes** (poules 5/5/4, tableau de 8) rejoué de bout en bout.

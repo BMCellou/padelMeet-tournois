@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { COLONNES_PUBLIQUES, garantirChargePublique } from "@/lib/tournoi/colonnesPubliques";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +33,7 @@ export default async function PageTournoiPublic({
 
   const { data: tournoi } = await supabase
     .from("tournaments")
-    .select("id, nom, date, statut, genre, niveau")
+    .select(COLONNES_PUBLIQUES.tournoi)
     .eq("public_slug", slug)
     .maybeSingle();
 
@@ -42,60 +43,66 @@ export default async function PageTournoiPublic({
 
   const { data: groupes } = await supabase
     .from("groups")
-    .select("id, nom, ordre")
+    .select(COLONNES_PUBLIQUES.groupes)
     .eq("tournament_id", tournoi.id)
     .order("ordre");
 
   const { data: teams } = await supabase
     .from("teams")
-    .select("id, nom_affiche")
+    .select(COLONNES_PUBLIQUES.equipes)
     .eq("tournament_id", tournoi.id);
   const nomEquipe = new Map((teams ?? []).map((t) => [t.id, t.nom_affiche]));
 
-  const { data: courts } = await supabase.from("courts").select("id, nom");
+  const { data: courts } = await supabase.from("courts").select(COLONNES_PUBLIQUES.terrains);
   const nomTerrain = new Map((courts ?? []).map((c) => [c.id, c.nom]));
 
   const { data: standingsBrutes } = await supabase
     .from("standings")
-    .select("group_id, team_id, joues, v, d, ratio_sets, ratio_jeux, rang")
+    .select(COLONNES_PUBLIQUES.classements)
     .eq("tournament_id", tournoi.id);
   const standingsParEquipe = new Map((standingsBrutes ?? []).map((s) => [s.team_id, s]));
 
   const { data: matchsPouleBruts } = await supabase
     .from("matches")
-    .select(
-      "id, group_id, round, statut, team_a_id, team_b_id, winner_id, court_id, scheduled_at, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
-    )
+    .select(COLONNES_PUBLIQUES.matchsPoule)
     .eq("tournament_id", tournoi.id)
     .eq("phase", "poule")
     .order("round");
 
   const { data: matchsTableauBruts } = await supabase
     .from("matches")
-    .select(
-      "id, round, bracket_slot, statut, team_a_id, team_b_id, winner_id, next_match_id, next_slot, loser_next_match_id, loser_next_slot, court_id, scheduled_at, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
-    )
+    .select(COLONNES_PUBLIQUES.matchsTableau)
     .eq("tournament_id", tournoi.id)
     .eq("phase", "tableau")
     .order("round");
 
   const { data: matchPetiteFinaleBrut } = await supabase
     .from("matches")
-    .select(
-      "id, round, statut, team_a_id, team_b_id, winner_id, court_id, scheduled_at, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
-    )
+    .select(COLONNES_PUBLIQUES.matchClassement)
     .eq("tournament_id", tournoi.id)
     .eq("phase", "classement")
     .maybeSingle();
 
   const { data: matchClassement5eBrut } = await supabase
     .from("matches")
-    .select(
-      "id, round, statut, team_a_id, team_b_id, winner_id, court_id, scheduled_at, match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)",
-    )
+    .select(COLONNES_PUBLIQUES.matchClassement)
     .eq("tournament_id", tournoi.id)
     .eq("phase", "classement_5e")
     .maybeSingle();
+
+  // Fail-closed : une donnée personnelle dans ces résultats ne doit jamais
+  // atteindre la page (les colonnes sont explicites, ceci est la ceinture).
+  garantirChargePublique({
+    tournoi,
+    groupes,
+    teams,
+    courts,
+    standingsBrutes,
+    matchsPouleBruts,
+    matchsTableauBruts,
+    matchPetiteFinaleBrut,
+    matchClassement5eBrut,
+  });
 
   // Étiquettes et sources (« Vainqueur du quart n°1 ») des cases du tableau
   // dont l'équipe n'est pas encore connue.
