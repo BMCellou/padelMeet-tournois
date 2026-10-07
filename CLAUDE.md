@@ -56,6 +56,18 @@ Les composants et les routes ne font qu'appeler le moteur et persister le résul
   inscriptions en ligne, jamais les ajouts de l'admin.
 - Le cumul de jeux gagnés sur tout le tournoi est tenu à jour dès le premier match validé.
 
+## Règles de cohérence
+- Tous les ratios du moteur s'écrivent `gagnés / joués`, jamais `gagnés / perdus`.
+  Dénominateur nul => valeur bornée, jamais Infinity ni NaN.
+- Une correction de score qui modifierait la liste des qualifiés est refusée
+  dès qu'un match du tableau a été validé.
+- Aucune requête alimentant une page publique ne renvoie d'e-mail, de téléphone,
+  de canal de rappel ou d'identifiant de compte. Sélection de colonnes explicite,
+  jamais select('*').
+- Les matchs du tableau final sont planifiés comme des emplacements : terrain et
+  horaire existent avant que les équipes soient connues.
+- Aucune combinaison de format ne doit produire un match impossible à valider.
+
 ## Scénarios de référence
 - `tests/fixtures/tournoi-25-juillet.test.ts` : 14 équipes, poules 5/5/4, tableau de 8,
   2 premiers de chaque poule + 2 meilleurs 3<sup>es</sup>, petite finale comprise.
