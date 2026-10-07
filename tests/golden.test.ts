@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { premierEcart, rejouerScenario, serialiser } from "../scripts/lib/golden";
+import { ORDRE_RACINE, premierEcart, rejouerScenario, serialiser } from "../scripts/lib/golden";
 import { POULE_UNIQUE_5 } from "./fixtures/poule-unique-5";
 import { TOURNOI_25_JUILLET } from "./fixtures/tournoi-25-juillet";
 
@@ -27,6 +27,28 @@ describe.each([TOURNOI_25_JUILLET, POULE_UNIQUE_5])("golden : $nom", (scenario) 
       `Le comportement du moteur a changé pour « ${scenario.nom} » — premier écart : ${ecart}\n` +
         "Ne régénère pas les fichiers golden pour faire passer le test : comprends d'abord le changement.",
     ).toBeNull();
+  });
+});
+
+describe("ordre des clés : celui du pipeline, pas l'alphabet", () => {
+  it.each([TOURNOI_25_JUILLET, POULE_UNIQUE_5])("$nom : les clés racine suivent ORDRE_RACINE", (scenario) => {
+    const cles = Object.keys(JSON.parse(serialiser(rejouerScenario(scenario))));
+    expect(cles).toEqual(ORDRE_RACINE.filter((c) => cles.includes(c)));
+  });
+
+  it("les qualifiés et le tableau précèdent le classement final et les cumuls", () => {
+    const cles = Object.keys(JSON.parse(serialiser(rejouerScenario(TOURNOI_25_JUILLET))));
+    const rang = (c: string) => cles.indexOf(c);
+    expect(rang("classementsPoule")).toBeLessThan(rang("qualification"));
+    expect(rang("qualification")).toBeLessThan(rang("tableau"));
+    expect(rang("tableau")).toBeLessThan(rang("matchTroisiemePlace"));
+    expect(rang("matchTroisiemePlace")).toBeLessThan(rang("classementFinal"));
+    expect(rang("classementFinal")).toBeLessThan(rang("cumulJeuxGagnes"));
+  });
+
+  it("premierEcart parcourt les clés dans l'ordre du fichier, pas alphabétiquement", () => {
+    const attendu = { zebre: 1, alpha: 1 };
+    expect(premierEcart(attendu, { zebre: 2, alpha: 2 })).toBe("$.zebre : attendu 1, obtenu 2");
   });
 });
 

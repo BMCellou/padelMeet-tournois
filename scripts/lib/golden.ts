@@ -195,7 +195,8 @@ export function rejouerScenario(sc: Scenario): EtatGolden {
   );
 
   etat.qualification = qualification;
-  etat.tableau = matchsTableau;
+  etat.tableau = principal;
+  etat.matchTroisiemePlace = petiteFinale ?? null;
   etat.classementFinal = lignes;
   etat.cumulJeuxGagnes = cumulJeuxGagnesTournoi(termines, sc.equipes.map((e) => e.id));
   // classementFinal (moteur brut), pour couvrir la fonction pure en plus de l'affichage.
@@ -215,6 +216,36 @@ export function rejouerScenario(sc: Scenario): EtatGolden {
 
 // ── Sérialisation déterministe ──────────────────────────────────────────
 
+/**
+ * Ordre des clés racine : celui du pipeline, de la cause vers la conséquence,
+ * pour que le premier écart signalé soit le plus proche de la cause. Les clés
+ * imbriquées restent triées alphabétiquement (déterminisme).
+ */
+export const ORDRE_RACINE = [
+  "scenario",
+  "parametres",
+  "repartition",
+  "tirage",
+  "poules",
+  "calendrierPoules",
+  "matchsPoule",
+  "classementsPoule",
+  "qualification",
+  "tableau",
+  "matchTroisiemePlace",
+  "classementFinal",
+  "classementFinalMoteur",
+  "cumulJeuxGagnes",
+] as const;
+
+function ordonnerRacine(etat: EtatGolden): EtatGolden {
+  const connues = new Set<string>(ORDRE_RACINE);
+  const ordonne: EtatGolden = {};
+  for (const cle of ORDRE_RACINE) if (cle in etat) ordonne[cle] = etat[cle];
+  for (const cle of Object.keys(etat).sort()) if (!connues.has(cle)) ordonne[cle] = etat[cle];
+  return ordonne;
+}
+
 function trierCles(valeur: unknown, chemin = "$"): unknown {
   if (typeof valeur === "number" && !Number.isFinite(valeur)) {
     throw new Error(`Valeur non finie (${valeur}) en ${chemin} : un ratio ne doit jamais être Infinity ni NaN.`);
@@ -233,7 +264,8 @@ function trierCles(valeur: unknown, chemin = "$"): unknown {
 
 /** JSON à clés triées, indenté, terminé par un retour à la ligne : identique d'une exécution à l'autre. */
 export function serialiser(etat: EtatGolden): string {
-  return `${JSON.stringify(trierCles(etat), null, 2)}\n`;
+  const trie = trierCles(etat) as EtatGolden;
+  return `${JSON.stringify(ordonnerRacine(trie), null, 2)}\n`;
 }
 
 /** Premier écart entre deux valeurs JSON, avec son chemin ; null si identiques. */
@@ -251,7 +283,8 @@ export function premierEcart(attendu: unknown, obtenu: unknown, chemin = "$"): s
   if (attendu && obtenu && typeof attendu === "object" && typeof obtenu === "object" && !Array.isArray(attendu) && !Array.isArray(obtenu)) {
     const a = attendu as Record<string, unknown>;
     const o = obtenu as Record<string, unknown>;
-    for (const cle of [...new Set([...Object.keys(a), ...Object.keys(o)])].sort()) {
+    // Ordre du fichier figé (celui du pipeline), puis les clés en trop.
+    for (const cle of [...new Set([...Object.keys(a), ...Object.keys(o)])]) {
       if (!(cle in a)) return `${chemin}.${cle} : clé en trop (obtenu ${JSON.stringify(o[cle])})`;
       if (!(cle in o)) return `${chemin}.${cle} : clé manquante (attendu ${JSON.stringify(a[cle])})`;
       const e = premierEcart(a[cle], o[cle], `${chemin}.${cle}`);
