@@ -6,8 +6,8 @@ import { AdminSidebar } from "../../../AdminSidebar";
 import { GenerationForm } from "./GenerationForm";
 import { CalendrierGrid, type MatchAffiche } from "./CalendrierGrid";
 import { ExemptsList, type ExemptParPoule } from "./ExemptsList";
-import { genererTours } from "@/lib/engine/tours";
-import { alimentants, libellerTableau, type MatchTableauStructure } from "@/lib/engine/tableauLibelles";
+import { getFormat } from "@/lib/engine/formats";
+import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
 import { ReplanifierTableau } from "./ReplanifierTableau";
 
 export default async function CalendrierPage({
@@ -21,7 +21,7 @@ export default async function CalendrierPage({
   const { data: tournoi } = await supabase
     .from("tournaments")
     .select(
-      "id, nom, date, heure_debut, duree_match_min, pause_min, repos_min_min, club_id",
+      "id, nom, date, heure_debut, duree_match_min, pause_min, repos_min_min, club_id, format_animation",
     )
     .eq("id", tournamentId)
     .single();
@@ -29,6 +29,8 @@ export default async function CalendrierPage({
   if (!tournoi) {
     notFound();
   }
+
+  const format = getFormat(tournoi.format_animation);
 
   const { data: terrainsLies } = await supabase
     .from("tournament_courts")
@@ -73,8 +75,8 @@ export default async function CalendrierPage({
     loserNextMatchId: m.loser_next_match_id,
     loserNextSlot: m.loser_next_slot as "a" | "b" | null,
   }));
-  const libelles = libellerTableau(structure);
-  const alimentantsParMatch = alimentants(structure);
+  const libelles = format.phaseFinale?.etiqueterTableau(structure) ?? new Map();
+  const alimentantsParMatch = format.phaseFinale?.alimentants(structure) ?? new Map<string, string[]>();
   const tableauJoue = finaux.some((m) => m.statut === "valide" || m.statut === "forfait");
 
   const matches: MatchAffiche[] = (matchsBruts ?? []).map((m) => {
@@ -99,7 +101,7 @@ export default async function CalendrierPage({
     const equipeIds = [...g.group_teams]
       .sort((a, b) => (a.position_tirage ?? 0) - (b.position_tirage ?? 0))
       .map((gt) => gt.team_id);
-    const tours = equipeIds.length >= 2 ? genererTours(equipeIds) : [];
+    const tours = equipeIds.length >= 2 ? (format.groupes?.toursDuGroupe(equipeIds) ?? []) : [];
     return {
       pouleNom: g.nom,
       exempts: tours

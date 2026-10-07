@@ -1,10 +1,10 @@
 // Logique de composition des documents (indépendante du dessin) : créneaux
 // du calendrier, colonnes des feuilles de score, taille du tableau, libellés.
 
-import { genererTours } from "@/lib/engine/tours";
+import { CODE_FORMAT_PAR_DEFAUT, getFormat } from "@/lib/engine/formats";
 import { CRITERES_DEPARTAGE, normaliserFormat, resumerFormat } from "@/lib/engine/formatMatch";
 import { LIBELLES_PHASES, PHASES_FORMAT, dernierTourTableau, phaseDuMatch, type PhaseFormat } from "@/lib/engine/formatPhases";
-import { libellerTableau, type LibelleMatchTableau } from "@/lib/engine/tableauLibelles";
+import type { LibelleMatchTableau } from "@/lib/engine/tableauLibelles";
 import type { MatchFormat } from "@/lib/engine/types";
 import { formatHeureParis } from "@/lib/temps";
 import type { DonneesTournoi, MatchPdf } from "./types";
@@ -31,13 +31,19 @@ export function nomEquipe(d: DonneesTournoi, id: string | null): string | null {
   return d.equipes.find((e) => e.id === id)?.nom ?? null;
 }
 
+function formatDe(d: DonneesTournoi) {
+  return getFormat(d.formatAnimation ?? CODE_FORMAT_PAR_DEFAUT);
+}
+
 export function matchsFinaux(d: DonneesTournoi): MatchPdf[] {
   return d.matchs.filter((m) => m.phase !== "poule");
 }
 
 /** Étiquettes (« Quart de finale n°1 ») et provenance des équipes inconnues, par match de phase finale. */
 export function libellesPhaseFinale(d: DonneesTournoi): Map<string, LibelleMatchTableau> {
-  return libellerTableau(
+  const phaseFinale = formatDe(d).phaseFinale;
+  if (!phaseFinale) return new Map();
+  return phaseFinale.etiqueterTableau(
     matchsFinaux(d).map((m) => ({
       id: m.id,
       phase: m.phase as "tableau" | "classement" | "classement_5e",
@@ -91,7 +97,7 @@ export function exemptsParPoule(d: DonneesTournoi): Map<string, Map<number, stri
   for (const p of d.poules) {
     const parTour = new Map<number, string>();
     if (p.equipeIds.length >= 2) {
-      for (const t of genererTours(p.equipeIds)) {
+      for (const t of formatDe(d).groupes?.toursDuGroupe(p.equipeIds) ?? []) {
         if (t.exempt) parTour.set(t.numero, nomEquipe(d, t.exempt) ?? "?");
       }
     }

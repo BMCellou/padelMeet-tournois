@@ -1,6 +1,7 @@
 // « Résultats » : classements de poule remplis, tableau final rempli,
 // classement final. Document envoyé au club après le tournoi (A4, noir et blanc).
 
+import { CODE_FORMAT_PAR_DEFAUT, getFormat } from "@/lib/engine/formats";
 import { libelleSet } from "@/lib/engine/score";
 import { calculerClassementFinalTableau, type StandingRow } from "@/lib/tournoi/classementFinalAffichage";
 import { dessinerArbre, dessinerBoite, type ContenuBoite } from "./arbre-dessin";
@@ -186,6 +187,7 @@ function classementFinal(r: Rendu, d: DonneesTournoi): void {
       d.equipes.map((e) => e.id),
       standings,
       new Map(d.equipes.map((e) => [e.id, e.nom])),
+      getFormat(d.formatAnimation ?? CODE_FORMAT_PAR_DEFAUT),
     );
   }
 

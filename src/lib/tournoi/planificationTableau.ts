@@ -5,7 +5,8 @@
 // « Replanifier le tableau final » du calendrier.
 
 import type { createClient } from "@/lib/supabase/server";
-import { planifierTableau, type OccupationExistante } from "@/lib/engine/planification";
+import type { OccupationExistante } from "@/lib/engine/planification";
+import { chargerFormat } from "./formatAnimation";
 import { heureLocaleVersISO } from "@/lib/temps";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -64,7 +65,11 @@ export async function planifierTableauFinal(
       teamBId: m.team_b_id,
     }));
 
-  const planning = planifierTableau(
+  const format = await chargerFormat(supabase, tournamentId);
+  if (!format.phaseFinale) {
+    return { ok: false, raison: "aucun_match", message: "Ce format d'animation n'a pas de tableau final." };
+  }
+  const planning = format.phaseFinale.planifierTableau(
     finaux.map((m) => ({
       id: m.id,
       phase: m.phase as PhaseFinale,

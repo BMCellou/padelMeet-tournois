@@ -9,7 +9,8 @@ import { ClassementFinalList } from "@/components/tournoi/ClassementFinalList";
 import { PublicMatchCard, type MatchPublicAffiche } from "@/components/tournoi/PublicMatchCard";
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
 import { formatHeureParis } from "@/lib/temps";
-import { libellerTableau, type MatchTableauStructure } from "@/lib/engine/tableauLibelles";
+import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
+import { getFormat } from "@/lib/engine/formats";
 import { getParticipantConnecte } from "@/lib/participant/session";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargerStatutInscription } from "./inscriptionStatus";
@@ -133,7 +134,7 @@ export default async function PageTournoiPublic({
         loserNextSlot: null,
       })),
   ];
-  const libellesTableau = libellerTableau(structureTableau);
+  const libellesTableau = getFormat(tournoi.format_animation).phaseFinale?.etiqueterTableau(structureTableau) ?? new Map();
 
   function versMatchPublic(m: {
     id: string;
@@ -216,6 +217,7 @@ export default async function PageTournoiPublic({
           (teams ?? []).map((t) => t.id),
           standingsParEquipe,
           nomEquipe,
+          getFormat(tournoi.format_animation),
         );
 
   const petiteFinaleAffichee = matchPetiteFinaleBrut ? versMatchPublic(matchPetiteFinaleBrut) : null;

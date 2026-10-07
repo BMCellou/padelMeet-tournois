@@ -585,6 +585,57 @@ export type Database = {
           },
         ]
       }
+      standings_joueurs: {
+        Row: {
+          difference: number
+          manches_jouees: number
+          player_id: string
+          points_encaisses: number
+          points_marques: number
+          rang: number | null
+          tournament_id: string
+          tours_exempt: number
+          victoires: number
+        }
+        Insert: {
+          difference?: number
+          manches_jouees?: number
+          player_id: string
+          points_encaisses?: number
+          points_marques?: number
+          rang?: number | null
+          tournament_id: string
+          tours_exempt?: number
+          victoires?: number
+        }
+        Update: {
+          difference?: number
+          manches_jouees?: number
+          player_id?: string
+          points_encaisses?: number
+          points_marques?: number
+          rang?: number | null
+          tournament_id?: string
+          tours_exempt?: number
+          victoires?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standings_joueurs_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standings_joueurs_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_players: {
         Row: {
           player_id: string
@@ -617,27 +668,33 @@ export type Database = {
       }
       teams: {
         Row: {
+          ephemere: boolean
           id: string
           nom_affiche: string
           origine: string
           seed: number | null
           statut: string
+          tour_origine: number | null
           tournament_id: string
         }
         Insert: {
+          ephemere?: boolean
           id?: string
           nom_affiche: string
           origine: string
           seed?: number | null
           statut?: string
+          tour_origine?: number | null
           tournament_id: string
         }
         Update: {
+          ephemere?: boolean
           id?: string
           nom_affiche?: string
           origine?: string
           seed?: number | null
           statut?: string
+          tour_origine?: number | null
           tournament_id?: string
         }
         Relationships: [
@@ -683,9 +740,11 @@ export type Database = {
       tournaments: {
         Row: {
           club_id: string | null
+          config_animation: Json
           created_at: string
           date: string
           duree_match_min: number | null
+          format_animation: string
           format_config: Json
           format_par_phase: Json
           genre: string | null
@@ -705,9 +764,11 @@ export type Database = {
         }
         Insert: {
           club_id?: string | null
+          config_animation?: Json
           created_at?: string
           date: string
           duree_match_min?: number | null
+          format_animation?: string
           format_config?: Json
           format_par_phase?: Json
           genre?: string | null
@@ -727,9 +788,11 @@ export type Database = {
         }
         Update: {
           club_id?: string | null
+          config_animation?: Json
           created_at?: string
           date?: string
           duree_match_min?: number | null
+          format_animation?: string
           format_config?: Json
           format_par_phase?: Json
           genre?: string | null

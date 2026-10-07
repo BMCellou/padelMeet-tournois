@@ -1,9 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { calculerRepartitionPoules } from "@/lib/engine/poules";
-import { tirerAuSort, type EquipeAvecSeed } from "@/lib/engine/tirage";
-import { creerRng } from "@/lib/engine/rng";
+import type { EquipeAvecSeed } from "@/lib/engine/tirage";
+import { chargerFormat } from "@/lib/tournoi/formatAnimation";
 import { revalidatePath } from "next/cache";
 import { randomInt } from "crypto";
 import { z } from "zod";
@@ -55,6 +54,9 @@ export async function tirerPoules(
   const { tournamentId, nombrePoulesForce } = parsed.data;
   const supabase = await createClient();
 
+  const format = await chargerFormat(supabase, tournamentId);
+  if (!format.groupes) return { error: "Ce format d'animation n'a pas de tirage en poules." };
+
   if (await scoresDejaSaisis(supabase, tournamentId)) {
     return { error: "Des scores ont déjà été saisis : impossible de relancer le tirage." };
   }
@@ -71,14 +73,14 @@ export async function tirerPoules(
 
   let repartition;
   try {
-    repartition = calculerRepartitionPoules(teams.length, { nombrePoulesForce });
+    repartition = format.groupes.repartir(teams.length, { nombreGroupesForce: nombrePoulesForce });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Répartition impossible." };
   }
 
   const equipes: EquipeAvecSeed[] = teams.map((t) => ({ id: t.id, seed: t.seed }));
   const seed = randomInt(1, 2_147_483_647);
-  const tirage = tirerAuSort(equipes, repartition.tailles, creerRng(seed));
+  const tirage = format.groupes.tirer(equipes, repartition.tailles, seed);
 
   // Relance : on repart d'un état propre. Un calendrier a pu être généré
   // depuis le premier tirage (matches liés aux anciennes poules) : on le

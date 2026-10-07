@@ -1,0 +1,212 @@
+// Abstraction « format d'animation » (docs/formats-animation.md §4.1) : une
+// stratégie par format. Les écrans et les routes ne connaissent jamais un format
+// en particulier : ils demandent au registre (formats/index.ts) et s'appuient sur
+// les propriétés déclarées (uniteClassement, calendrier, partenaire, modeScore,
+// aUnTableauFinal) — jamais sur le code du format.
+//
+// Pur : aucun accès base, aucune horloge (comme tout lib/engine/).
+
+import type { CritereDepartage, EquipeClassee, MatchTermine } from "../classement";
+import type { EquipePouleRang, Match5e } from "../classement5e";
+import type { DonneesClassementFinal, EquipeClassementFinal } from "../classementFinal";
+import type { EtatQualification, ImpactQualifies } from "../impactQualifies";
+import type { Court, MatchAPlanifier, MatchPlanifie, MatchTableauAPlanifier, OccupationExistante, PlanificationOptions } from "../planification";
+import type { RepartitionPoulesOptions, RepartitionPoulesResult } from "../poules";
+import type { ClassementPoule, QualificationResult } from "../qualification";
+import type { MatchTableau, Qualifie } from "../tableau";
+import type { LibelleMatchTableau, MatchTableauStructure } from "../tableauLibelles";
+import type { EquipeAvecSeed, Poule } from "../tirage";
+import type { Tour as TourDeGroupe } from "../tours";
+
+// ── Identité et propriétés d'un format ──────────────────────────────────
+
+/** Code d'un format enregistré (valeur de tournaments.format_animation). */
+export type CodeFormat = "poules_tableau";
+
+export interface Validation {
+  ok: boolean;
+  /** Pourquoi l'effectif ne convient pas (ok = false). */
+  message?: string;
+  /** Avertissement sans blocage (ok = true), ex. poule unique très longue. */
+  avertissement?: string;
+}
+
+// ── État d'un tournoi, tel que le voit un format ────────────────────────
+
+/** Une unité de participation : une équipe, ou un joueur selon `uniteClassement`. */
+export interface Participant extends EquipeAvecSeed {
+  sexe?: "H" | "F";
+  /** Plus petit = meilleur niveau. */
+  niveau?: number;
+}
+
+export interface GroupeEtat {
+  id: string;
+  nom: string;
+  participantIds: string[];
+}
+
+export interface PlacementEtat {
+  terrainId: string;
+  debut: string;
+  fin: string;
+}
+
+/** Un match connu du format, joué ou non. */
+export interface MatchEtat {
+  id: string;
+  /** « groupe » = phase de groupes (poules) ; « finale » = tableau ; « classement » / « classement_5e » = matchs de classement. */
+  phase: "groupe" | "finale" | "classement" | "classement_5e";
+  groupeId: string | null;
+  tour: number;
+  teamAId: string | null;
+  teamBId: string | null;
+  /** Validé (ou forfait) : le résultat est définitif. */
+  termine: boolean;
+  vainqueurId: string | null;
+  /** Résultat chiffré, quand le match est terminé. */
+  resultat?: MatchTermine;
+  placement?: PlacementEtat;
+  nextMatchId?: string | null;
+  nextSlot?: "a" | "b" | null;
+  loserNextMatchId?: string | null;
+  loserNextSlot?: "a" | "b" | null;
+  bracketSlot?: number | null;
+}
+
+/** Configuration propre au format (tournaments.config_animation + réglages du tournoi). */
+export interface ConfigAnimation {
+  nbQualifies?: number;
+  criteres?: CritereDepartage[];
+  /** Nombre de poules imposé par l'admin (sinon calculé). */
+  nombreGroupesForce?: number;
+}
+
+export interface EtatTournoi {
+  participants: Participant[];
+  terrains: Court[];
+  config: ConfigAnimation;
+  /** Graine du tirage, mémorisée pour pouvoir le rejouer à l'identique. */
+  graine: number;
+  /** Heure de début, durées, repos : requis pour que les tours soient placés sur les terrains. */
+  planification?: PlanificationOptions;
+  /** Composition des groupes déjà tirée ; sinon le format la tire. */
+  groupes?: GroupeEtat[];
+  matchs: MatchEtat[];
+}
+
+// ── Sorties ─────────────────────────────────────────────────────────────
+
+export interface MatchPrevu {
+  id: string;
+  phase: MatchEtat["phase"];
+  groupeId: string | null;
+  tour: number;
+  teamAId: string | null;
+  teamBId: string | null;
+  bracketSlot?: number | null;
+  nextMatchId?: string | null;
+  nextSlot?: "a" | "b" | null;
+  loserNextMatchId?: string | null;
+  loserNextSlot?: "a" | "b" | null;
+  /** Terrain et créneau, quand l'état fournit les options de planification. */
+  placement?: PlacementEtat;
+}
+
+export interface Tour {
+  numero: number;
+  matchs: MatchPrevu[];
+  /** Participants au repos ce tour-là (poule de taille impaire). */
+  exempts: { groupeId: string | null; participantId: string }[];
+}
+
+export interface LigneClassement {
+  rang: number;
+  participantId: string;
+  groupeId: string | null;
+  joues: number;
+  victoires: number;
+  defaites: number;
+  /** Détail du format (sets, jeux, ratios…) tel que calculé par le moteur. */
+  detail: EquipeClassee;
+}
+
+// ── Capacités de phase de groupes et de phase finale ────────────────────
+// Le déroulé d'un format à poules est par étapes (tirage, puis calendrier, puis
+// scores, puis tableau) : chaque étape appelle l'opération correspondante. Un format
+// qui n'a pas de phase de groupes (ou de phase finale) ne définit pas la capacité ;
+// les écrans testent sa présence, jamais le code du format.
+
+export interface OperationsPhaseDeGroupes {
+  /** Répartition de l'effectif en groupes. Lève si impossible. */
+  repartir(effectif: number, options?: { nombreGroupesForce?: number }): RepartitionGroupes;
+  /** Tirage au sort reproductible (têtes de série réparties en serpentin). */
+  tirer(participants: EquipeAvecSeed[], tailles: number[], graine: number): CompositionTirage;
+  /** Tours d'un groupe (algorithme du cercle) : une rencontre par duo, un exempt par tour impair. */
+  toursDuGroupe(participantIds: string[]): TourDeGroupe[];
+  /** Placement glouton des matchs sur les terrains. */
+  planifier(matchs: MatchAPlanifier[], terrains: Court[], options: PlanificationOptions): MatchPlanifie[];
+  /** Classement d'un groupe, critères de départage dans l'ordre donné. */
+  classerGroupe(matchs: MatchTermine[], participantIds: string[], criteres: CritereDepartage[]): EquipeClassee[];
+}
+
+export type RepartitionGroupes = RepartitionPoulesResult;
+export type OptionsRepartition = RepartitionPoulesOptions;
+export interface CompositionTirage {
+  poules: Poule[];
+}
+
+export interface OperationsPhaseFinale {
+  /** Sélection des qualifiés d'après les classements de groupe. */
+  qualifier(classements: ClassementPoule[], nbQualifies: number): QualificationResult;
+  /** Arbre à élimination directe (+ match pour la 3e place), équipes du premier tour placées. */
+  construireTableau(qualifies: Qualifie[]): MatchTableau[];
+  /** Emplacements (terrain + créneau) du tableau, même sans équipes connues. */
+  planifierTableau(
+    matchs: MatchTableauAPlanifier[],
+    terrains: Court[],
+    options: PlanificationOptions,
+    existants?: OccupationExistante[],
+  ): MatchPlanifie[];
+  /** Match de classement entre les deux 3es de poule non qualifiés (null si le cas ne s'applique pas). */
+  matchDeClassementDesNonQualifies(equipes: EquipePouleRang[], qualifiesIds: ReadonlySet<string>): Match5e | null;
+  /** Classement final de l'arbre, rangs ex æquo compris. */
+  classementFinal(donnees: DonneesClassementFinal): EquipeClassementFinal[];
+  /** Effet d'une correction de score de groupe sur la liste des qualifiés. */
+  impactSurQualifies(avant: EtatQualification, apres: EtatQualification): ImpactQualifies;
+  /** Étiquettes (« Quart de finale n°1 ») et provenance des équipes inconnues. */
+  etiqueterTableau(matchs: MatchTableauStructure[]): Map<string, LibelleMatchTableau>;
+  /** Matchs dont le résultat alimente chaque match. */
+  alimentants(matchs: MatchTableauStructure[]): Map<string, string[]>;
+}
+
+// ── L'interface ─────────────────────────────────────────────────────────
+
+export interface FormatAnimation {
+  code: CodeFormat;
+  nom: string;
+  description: string;
+
+  uniteClassement: "equipe" | "joueur";
+  calendrier: "statique" | "dynamique";
+  partenaire: "fixe" | "tournant";
+  modeScore: "jeux_sets" | "points";
+  aUnTableauFinal: boolean;
+
+  /** Nombre d'inscrits acceptable, et message d'aide si non. */
+  validerEffectif(n: number, terrains: number): Validation;
+
+  /** Statique : tous les tours d'un coup. Dynamique : le tour suivant uniquement. */
+  genererTours(etat: EtatTournoi): Tour[];
+
+  /** Appelée après chaque validation de score : un tour de plus, ou rien. */
+  tourSuivant(etat: EtatTournoi): Tour | null;
+
+  classement(etat: EtatTournoi): LigneClassement[];
+  estTermine(etat: EtatTournoi): boolean;
+
+  /** Phase de groupes (poules) : absente des formats qui n'en ont pas. */
+  groupes?: OperationsPhaseDeGroupes;
+  /** Phase finale (qualification + tableau) : présente ssi `aUnTableauFinal`. */
+  phaseFinale?: OperationsPhaseFinale;
+}

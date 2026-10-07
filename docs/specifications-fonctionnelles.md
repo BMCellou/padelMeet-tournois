@@ -279,6 +279,7 @@ Un onglet **Rappels** par tournoi liste les **matchs à venir ayant un horaire**
 - Les pages publiques ne lisent que des **colonnes explicites** (jamais de `select *`) et ne reçoivent ni e-mail, ni téléphone, ni canal de rappel, ni identifiant de compte : un test échoue si l'une de ces clés apparaît, et la page plante plutôt que de servir une donnée privée.
 - Heures affichées et saisies en **heure de Paris**, quel que soit le fuseau de la machine.
 - Les tâches planifiées exigent un secret partagé ; les envois de rappels et les sauvegardes ne sont jamais déclenchables sans lui.
+- **Formats d'animation** : chaque tournoi a un format (`tournaments.format_animation`, « poules + tableau » par défaut), résolu par un registre ; les écrans et les routes ne connaissent jamais un format en particulier. Aujourd'hui un seul format existe, qui reproduit exactement le comportement historique. La base est prête pour le classement individuel et les équipes éphémères des futurs formats, sans effet sur les tournois existants.
 - Fonctionnement interne : toute la logique de tournoi (répartition, tirage, tours, planification, scores, classements, qualification, tableau) est un moteur de fonctions pures, couvert par une suite de tests dont un scénario de référence de **14 équipes** (poules 5/5/4, tableau de 8) rejoué de bout en bout.
 
 ## 16. Hors périmètre

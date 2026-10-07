@@ -17,7 +17,7 @@ export async function chargerDonneesTournoi(
   const { data: tournoi } = await supabase
     .from("tournaments")
     .select(
-      "nom, date, statut, genre, niveau, nb_qualifies, format_config, format_par_phase, tiebreak_rules, duree_match_min, club_id",
+      "nom, date, statut, genre, niveau, nb_qualifies, format_config, format_par_phase, tiebreak_rules, duree_match_min, club_id, format_animation",
     )
     .eq("id", tournamentId)
     .single();
@@ -80,6 +80,7 @@ export async function chargerDonneesTournoi(
   }));
 
   return {
+    formatAnimation: tournoi.format_animation,
     tournoi: {
       nom: tournoi.nom,
       date: tournoi.date,

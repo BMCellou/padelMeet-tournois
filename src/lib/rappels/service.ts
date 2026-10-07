@@ -8,7 +8,8 @@ import type { Database } from "@/lib/supabase/database.types";
 import { construireMessage, formaterDateHeure } from "./message";
 import { contactPourCanal, lienWhatsApp, type CanalRappel } from "./contact";
 import { matchsDansFenetre } from "./selection";
-import { libellerTableau, type MatchTableauStructure } from "@/lib/engine/tableauLibelles";
+import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
+import { getFormat } from "@/lib/engine/formats";
 import { envoyeursReels, type Envoyeurs } from "./envoi";
 
 type Client = SupabaseClient<Database>;
@@ -56,7 +57,7 @@ export async function chargerMatchsRappel(
   let requete = supabase
     .from("matches")
     .select(
-      "id, tournament_id, phase, scheduled_at, statut, team_a_id, team_b_id, court_id, tournaments(nom)",
+      "id, tournament_id, phase, scheduled_at, statut, team_a_id, team_b_id, court_id, tournaments(nom, format_animation)",
     )
     .not("scheduled_at", "is", null)
     .not("team_a_id", "is", null)
@@ -97,6 +98,7 @@ export async function chargerMatchsRappel(
 
   // Étiquettes de phase, calculées par tournoi (le dernier tour en dépend).
   const etiquettes = new Map<string, string>();
+  const formatParTournoi = new Map(matchs.map((m) => [m.tournament_id, getFormat(m.tournaments?.format_animation ?? "poules_tableau")]));
   for (const tid of tournoiIds) {
     const structure: MatchTableauStructure[] = (tableauBrut ?? [])
       .filter((m) => m.tournament_id === tid)
@@ -110,7 +112,7 @@ export async function chargerMatchsRappel(
         loserNextMatchId: m.loser_next_match_id,
         loserNextSlot: m.loser_next_slot as "a" | "b" | null,
       }));
-    for (const [id, l] of libellerTableau(structure)) etiquettes.set(id, l.etiquette);
+    for (const [id, l] of formatParTournoi.get(tid)!.phaseFinale?.etiqueterTableau(structure) ?? []) etiquettes.set(id, l.etiquette);
   }
 
   const equipe = new Map((teams ?? []).map((t) => [t.id, t]));

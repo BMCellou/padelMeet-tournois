@@ -59,6 +59,8 @@ export interface ClassementPdf {
 }
 
 export interface DonneesTournoi {
+  /** Code du format d'animation (tournaments.format_animation) ; absent = valeur par défaut du registre. */
+  formatAnimation?: string;
   tournoi: {
     nom: string;
     /** AAAA-MM-JJ */

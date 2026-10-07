@@ -2,7 +2,7 @@
 // page publique) à partir des matchs de tableau déjà chargés, et applique
 // classementFinal (§4.9). Pure : ne fait aucun accès base lui-même.
 
-import { classementFinal } from "@/lib/engine/classementFinal";
+import { CODE_FORMAT_PAR_DEFAUT, getFormat, type FormatAnimation } from "@/lib/engine/formats";
 
 export interface StandingRow {
   team_id: string;
@@ -64,6 +64,7 @@ export function calculerClassementFinalTableau(
   toutesLesEquipesIds: string[],
   standingsParEquipe: Map<string, StandingRow>,
   nomEquipe: Map<string, string>,
+  format: FormatAnimation = getFormat(CODE_FORMAT_PAR_DEFAUT),
 ): LigneFinale[] | null {
   if (matchsTableau.length === 0) return null;
 
@@ -120,7 +121,7 @@ export function calculerClassementFinalTableau(
     ? nonQualifies.filter((id) => id !== classement5e!.vainqueurId && id !== classement5e!.perdantId)
     : nonQualifies;
 
-  const resultat = classementFinal({
+  const resultat = format.phaseFinale!.classementFinal({
     finaleVainqueurId: champion,
     finalePerdantId: finaliste,
     demiFinalesPerdantIds: demiPerdants,

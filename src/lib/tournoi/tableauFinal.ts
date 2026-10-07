@@ -6,9 +6,10 @@
 // qualifiés : toute la logique vit ici, une seule fois.
 
 import type { createClient } from "@/lib/supabase/server";
-import { selectionnerQualifies, type ClassementPoule } from "@/lib/engine/qualification";
-import { genererTableau, type Qualifie } from "@/lib/engine/tableau";
-import { calculerMatch5eDePoule, type Match5e } from "@/lib/engine/classement5e";
+import type { ClassementPoule } from "@/lib/engine/qualification";
+import type { Qualifie } from "@/lib/engine/tableau";
+import type { Match5e } from "@/lib/engine/classement5e";
+import { chargerFormat } from "./formatAnimation";
 import { appliquerFormatsParPhase } from "./formatParPhase";
 import { planifierTableauFinal } from "./planificationTableau";
 
@@ -151,7 +152,9 @@ export async function calculerContexteQualification(
     standingsBrutes ?? [],
   );
 
-  const qualification = selectionnerQualifies(classementsParPoule, pret.nbQualifies);
+  const format = await chargerFormat(supabase, tournamentId);
+  if (!format.phaseFinale) return { error: "Ce format d'animation n'a pas de tableau final." };
+  const qualification = format.phaseFinale.qualifier(classementsParPoule, pret.nbQualifies);
   const qualifiesIds = new Set(qualification.qualifies);
 
   const groupNomParId = new Map((groupes ?? []).map((g) => [g.id, g.nom]));
@@ -183,7 +186,8 @@ export async function calculerMatchClassement5e(
   equipes: EquipePoule[],
   qualifiesIds: ReadonlySet<string>,
 ): Promise<Match5e | null> {
-  const match = calculerMatch5eDePoule(equipes, qualifiesIds);
+  const format = await chargerFormat(supabase, tournamentId);
+  const match = format.phaseFinale?.matchDeClassementDesNonQualifies(equipes, qualifiesIds) ?? null;
   if (!match) return null;
 
   const { count } = await supabase
@@ -213,9 +217,12 @@ export async function genererTableauAvecQualifies(
     return { error: `Le nombre de qualifiés doit être une puissance de 2 (reçu ${qualifies.length}).` };
   }
 
+  const format = await chargerFormat(supabase, tournamentId);
+  if (!format.phaseFinale) return { error: "Ce format d'animation n'a pas de tableau final." };
+
   let bracket;
   try {
-    bracket = genererTableau(qualifies);
+    bracket = format.phaseFinale.construireTableau(qualifies);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Impossible de générer le tableau." };
   }

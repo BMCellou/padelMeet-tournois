@@ -8,13 +8,13 @@ import type { CritereDepartage } from "@/lib/engine/classement";
 import type { SetSaisi } from "@/lib/engine/score";
 import {
   decisionCorrection,
-  impactSurQualifies,
   messageRefusCorrection,
   type DecisionCorrection,
   type ImpactQualifies,
 } from "@/lib/engine/impactQualifies";
 import { matchCommence } from "@/lib/engine/formatPhases";
 import { classementDuGroupe } from "./classementPoule";
+import { chargerFormat } from "./formatAnimation";
 import { classementsDepuisStandings } from "./tableauFinal";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -55,6 +55,7 @@ export async function evaluerCorrectionPoule(
       .in("phase", ["tableau", "classement", "classement_5e"]),
   ]);
 
+  const format = await chargerFormat(supabase, tournamentId);
   const tableauExiste = (matchsFinaux ?? []).some((m) => m.phase === "tableau");
   if (!tournoi || !tableauExiste || !tournoi.nb_qualifies) {
     return { decision: "appliquer", impact: null, message: null };
@@ -70,7 +71,7 @@ export async function evaluerCorrectionPoule(
   ]);
 
   const classementsAvant = classementsDepuisStandings((groupes ?? []).map((g) => g.id), standings ?? []);
-  const classementApres = await classementDuGroupe(supabase, correction.groupId, tiebreakRules, {
+  const classementApres = await classementDuGroupe(supabase, format, correction.groupId, tiebreakRules, {
     matchId: correction.matchId,
     vainqueurId: correction.vainqueurId,
     forfait: correction.forfait,
@@ -80,7 +81,7 @@ export async function evaluerCorrectionPoule(
     c.groupId === correction.groupId ? { ...c, equipes: classementApres } : c,
   );
 
-  const impact = impactSurQualifies(
+  const impact = format.phaseFinale!.impactSurQualifies(
     { classementsParPoule: classementsAvant, nbQualifies: tournoi.nb_qualifies },
     { classementsParPoule: classementsApres, nbQualifies: tournoi.nb_qualifies },
   );

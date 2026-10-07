@@ -7,7 +7,7 @@ import { AdminSidebar } from "../../../AdminSidebar";
 import { TirageForm } from "./TirageForm";
 import { SeedInput } from "./SeedInput";
 import { PouleView } from "./PouleView";
-import { calculerRepartitionPoules } from "@/lib/engine/poules";
+import { getFormat } from "@/lib/engine/formats";
 
 export default async function PoulesPage({
   params,
@@ -19,7 +19,7 @@ export default async function PoulesPage({
 
   const { data: tournoi } = await supabase
     .from("tournaments")
-    .select("id, nom, tirage_seed")
+    .select("id, nom, tirage_seed, format_animation")
     .eq("id", tournamentId)
     .single();
 
@@ -74,7 +74,7 @@ export default async function PoulesPage({
   let apercu: string | null = null;
   if (!dejaTire && teams && teams.length >= 4) {
     try {
-      const r = calculerRepartitionPoules(teams.length);
+      const r = getFormat(tournoi.format_animation).groupes!.repartir(teams.length);
       apercu = `${r.nombrePoules} poule(s) de ${[...r.tailles].sort((a, b) => b - a).join("/")}`;
     } catch {
       apercu = null;

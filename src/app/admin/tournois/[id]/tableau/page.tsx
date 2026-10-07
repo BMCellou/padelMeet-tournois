@@ -7,6 +7,7 @@ import { QualifiesEditor } from "./QualifiesEditor";
 import { ClassementFinalList, type LigneFinale } from "@/components/tournoi/ClassementFinalList";
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
 import { calculerContexteQualification } from "@/lib/tournoi/tableauFinal";
+import { getFormat } from "@/lib/engine/formats";
 import { comparerQualifies, messageIncoherenceTableau } from "@/lib/engine/impactQualifies";
 import { estAdmin, getTournoisScoreur } from "@/lib/staff/session";
 import type { MatchFormat } from "@/lib/engine/types";
@@ -23,7 +24,7 @@ export default async function TableauPage({
 
   const { data: tournoi } = await supabase
     .from("tournaments")
-    .select("id, nom, format_config, selection_manuelle")
+    .select("id, nom, format_config, selection_manuelle, format_animation")
     .eq("id", tournamentId)
     .single();
 
@@ -244,6 +245,7 @@ export default async function TableauPage({
         (teams ?? []).map((t) => t.id),
         standingsParEquipe,
         nomEquipe,
+        getFormat(tournoi.format_animation),
       );
 
       const petiteFinaleAffichee: MatchAffiche | null =
