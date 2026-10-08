@@ -2,6 +2,7 @@ import { getParticipantConnecte } from "@/lib/participant/session";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -39,7 +40,8 @@ export default async function CompteParticipantPage() {
             {participant.prenom} {participant.nom}
           </h1>
           <form action={deconnexion}>
-            <Button type="submit" variant="ghost" size="sm">
+            <Button type="submit" variant="outline" className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10">
+              <LogOut className="size-4" aria-hidden />
               Se déconnecter
             </Button>
           </form>

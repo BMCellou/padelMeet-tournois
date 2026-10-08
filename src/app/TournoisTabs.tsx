@@ -23,11 +23,21 @@ export interface TournoiAffiche {
   clubNom: string;
 }
 
-function CarteTournoi({ t, cta }: { t: TournoiAffiche; cta?: string }) {
+/** À venir : mis en avant (bordure d'accent, apparition en fondu échelonnée) ; terminé : en retrait. */
+function styleCarte(statut: string): string {
+  if (statut === "publie") {
+    return "border-2 border-volt bg-card shadow-[0_0_0_3px_rgba(222,254,23,0.25)] animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both";
+  }
+  if (statut === "en_cours") return "border-2 border-primary bg-card animate-in fade-in duration-500 fill-mode-both";
+  return "border bg-muted/40 opacity-70 hover:opacity-100";
+}
+
+function CarteTournoi({ t, cta, rang = 0 }: { t: TournoiAffiche; cta?: string; rang?: number }) {
   return (
     <Link
       href={`/t/${t.publicSlug}`}
-      className="block rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
+      className={cn("block rounded-lg p-4 transition-all hover:bg-accent", styleCarte(t.statut))}
+      style={t.statut === "publie" || t.statut === "en_cours" ? { animationDelay: `${rang * 90}ms` } : undefined}
     >
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -49,7 +59,7 @@ function CarteTournoi({ t, cta }: { t: TournoiAffiche; cta?: string }) {
             {cta}
           </Badge>
         ) : (
-          <Badge variant={t.statut === "en_cours" ? "default" : "outline"} className="shrink-0">
+          <Badge variant={t.statut === "en_cours" ? "default" : t.statut === "publie" ? "volt" : "outline"} className="shrink-0">
             {LIBELLES_STATUT[t.statut] ?? t.statut}
           </Badge>
         )}
@@ -112,9 +122,9 @@ export function TournoisTabs({ tournois }: { tournois: TournoiAffiche[] }) {
             </p>
           ) : (
             <ul className="space-y-3">
-              {tournois.map((t) => (
+              {tournois.map((t, i) => (
                 <li key={t.id}>
-                  <CarteTournoi t={t} />
+                  <CarteTournoi t={t} rang={i} />
                 </li>
               ))}
             </ul>
@@ -125,9 +135,9 @@ export function TournoisTabs({ tournois }: { tournois: TournoiAffiche[] }) {
           </p>
         ) : (
           <ul className="space-y-3">
-            {inscriptibles.map((t) => (
+            {inscriptibles.map((t, i) => (
               <li key={t.id}>
-                <CarteTournoi t={t} cta="S'inscrire" />
+                <CarteTournoi t={t} cta="S'inscrire" rang={i} />
               </li>
             ))}
           </ul>
