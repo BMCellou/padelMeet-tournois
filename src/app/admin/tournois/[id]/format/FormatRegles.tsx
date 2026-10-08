@@ -7,6 +7,7 @@ import type { MatchFormat } from "@/lib/engine/types";
 import type { CritereDepartage } from "@/lib/engine/classement";
 import {
   avertissementsDepartage,
+  memeFormat,
   resumerFormat,
   validerFormat,
 } from "@/lib/engine/formatMatch";
@@ -32,7 +33,12 @@ function Verrouille({ raison }: { raison: string | null }) {
   );
 }
 
-function Message({ retour }: { retour: Retour }) {
+function Message({ retour, modifie }: { retour: Retour; modifie: boolean }) {
+  // Dès que le formulaire est modifié, l'ancien « Enregistré. » ne dit plus rien de vrai : on le remplace
+  // par un rappel qu'il reste des changements à enregistrer.
+  if (modifie) {
+    return <p className="text-sm text-amber-600">Modifications non enregistrées.</p>;
+  }
   if (!retour) return null;
   return <p className={retour.ok ? "text-sm text-primary" : "text-sm text-destructive"}>{retour.texte}</p>;
 }
@@ -56,19 +62,33 @@ export function FormatRegles({
   );
   const [actifs, setActifs] = useState<CritereDepartage[]>(criteres);
   const [retours, setRetours] = useState<Record<string, Retour>>({});
+  // Dernier état connu en base : sert à repérer les modifications pas encore enregistrées.
+  const [sauve, setSauve] = useState({ defaut: formatDefaut, phases: null as Record<PhaseFormat, MatchFormat | null> | null, actifs: criteres });
   const [isPending, startTransition] = useTransition();
 
-  function lancer(cle: string, action: () => Promise<{ error: string } | { success: true }>) {
+  function lancer(
+    cle: string,
+    action: () => Promise<{ error: string } | { success: true; inchange?: true }>,
+    apresSucces: () => void,
+  ) {
     setRetours((r) => ({ ...r, [cle]: null }));
     startTransition(async () => {
       const res = await action();
+      if (!("error" in res)) apresSucces();
       setRetours((r) => ({
         ...r,
-        [cle]: "error" in res ? { ok: false, texte: res.error } : { ok: true, texte: "Enregistré." },
+        [cle]:
+          "error" in res
+            ? { ok: false, texte: res.error }
+            : { ok: true, texte: res.inchange ? "Aucun changement à enregistrer." : "Enregistré." },
       }));
     });
   }
 
+  const phasesSauvees = sauve.phases ?? (Object.fromEntries(PHASES_FORMAT.map((p) => [p, formatsParPhase[p] ?? null])) as Record<PhaseFormat, MatchFormat | null>);
+  const defautModifie = !memeFormat(defaut, sauve.defaut);
+  const phasesModifiees = PHASES_FORMAT.some((p) => !memeFormat(phases[p], phasesSauvees[p]));
+  const departageModifie = JSON.stringify(actifs) !== JSON.stringify(sauve.actifs);
   const defautValide = validerFormat(defaut).ok;
   const phasesValides = PHASES_FORMAT.every((p) => !phases[p] || validerFormat(phases[p]).ok);
   const formatPoules = phases.poule ?? defaut;
@@ -83,11 +103,13 @@ export function FormatRegles({
         <CardContent className="space-y-4">
           <Verrouille raison={verrous.defaut.raison} />
           <FormatEditor value={defaut} onChange={setDefaut} disabled={verrous.defaut.verrouille} idPrefix="defaut" />
-          <Message retour={retours.defaut ?? null} />
+          <Message retour={retours.defaut ?? null} modifie={defautModifie} />
           <Button
             type="button"
             disabled={isPending || verrous.defaut.verrouille || !defautValide}
-            onClick={() => lancer("defaut", () => enregistrerFormatDefaut(tournamentId, defaut))}
+            onClick={() =>
+              lancer("defaut", () => enregistrerFormatDefaut(tournamentId, defaut), () => setSauve((x) => ({ ...x, defaut })))
+            }
           >
             Enregistrer le format par défaut
           </Button>
@@ -148,16 +170,19 @@ export function FormatRegles({
               );
             })}
           </ul>
-          <Message retour={retours.phases ?? null} />
+          <Message retour={retours.phases ?? null} modifie={phasesModifiees} />
           <Button
             type="button"
             disabled={isPending || !phasesValides}
             onClick={() =>
-              lancer("phases", () =>
-                enregistrerFormatsParPhase(
-                  tournamentId,
-                  Object.fromEntries(PHASES_FORMAT.map((p) => [p, phases[p]])),
-                ),
+              lancer(
+                "phases",
+                () =>
+                  enregistrerFormatsParPhase(
+                    tournamentId,
+                    Object.fromEntries(PHASES_FORMAT.map((p) => [p, phases[p]])),
+                  ),
+                () => setSauve((x) => ({ ...x, phases })),
               )
             }
           >
@@ -184,11 +209,13 @@ export function FormatRegles({
               ))}
             </ul>
           ) : null}
-          <Message retour={retours.departage ?? null} />
+          <Message retour={retours.departage ?? null} modifie={departageModifie} />
           <Button
             type="button"
             disabled={isPending || verrous.departage.verrouille}
-            onClick={() => lancer("departage", () => enregistrerDepartage(tournamentId, actifs))}
+            onClick={() =>
+              lancer("departage", () => enregistrerDepartage(tournamentId, actifs), () => setSauve((x) => ({ ...x, actifs })))
+            }
           >
             Enregistrer l&apos;ordre de départage
           </Button>
