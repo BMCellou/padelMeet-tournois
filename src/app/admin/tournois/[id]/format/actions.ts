@@ -16,7 +16,8 @@ import {
 import { appliquerFormatsParPhase } from "@/lib/tournoi/formatParPhase";
 import type { Json } from "@/lib/supabase/database.types";
 
-type Resultat = { error: string } | { success: true };
+/** `inchange` : rien n'a été écrit car la valeur envoyée est déjà celle de la base. */
+type Resultat = { error: string } | { success: true; inchange?: true };
 
 const idSchema = z.string().uuid();
 
@@ -72,7 +73,7 @@ export async function enregistrerFormatDefaut(tournamentId: string, brut: unknow
   const ctx = await charger(tournamentId);
   if (!ctx) return { error: "Tournoi introuvable." };
 
-  if (memeFormat(valide.format, ctx.formatDefautActuel)) return { success: true };
+  if (memeFormat(valide.format, ctx.formatDefautActuel)) return { success: true, inchange: true };
   if (ctx.verrous.defaut.verrouille) return { error: ctx.verrous.defaut.raison! };
 
   const { error } = await ctx.supabase
@@ -104,7 +105,7 @@ export async function enregistrerFormatsParPhase(tournamentId: string, brut: unk
   for (const { code } of ctx.format.phases) {
     if (!memeFormat(valide.formats[code], ctx.formatsActuels[code])) modifiees.push(code);
   }
-  if (modifiees.length === 0) return { success: true };
+  if (modifiees.length === 0) return { success: true, inchange: true };
 
   for (const phase of modifiees) {
     if (ctx.verrous.phases[phase].verrouille) {
@@ -139,7 +140,7 @@ export async function enregistrerDepartage(tournamentId: string, brut: unknown):
   if (!ctx) return { error: "Tournoi introuvable." };
 
   const actuel = ctx.tournoi.tiebreak_rules as unknown as string[];
-  if (JSON.stringify(actuel) === JSON.stringify(valide.criteres)) return { success: true };
+  if (JSON.stringify(actuel) === JSON.stringify(valide.criteres)) return { success: true, inchange: true };
   if (ctx.verrous.departage.verrouille) return { error: ctx.verrous.departage.raison! };
 
   const { error } = await ctx.supabase
