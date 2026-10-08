@@ -11,6 +11,7 @@ import {
   type JoueurDisponible,
 } from "./EquipesList";
 import { EquipesEnAttenteList } from "./EquipesEnAttenteList";
+import { SolosEnAttenteList } from "./SolosEnAttenteList";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -167,19 +168,13 @@ export default async function InscriptionsPage({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!solosEnAttente || solosEnAttente.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Aucun joueur en attente.
-                </p>
-              ) : (
-                <ul className="flex flex-wrap gap-2 text-sm">
-                  {solosEnAttente.map((r) => (
-                    <li key={r.id} className="rounded-full border px-3 py-1">
-                      {r.players?.prenom} {r.players?.nom}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <SolosEnAttenteList
+                tournamentId={tournamentId}
+                solos={(solosEnAttente ?? []).map((r) => ({
+                  id: r.id,
+                  nomComplet: `${r.players?.prenom ?? ""} ${r.players?.nom ?? ""}`.trim(),
+                }))}
+              />
               <GenererForm tournamentId={tournamentId} />
             </CardContent>
           </Card>

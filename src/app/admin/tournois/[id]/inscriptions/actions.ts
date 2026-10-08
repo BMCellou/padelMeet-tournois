@@ -507,6 +507,22 @@ export async function validerEquipe(teamId: string, tournamentId: string): Promi
   revalidatePath(`/admin/tournois/${tournamentId}/poules`);
 }
 
+/**
+ * Refuse l'inscription d'un joueur seul en attente d'appariement : l'inscription est supprimée, la
+ * fiche du joueur reste dans la base. Limité aux solos : une inscription déjà placée en équipe se
+ * refuse via l'équipe.
+ */
+export async function refuserSolo(registrationId: string, tournamentId: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase
+    .from("registrations")
+    .delete()
+    .eq("id", registrationId)
+    .eq("tournament_id", tournamentId)
+    .eq("type", "solo");
+  revalidatePath(`/admin/tournois/${tournamentId}/inscriptions`);
+}
+
 export async function supprimerEquipe(teamId: string, tournamentId: string): Promise<void> {
   const supabase = await createClient();
   // Cascade en base sur team_players et registrations : supprimer

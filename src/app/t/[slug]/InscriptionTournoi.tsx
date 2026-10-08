@@ -132,22 +132,32 @@ export function InscriptionFormulaire({
             Il ne reste qu&apos;une place : seule l&apos;inscription en solo est possible.
           </p>
         ) : null}
-        <div className={complet || uneSeulePlace ? "hidden" : "flex gap-2 text-sm"}>
-          <button
-            type="button"
-            className={mode === "paire" ? "font-medium underline" : "text-muted-foreground"}
-            onClick={() => setMode("paire")}
-          >
-            En paire
-          </button>
-          <span className="text-muted-foreground">·</span>
-          <button
-            type="button"
-            className={mode === "solo" ? "font-medium underline" : "text-muted-foreground"}
-            onClick={() => setMode("solo")}
-          >
-            Seul(e), je serai apparié(e)
-          </button>
+        <div className={complet || uneSeulePlace ? "hidden" : "space-y-2"}>
+          <p className="text-sm font-medium">Comment veux-tu t&apos;inscrire ?</p>
+          <div role="radiogroup" aria-label="Mode d'inscription" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+            {(
+              [
+                { id: "paire", libelle: "En paire", aide: "Tu viens avec un partenaire" },
+                { id: "solo", libelle: "Seul(e)", aide: "Le club t'associe à un joueur" },
+              ] as const
+            ).map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                role="radio"
+                aria-checked={mode === o.id}
+                onClick={() => setMode(o.id)}
+                className={
+                  mode === o.id
+                    ? "rounded-md bg-primary px-3 py-2 text-left text-primary-foreground shadow-sm"
+                    : "rounded-md px-3 py-2 text-left text-muted-foreground hover:bg-background/60"
+                }
+              >
+                <span className="block text-sm font-semibold">{o.libelle}</span>
+                <span className="block text-xs opacity-80">{o.aide}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {complet ? null : mode === "paire" && !uneSeulePlace ? (
