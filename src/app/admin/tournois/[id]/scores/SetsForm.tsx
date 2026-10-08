@@ -232,6 +232,8 @@ function SetsFormJeuxSets({
 
 interface PropsSaisie {
   format: MatchFormat;
+  /** Phase du match : un nul n'est accepté que sur une manche (voir nulAutorise). */
+  phase?: string;
   initialSets?: SetSaisi[];
   onSubmit: (sets: SetSaisi[]) => void;
   isPending: boolean;
@@ -245,6 +247,7 @@ interface PropsSaisie {
  */
 function SaisiePoints({
   format,
+  phase,
   initialSets,
   onSubmit,
   isPending,
@@ -304,7 +307,7 @@ function SaisiePoints({
   const probleme =
     sets.length > 0
       ? (verifierSaisiePoints(sets, format) ??
-        expliquerScoreIndetermine(sets, format))
+        expliquerScoreIndetermine(sets, format, phase))
       : null;
 
   return (

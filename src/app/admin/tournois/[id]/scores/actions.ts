@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
+  arbitrerMatch,
   determinerVainqueurMatch,
-  expliquerScoreIndetermine,
   verifierSaisiePoints,
   type SetSaisi,
 } from "@/lib/engine/score";
@@ -13,6 +13,7 @@ import type { CritereDepartage } from "@/lib/engine/classement";
 import { recalculerClassementPoule } from "@/lib/tournoi/classementPoule";
 import type { MatchFormat } from "@/lib/engine/types";
 import type { Json } from "@/lib/supabase/database.types";
+import { calculerPropagationTableau } from "@/lib/tournoi/propagationTableau";
 import { regenererTableauAuto, tenterGenerationAutomatique } from "@/lib/tournoi/tableauFinal";
 import { evaluerCorrectionPoule, type ResultatEvaluation } from "@/lib/tournoi/correctionPoule";
 
@@ -92,15 +93,9 @@ async function apresValidation(
 
   if (match.phase !== "tableau") return;
 
-  if (match.next_match_id) {
-    const champ = match.next_slot === "a" ? { team_a_id: winnerId } : { team_b_id: winnerId };
-    await supabase.from("matches").update(champ).eq("id", match.next_match_id);
-  }
-
-  if (match.loser_next_match_id) {
-    const loserId = winnerId === match.team_a_id ? match.team_b_id! : match.team_a_id!;
-    const champ = match.loser_next_slot === "a" ? { team_a_id: loserId } : { team_b_id: loserId };
-    await supabase.from("matches").update(champ).eq("id", match.loser_next_match_id);
+  // Lève si le match n'a pas de vainqueur : un nul ne se propage jamais.
+  for (const { matchId, champ } of calculerPropagationTableau(match, winnerId)) {
+    await supabase.from("matches").update(champ).eq("id", matchId);
   }
 }
 
@@ -225,16 +220,13 @@ export async function validerScore(tournamentId: string, matchId: string): Promi
   const erreurPoints = verifierSaisiePoints(sets, contexte.format);
   if (erreurPoints) return { error: erreurPoints };
 
-  const resultat = determinerVainqueurMatch(sets, contexte.format);
-  // Manche à points sans total exact : une égalité est un match nul valide (aucun vainqueur).
-  const nul = !resultat.vainqueur && resultat.nul === true && contexte.match.phase === "manche";
-  if (!resultat.vainqueur && !nul) {
-    return { error: expliquerScoreIndetermine(sets, contexte.format) ?? "Le score ne désigne pas encore de vainqueur clair." };
-  }
+  // Un nul n'est accepté que sur une manche : partout ailleurs, un vainqueur est obligatoire.
+  const arbitrage = arbitrerMatch(sets, contexte.format, contexte.match.phase);
+  if (arbitrage.erreur) return { error: arbitrage.erreur };
 
-  const winnerId = nul
+  const winnerId = arbitrage.nul
     ? null
-    : resultat.vainqueur === "a"
+    : arbitrage.vainqueur === "a"
       ? contexte.match.team_a_id
       : contexte.match.team_b_id;
 
@@ -278,18 +270,12 @@ export async function corrigerScore(
   const erreurPoints = verifierSaisiePoints(parsed.data, contexte.format);
   if (erreurPoints) return { error: erreurPoints };
 
-  const resultat = determinerVainqueurMatch(parsed.data, contexte.format);
-  const nul = !resultat.vainqueur && resultat.nul === true && contexte.match.phase === "manche";
-  if (!resultat.vainqueur && !nul) {
-    return {
-      error:
-        expliquerScoreIndetermine(parsed.data, contexte.format) ?? "Le score corrigé ne désigne pas de vainqueur clair.",
-    };
-  }
+  const arbitrage = arbitrerMatch(parsed.data, contexte.format, contexte.match.phase);
+  if (arbitrage.erreur) return { error: arbitrage.erreur };
 
-  const winnerId = nul
+  const winnerId = arbitrage.nul
     ? null
-    : resultat.vainqueur === "a"
+    : arbitrage.vainqueur === "a"
       ? contexte.match.team_a_id
       : contexte.match.team_b_id;
 

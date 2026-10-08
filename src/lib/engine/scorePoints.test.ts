@@ -109,7 +109,9 @@ describe("mode points : l'égalité suit sommeExacte", () => {
     const r = determinerVainqueurMatch(manche(14, 14), f);
     expect(r.vainqueur).toBeNull();
     expect(r.nul).toBe(true);
-    expect(expliquerScoreIndetermine(manche(14, 14), f)).toBeNull(); // rien à corriger : le nul est accepté
+    expect(expliquerScoreIndetermine(manche(14, 14), f, "manche")).toBeNull();
+    // Sans phase manche, le nul est refusé (verrou structurel, voir nulStructurel.test.ts).
+    expect(expliquerScoreIndetermine(manche(14, 14), f)).not.toBeNull(); // rien à corriger : le nul est accepté
     expect(egalitePossibleEnPoints(f)).toBe(false); // pas de point en or imposé
     expect(determinerVainqueurMatch(manche(15, 13), f).vainqueur).toBe("a");
   });

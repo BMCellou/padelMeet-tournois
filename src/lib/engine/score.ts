@@ -87,6 +87,18 @@ function determinerVainqueurPoints(sets: SetSaisi[], format: MatchFormat): Resul
   return { vainqueur: null, setsGagnesA: 0, setsGagnesB: 0 };
 }
 
+/**
+ * Seule phase où un match nul est possible (formats à manches, ex. Americano).
+ * Verrou STRUCTUREL : il ne dépend ni de `modeScore` ni de `sommeExacte`. Sur toute
+ * autre phase (poule, tableau, classement), un vainqueur est obligatoire, car le
+ * classement de poule, la propagation du tableau et le classement final en dépendent.
+ */
+export const PHASE_NUL_AUTORISE = "manche";
+
+export function nulAutorise(phase: string | null | undefined): boolean {
+  return phase === PHASE_NUL_AUTORISE;
+}
+
 export function determinerVainqueurMatch(sets: SetSaisi[], format: MatchFormat): ResultatMatch {
   if (estModePoints(format)) return determinerVainqueurPoints(sets, format);
 
@@ -111,9 +123,18 @@ export function determinerVainqueurMatch(sets: SetSaisi[], format: MatchFormat):
  * suivre — pour que le scoreur ne reste jamais devant un match qu'il ne
  * comprend pas pourquoi il ne peut pas valider. Null si le vainqueur est clair.
  */
-export function expliquerScoreIndetermine(sets: SetSaisi[], format: MatchFormat): string | null {
+export function expliquerScoreIndetermine(
+  sets: SetSaisi[],
+  format: MatchFormat,
+  phase?: string | null,
+): string | null {
   const resultat = determinerVainqueurMatch(sets, format);
-  if (resultat.vainqueur || resultat.nul) return null;
+  if (resultat.vainqueur) return null;
+  if (resultat.nul) {
+    if (nulAutorise(phase)) return null;
+    const manche = sets[0];
+    return `Égalité ${manche?.jeuxA}-${manche?.jeuxB} : un match nul n'est accepté que pour une manche d'Americano. Sur cette phase un vainqueur est obligatoire : jouez un point en or et saisissez son gagnant.`;
+  }
 
   if (estModePoints(format)) {
     const manche = sets[0];
@@ -178,4 +199,29 @@ export function verifierSaisiePoints(sets: SetSaisi[], format: MatchFormat): str
     return `Le total doit valoir exactement ${format.pointsCible} points (reçu ${jeuxA + jeuxB}).`;
   }
   return null;
+}
+
+export interface ArbitrageMatch {
+  /** Camp vainqueur ; null pour un nul ou un score indéterminé. */
+  vainqueur: "a" | "b" | null;
+  /** Match nul accepté (jamais hors phase manche). */
+  nul: boolean;
+  /** Raison du refus quand ni vainqueur ni nul accepté ; null si le match peut être validé. */
+  erreur: string | null;
+}
+
+/**
+ * Arbitrage d'un match à valider, sensible à la phase : l'unique endroit qui décide si
+ * un score est validable. Un nul n'est accepté que sur la phase manche.
+ */
+export function arbitrerMatch(sets: SetSaisi[], format: MatchFormat, phase: string): ArbitrageMatch {
+  const resultat = determinerVainqueurMatch(sets, format);
+  if (resultat.vainqueur) return { vainqueur: resultat.vainqueur, nul: false, erreur: null };
+  const nul = resultat.nul === true && nulAutorise(phase);
+  if (nul) return { vainqueur: null, nul: true, erreur: null };
+  return {
+    vainqueur: null,
+    nul: false,
+    erreur: expliquerScoreIndetermine(sets, format, phase) ?? "Le score ne désigne pas encore de vainqueur clair.",
+  };
 }

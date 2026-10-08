@@ -23,6 +23,8 @@ import {
 
 export interface MatchAffiche {
   id: string;
+  /** Phase du match (poule, tableau, manche…) : un nul n'est accepté que sur une manche. */
+  phase?: string;
   /** Format propre à ce match (phase configurée), sinon celui du tournoi. */
   formatOverride?: MatchFormat | null;
   round: number;
@@ -166,6 +168,7 @@ export function MatchScoreCard({
             </DialogHeader>
             <SetsForm
               format={match.formatOverride ?? format}
+              phase={match.phase}
               initialSets={match.sets}
               onSubmit={soumettreSets}
               isPending={isPending}

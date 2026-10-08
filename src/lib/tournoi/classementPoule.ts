@@ -20,6 +20,9 @@ interface LigneMatch {
 }
 
 export function versMatchTermine(m: LigneMatch): MatchTermine {
+  // Un match de poule terminé a toujours un vainqueur (le nul n'existe que sur une manche).
+  // Sans cette garde, un vainqueur nul serait compté comme une victoire de l'équipe B.
+  if (!m.winner_id) throw new Error("Match de poule terminé sans vainqueur : classement impossible.");
   if (m.statut === "forfait") {
     return {
       teamAId: m.team_a_id!,
