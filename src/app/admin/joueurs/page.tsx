@@ -14,7 +14,9 @@ export default async function JoueursPage() {
 
   const { data: teamPlayers } = await supabase
     .from("team_players")
-    .select("player_id, team_id, teams(id, nom_affiche, tournament_id, tournaments(nom))");
+    .select("player_id, team_id, teams!inner(id, nom_affiche, tournament_id, tournaments(nom))")
+    // Les binômes éphémères d'un format à rotation ne sont pas des affectations.
+    .eq("teams.ephemere", false);
 
   const { data: registrations } = await supabase
     .from("registrations")

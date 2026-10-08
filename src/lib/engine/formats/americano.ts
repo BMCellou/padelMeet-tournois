@@ -249,6 +249,22 @@ export const americano: FormatAnimation = {
     return avertissements.length > 0 ? { ok: true, avertissement: avertissements.join(" ") } : { ok: true };
   },
 
+  rotation: {
+    nbToursParDefaut,
+    pointsCibleParDefaut: 24,
+    exemptesParTour,
+    estimer({ effectif, terrains, nbTours, dureeMancheMin, pauseMin }) {
+      const manchesParTour = mancheParTour(effectif, terrains);
+      const tours = Math.max(0, nbTours);
+      return {
+        dureeMin: tours > 0 ? tours * dureeMancheMin + (tours - 1) * Math.max(0, pauseMin) : 0,
+        manchesParTour,
+        nbManches: manchesParTour * tours,
+        exemptesParTour: exemptesParTour(effectif, terrains),
+      };
+    },
+  },
+
   /** Statique : toutes les manches d'un coup, avec leurs binômes éphémères. */
   genererTours(etat: EtatTournoi): Tour[] {
     const ids = etat.participants.map((p) => p.id);

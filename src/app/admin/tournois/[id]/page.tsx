@@ -11,6 +11,10 @@ import { SupprimerTournoiDialog } from "./SupprimerTournoiDialog";
 import { ArbitresForm, type ScoreurAffiche } from "./ArbitresForm";
 import { AdminHeader } from "../../AdminHeader";
 import { AdminSidebar } from "../../AdminSidebar";
+import { getFormat } from "@/lib/engine/formats";
+import type { ConfigAnimation } from "@/lib/engine/formats";
+import { chargerPlaces } from "@/lib/inscriptions/occupation";
+import type { MatchFormat } from "@/lib/engine/types";
 
 export default async function FicheTournoiPage({
   params,
@@ -23,7 +27,7 @@ export default async function FicheTournoiPage({
   const { data: tournoi } = await supabase
     .from("tournaments")
     .select(
-      "id, nom, date, statut, genre, niveau, nb_qualifies, duree_match_min, pause_min, club_id, public_slug, max_participants",
+      "id, nom, date, statut, genre, niveau, nb_qualifies, duree_match_min, pause_min, club_id, public_slug, max_participants, format_animation, config_animation, format_config",
     )
     .eq("id", id)
     .single();
@@ -44,10 +48,17 @@ export default async function FicheTournoiPage({
     .select("court_id")
     .eq("tournament_id", tournoi.id);
 
+  const format = getFormat(tournoi.format_animation);
+  const config = (tournoi.config_animation ?? {}) as ConfigAnimation;
+  const formatMatch = tournoi.format_config as unknown as MatchFormat;
+
+  // Les équipes éphémères d'un format à rotation ne sont pas des inscriptions.
   const { count: nbEquipes } = await supabase
     .from("teams")
     .select("id", { count: "exact", head: true })
-    .eq("tournament_id", tournoi.id);
+    .eq("tournament_id", tournoi.id)
+    .eq("ephemere", false);
+  const nbJoueurs = format.rotation ? (await chargerPlaces(createServiceClient(), tournoi.id)).occupees : null;
 
   const { data: membershipsScoreurs } = await supabase
     .from("memberships")
@@ -67,7 +78,7 @@ export default async function FicheTournoiPage({
     <div className="min-h-screen bg-muted/20">
       <AdminHeader />
       <div className="flex flex-col sm:flex-row">
-        <AdminSidebar tournamentId={tournoi.id} tournamentNom={tournoi.nom} />
+        <AdminSidebar tournamentId={tournoi.id} tournamentNom={tournoi.nom} rotation={!!format.rotation} />
         <div className="mx-auto w-full max-w-2xl space-y-6 p-4 sm:p-8">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -98,6 +109,7 @@ export default async function FicheTournoiPage({
                     dureeMatchMin: tournoi.duree_match_min,
                     pauseMin: tournoi.pause_min,
                     maxParticipants: tournoi.max_participants,
+                    avecQualifies: format.aUnTableauFinal,
                   }}
                   clubs={clubs ?? []}
                 />
@@ -118,18 +130,36 @@ export default async function FicheTournoiPage({
                 {tournoi.niveau ?? "non précisé"}
               </div>
               <div>
-                <span className="text-muted-foreground">Qualifiés : </span>
-                {tournoi.nb_qualifies}
+                <span className="text-muted-foreground">Format : </span>
+                {format.nom}
               </div>
+              {format.aUnTableauFinal ? (
+                <div>
+                  <span className="text-muted-foreground">Qualifiés : </span>
+                  {tournoi.nb_qualifies}
+                </div>
+              ) : null}
+              {format.rotation ? (
+                <>
+                  <div>
+                    <span className="text-muted-foreground">Manches : </span>
+                    {config.nbTours ?? "selon l'effectif"} tours
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Points par manche : </span>
+                    {formatMatch.pointsCible}
+                  </div>
+                </>
+              ) : null}
               <div>
                 <span className="text-muted-foreground">Créneau : </span>
                 {tournoi.duree_match_min} min + {tournoi.pause_min} min de pause
               </div>
               <div>
                 <span className="text-muted-foreground">
-                  Équipes inscrites :{" "}
+                  {format.rotation ? "Joueurs inscrits" : "Équipes inscrites"} :{" "}
                 </span>
-                {nbEquipes ?? 0}
+                {nbJoueurs ?? nbEquipes ?? 0}
               </div>
               <div>
                 <span className="text-muted-foreground">

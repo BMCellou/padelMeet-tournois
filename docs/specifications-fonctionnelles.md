@@ -37,7 +37,9 @@ Déroulé type : créer le tournoi → publier → recueillir les inscriptions �
 
 ### 4.1 Tournois
 
-Création (`/admin/tournois/nouveau`) et modification d'un tournoi : nom, club (facultatif au départ), date, genre (masculin / féminin / mixte), niveau (texte libre, ex. « P100-P250 »), statut, nombre de qualifiés pour le tableau, durée d'un créneau de match (min), pause entre matchs (min), **nombre maximum de joueurs** (voir §5.4).
+**Création (`/admin/tournois/nouveau`) en deux temps** : d'abord le **format d'animation** (liste issue du registre des formats, avec nom et description : Poules + tableau, Americano), puis le reste du formulaire, qui s'adapte. Poules + tableau demande un nombre de qualifiés et un nombre maximum de joueurs facultatif. **Americano** ne demande pas de qualifiés mais le nombre de joueurs, de terrains, de manches (tours), les points par manche, la durée d'une manche et la rotation entre tours ; une **estimation de durée** (tours × durée + pauses) se met à jour en direct, avec un **avertissement** quand l'effectif n'est pas un multiple de 4 (« 10 joueurs : … 2 joueurs seront exemptés à chaque tour »).
+
+Création et modification d'un tournoi : nom, club (facultatif au départ), date, genre (masculin / féminin / mixte), niveau (texte libre, ex. « P100-P250 »), statut, nombre de qualifiés pour le tableau, durée d'un créneau de match (min), pause entre matchs (min), **nombre maximum de joueurs** (voir §5.4).
 
 Chaque tournoi reçoit un **lien public non devinable** (identifiant aléatoire de 12 caractères). Un tournoi peut être supprimé : toutes ses données (équipes, poules, matchs, inscriptions) sont supprimées avec lui.
 
@@ -121,6 +123,7 @@ Toute inscription en ligne est **« en attente de validation par le club »**. L
 - **Valider** une équipe en attente, **renommer**, **supprimer** une équipe, **modifier** la fiche d'un joueur, **remplacer** un joueur d'une équipe.
 - **Générer des équipes** à partir des joueurs seuls en attente, selon une stratégie : **Aléatoire**, **Équilibré (par classement)** (le classement FFT saisi en texte — « 15/1 », « 30/2 », « NC »… — est converti selon l'échelle officielle, de -30 jusqu'à NC ; un classement vide ou non reconnu est classé tout en bas sans bloquer), **Mixte forcé (H/F)**. Les équipes créées sont validées. Un joueur qui reste sans partenaire (nombre impair, ou contrainte non satisfiable) est **signalé, jamais supprimé**.
 - Seules les équipes **validées** participent au tirage.
+- **Format à partenaires tournants (Americano)** : l'unité est le joueur. L'inscription en paire, la génération d'équipes, les équipes en attente et la liste des équipes disparaissent ; seule l'inscription d'un joueur reste (admin et en ligne). Le compteur affiche « N inscrits — M joueurs exemptés par tour » quand l'effectif n'est pas un multiple de 4 (ou que les terrains manquent). Les équipes éphémères des manches ne sont jamais présentées comme des inscriptions (inscriptions, historique du compte, fiches joueurs).
 
 ### 5.3 Compte participant (`/compte`)
 
@@ -212,6 +215,18 @@ Le classement est **individuel** : chaque joueur joue chaque manche avec un part
 - **Manche** : deux équipes éphémères (`teams.ephemere`, `tour_origine`) et un match ordinaire de phase « manche » : saisie de score, audit et temps réel sont ceux des autres matchs.
 - **Classement individuel** : manches jouées, victoires, points marqués, points encaissés, différence, tours d'exemption. Départage par défaut : points marqués, différence, victoires, confrontation directe, moins d'exemptions (ordre configurable). Mode alternatif « points par manche » pour les effectifs non multiples de 4 (les exemptés ne sont pas pénalisés).
 
+**Écran de déroulé** (`/admin/tournois/<id>/deroule`, ouvert aux scoreurs du tournoi) : un seul écran pensé pour un téléphone tenu d'une main. Avant le début, il génère les manches (heure de début, avertissements d'effectif) ; on peut annuler la génération tant qu'aucune manche n'est jouée. Ensuite :
+
+- un en-tête **« Tour 4 sur 7 »** avec une barre de progression (un segment par tour) ;
+- **une carte par terrain** : les deux paires en gros, un **champ unique** pour les points d'un camp (l'autre se déduit du total exact, ex. 14 → 10 sur 24), un bouton **Valider** (la touche Entrée du clavier valide aussi) ; une égalité sur un total pair propose directement les deux boutons « point en or » ; « Saisir le score de l'autre camp » permet de partir de l'autre côté ;
+- les **joueurs exemptés** du tour ;
+- le **classement individuel en direct**, replié par défaut ;
+- le **tour suivant débloqué** quand toutes les manches du tour sont validées ; au dernier tour, « Terminer le tournoi ».
+
+**Saisir un score demande au plus trois gestes** : le curseur est déjà dans la première manche à saisir (et passe tout seul à la suivante, y compris au changement de tour). Deux chiffres + Valider (ou Entrée) = 3 gestes, un seul chiffre = 2. Corriger une manche validée coûte un geste de plus (« Corriger »).
+
+**Classement individuel stocké** : à chaque validation, correction, forfait ou réinitialisation d'une manche, la table `standings_joueurs` est recalculée (avec le nom affiché et les points par manche) ; la page publique la lit en **une seule requête**, sans recalcul ni accès à la table des joueurs. Les exemptions d'un tour ne sont comptées qu'une fois toutes ses manches terminées.
+
 ## 9. Classement de poule
 
 Une victoire fait gagner le match ; le classement trie d'abord par **nombre de victoires**, puis applique les critères de départage dans l'ordre configuré du tournoi. Ordre par défaut :
@@ -283,6 +298,7 @@ Un onglet **Rappels** par tournoi liste les **matchs à venir ayant un horaire**
 - **Accueil** : tournois publiés, en cours et terminés (en cours d'abord, puis à venir par date croissante, puis terminés du plus récent).
 - **Page d'un tournoi** (`/t/<lien>`) : en-tête (nom, date, niveau, statut), carte d'inscription avec places restantes, classement final si disponible, chaque poule (classement + matchs avec scores, terrain et heure), tableau final avec match pour la 3e place et pour la 5e place, chaque case affichant terrain et heure — et, tant qu'une équipe est inconnue, sa provenance (« Vainqueur du quart n°1 »). **Mise à jour en direct** (sans recharger) à chaque score validé.
 - Une poule unique affiche directement son classement comme classement final.
+- **Americano** : la page d'un tournoi affiche le **classement individuel** (points, différence, victoires, manches, repos) puis les manches de chaque tour avec terrain et heure ; l'inscription publique est réservée aux joueurs seuls (« Tu changeras de partenaire à chaque tour »), et le tournoi est mis à jour en direct à chaque manche validée.
 
 ## 15. Données et sécurité (résumé)
 
@@ -316,6 +332,7 @@ Un onglet **Rappels** par tournoi liste les **matchs à venir ayant un horaire**
 | `groups`, `group_teams` | Poules et leur composition (position de tirage) |
 | `matches`, `match_sets` | Matchs (phase poule / tableau / classement 3e place / classement 5e place, terrain, horaire, vainqueur, propagation) et scores par set |
 | `standings` | Classements de poule |
+| `standings_joueurs` | Classement individuel des formats à manches (nom affiché, manches, victoires, points, différence, repos, rang) |
 | `memberships` | Rôles : admin (global) ou scoreur (rattaché à un tournoi) |
 | `audit_log` | Journal des validations, corrections, réinitialisations |
 | `rappels_envoyes`, `parametres_rappels` | Rappels déjà envoyés ; réglage du cron |

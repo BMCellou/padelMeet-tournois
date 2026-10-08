@@ -13,6 +13,8 @@ import type { CritereDepartage } from "@/lib/engine/classement";
 import { recalculerClassementPoule } from "@/lib/tournoi/classementPoule";
 import type { MatchFormat } from "@/lib/engine/types";
 import type { Json } from "@/lib/supabase/database.types";
+import { createServiceClient } from "@/lib/supabase/service";
+import { recalculerClassementJoueurs } from "@/lib/tournoi/classementJoueurs";
 import { calculerPropagationTableau } from "@/lib/tournoi/propagationTableau";
 import { regenererTableauAuto, tenterGenerationAutomatique } from "@/lib/tournoi/tableauFinal";
 import { evaluerCorrectionPoule, type ResultatEvaluation } from "@/lib/tournoi/correctionPoule";
@@ -88,6 +90,14 @@ async function apresValidation(
 ): Promise<void> {
   if (match.phase === "poule") {
     await recalculerClassementPoule(supabase, tournamentId, match.group_id!, tiebreakRules);
+    return;
+  }
+
+  if (match.phase === "manche") {
+    // Format à manches : le classement individuel (standings_joueurs) est mis à jour à chaque
+    // validation, correction ou forfait, pour que la page publique le lise sans recalcul. Le
+    // client service_role est sûr ici : l'appelant a déjà été autorisé en lisant le match.
+    await recalculerClassementJoueurs(createServiceClient(), tournamentId);
     return;
   }
 
@@ -457,6 +467,9 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
 
   if (match.phase === "poule") {
     await recalculerClassementPoule(supabase, tournamentId, match.group_id!, contexte.tiebreakRules);
+  }
+  if (match.phase === "manche") {
+    await recalculerClassementJoueurs(createServiceClient(), tournamentId);
   }
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);

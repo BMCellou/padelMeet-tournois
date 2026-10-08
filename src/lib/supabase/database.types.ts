@@ -589,9 +589,11 @@ export type Database = {
         Row: {
           difference: number
           manches_jouees: number
+          nom_affiche: string
           player_id: string
           points_encaisses: number
           points_marques: number
+          points_par_manche: number
           rang: number | null
           tournament_id: string
           tours_exempt: number
@@ -600,9 +602,11 @@ export type Database = {
         Insert: {
           difference?: number
           manches_jouees?: number
+          nom_affiche?: string
           player_id: string
           points_encaisses?: number
           points_marques?: number
+          points_par_manche?: number
           rang?: number | null
           tournament_id: string
           tours_exempt?: number
@@ -611,9 +615,11 @@ export type Database = {
         Update: {
           difference?: number
           manches_jouees?: number
+          nom_affiche?: string
           player_id?: string
           points_encaisses?: number
           points_marques?: number
+          points_par_manche?: number
           rang?: number | null
           tournament_id?: string
           tours_exempt?: number

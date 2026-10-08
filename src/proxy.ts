@@ -46,7 +46,9 @@ export async function proxy(request: NextRequest) {
   const matchTournoi = pathname.match(new RegExp(`^/admin/tournois/(${UUID})(/.*)?$`));
   const tournamentIdDansUrl = matchTournoi?.[1] ?? null;
   const sousChemin = matchTournoi?.[2] ?? "";
-  const routeScoresAutorisee = sousChemin.startsWith("/scores") || sousChemin.startsWith("/tableau");
+  // /deroule : l'écran de saisie des formats à manches (Americano), l'équivalent de /scores.
+  const routeScoresAutorisee =
+    sousChemin.startsWith("/scores") || sousChemin.startsWith("/tableau") || sousChemin.startsWith("/deroule");
 
   let estAdmin = false;
   let premierTournoiScoreur: string | null = null;

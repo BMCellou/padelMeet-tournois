@@ -33,6 +33,7 @@ export async function chargerDonneesTournoi(
       .select("id, nom_affiche, team_players(players(prenom, nom))")
       .eq("tournament_id", tournamentId)
       .eq("statut", "validee")
+      .eq("ephemere", false)
       .order("nom_affiche"),
     supabase
       .from("groups")

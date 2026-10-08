@@ -212,6 +212,28 @@ export interface OperationsPhaseFinale {
   alimentants(matchs: MatchTableauStructure[]): Map<string, string[]>;
 }
 
+// ── Capacité de rotation (partenaires tournants) ────────────────────────
+// Réglages et estimations d'un format où l'on change de partenaire à chaque tour. Les
+// écrans (création du tournoi, inscriptions) testent sa présence, jamais le code du format.
+
+export interface EstimationRotation {
+  /** Durée de la journée : manches enchaînées, pauses de rotation entre les tours. */
+  dureeMin: number;
+  manchesParTour: number;
+  nbManches: number;
+  /** Joueurs au repos à chaque tour (0 si l'effectif est un multiple de 4 et les terrains suffisent). */
+  exemptesParTour: number;
+}
+
+export interface OperationsRotation {
+  /** Nombre de tours proposé pour cet effectif. */
+  nbToursParDefaut(effectif: number): number;
+  /** Total de points d'une manche proposé par défaut. */
+  pointsCibleParDefaut: number;
+  exemptesParTour(effectif: number, terrains: number): number;
+  estimer(p: { effectif: number; terrains: number; nbTours: number; dureeMancheMin: number; pauseMin: number }): EstimationRotation;
+}
+
 // ── L'interface ─────────────────────────────────────────────────────────
 
 export interface FormatAnimation extends DefinitionPhases {
@@ -248,4 +270,6 @@ export interface FormatAnimation extends DefinitionPhases {
   groupes?: OperationsPhaseDeGroupes;
   /** Phase finale (qualification + tableau) : présente ssi `aUnTableauFinal`. */
   phaseFinale?: OperationsPhaseFinale;
+  /** Rotation des partenaires : présente ssi `partenaire === "tournant"`. */
+  rotation?: OperationsRotation;
 }

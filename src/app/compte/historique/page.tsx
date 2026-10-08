@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { BrandLogo } from "@/components/BrandLogo";
+import { getFormat } from "@/lib/engine/formats";
 
 const LIBELLES_STATUT_TOURNOI: Record<string, string> = {
   brouillon: "À venir",
@@ -35,13 +36,15 @@ export default async function HistoriqueParticipantPage() {
   const { data: mesEquipes } = await service
     .from("team_players")
     .select(
-      "teams(id, nom_affiche, statut, tournament_id, tournaments(id, nom, date, statut, public_slug, club_id, clubs(nom)))",
+      "teams!inner(id, nom_affiche, statut, tournament_id, tournaments(id, nom, date, statut, public_slug, club_id, format_animation, clubs(nom)))",
     )
-    .eq("player_id", participant.playerId);
+    .eq("player_id", participant.playerId)
+    // Les binômes éphémères d'un format à rotation ne sont pas des équipes inscrites.
+    .eq("teams.ephemere", false);
 
   const { data: mesSolos } = await service
     .from("registrations")
-    .select("id, statut, tournament_id, tournaments(id, nom, date, statut, public_slug, club_id, clubs(nom))")
+    .select("id, statut, tournament_id, tournaments(id, nom, date, statut, public_slug, club_id, format_animation, clubs(nom))")
     .eq("player_id", participant.playerId)
     .eq("type", "solo");
 
@@ -77,7 +80,9 @@ export default async function HistoriqueParticipantPage() {
       date: tournoi.date,
       clubNom: tournoi.clubs?.nom ?? "Club",
       statutTournoi: tournoi.statut,
-      partenaireOuStatut: "Joueur seul, en attente d'un binôme",
+      partenaireOuStatut: getFormat(tournoi.format_animation).rotation
+        ? "Inscrit(e) — un partenaire différent à chaque tour"
+        : "Joueur seul, en attente d'un binôme",
       enAttenteValidation: reg.statut === "en_attente",
     });
   }

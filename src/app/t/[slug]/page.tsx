@@ -10,7 +10,8 @@ import { PublicMatchCard, type MatchPublicAffiche } from "@/components/tournoi/P
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
 import { formatHeureParis } from "@/lib/temps";
 import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
-import { getFormat } from "@/lib/engine/formats";
+import { getFormat, type ConfigAnimation } from "@/lib/engine/formats";
+import { ClassementJoueursTable, type LigneClassementJoueur } from "@/components/tournoi/ClassementJoueursTable";
 import { getParticipantConnecte } from "@/lib/participant/session";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargerStatutInscription } from "./inscriptionStatus";
@@ -91,6 +92,26 @@ export default async function PageTournoiPublic({
     .eq("phase", "classement_5e")
     .maybeSingle();
 
+  // Format à manches (Americano) : classement individuel lu en UNE requête sur standings_joueurs,
+  // mis à jour à chaque validation de manche — aucun recalcul ici.
+  const parJoueur = !!getFormat(tournoi.format_animation).rotation;
+  const configAnimation = (tournoi.config_animation ?? {}) as ConfigAnimation;
+  const { data: classementJoueurs } = parJoueur
+    ? await supabase
+        .from("standings_joueurs")
+        .select(COLONNES_PUBLIQUES.classementJoueurs)
+        .eq("tournament_id", tournoi.id)
+        .order("rang")
+    : { data: null };
+  const { data: manchesBrutes } = parJoueur
+    ? await supabase
+        .from("matches")
+        .select(COLONNES_PUBLIQUES.matchsManche)
+        .eq("tournament_id", tournoi.id)
+        .eq("phase", "manche")
+        .order("round")
+    : { data: null };
+
   // Fail-closed : une donnée personnelle dans ces résultats ne doit jamais
   // atteindre la page (les colonnes sont explicites, ceci est la ceinture).
   garantirChargePublique({
@@ -103,6 +124,8 @@ export default async function PageTournoiPublic({
     matchsTableauBruts,
     matchPetiteFinaleBrut,
     matchClassement5eBrut,
+    classementJoueurs,
+    manchesBrutes,
   });
 
   // Étiquettes et sources (« Vainqueur du quart n°1 ») des cases du tableau
@@ -223,6 +246,11 @@ export default async function PageTournoiPublic({
   const petiteFinaleAffichee = matchPetiteFinaleBrut ? versMatchPublic(matchPetiteFinaleBrut) : null;
   const classement5eAffichee = matchClassement5eBrut ? versMatchPublic(matchClassement5eBrut) : null;
 
+  const manchesAffichees = (manchesBrutes ?? [])
+    .map(versMatchPublic)
+    .filter((m): m is MatchPublicAffiche => !!m);
+  const toursManches = [...new Set(manchesAffichees.map((m) => m.round))].sort((a, b) => a - b);
+
   let sectionInscription: ReactNode = null;
   if (tournoi.statut === "publie") {
     const participant = await getParticipantConnecte();
@@ -238,6 +266,7 @@ export default async function PageTournoiPublic({
         service,
         tournoi.id,
         participant.playerId,
+        parJoueur,
       );
       sectionInscription = statutInscription.inscrit ? (
         <InscriptionDejaFaite
@@ -250,6 +279,7 @@ export default async function PageTournoiPublic({
           slug={slug}
           placesLibelle={placesLibelle}
           placesRestantes={places.restantes}
+          soloSeulement={parJoueur}
         />
       );
     }
@@ -282,6 +312,36 @@ export default async function PageTournoiPublic({
 
       <div className="mx-auto w-full max-w-xl space-y-6 p-4">
         {sectionInscription}
+
+        {parJoueur ? (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Classement individuel</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ClassementJoueursTable
+                  lignes={(classementJoueurs ?? []) as unknown as LigneClassementJoueur[]}
+                  parManche={configAnimation.modeClassement === "par_manche"}
+                />
+              </CardContent>
+            </Card>
+            {toursManches.map((tour) => (
+              <Card key={tour}>
+                <CardHeader>
+                  <CardTitle className="text-base">Tour {tour}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {manchesAffichees
+                    .filter((m) => m.round === tour)
+                    .map((m) => (
+                      <PublicMatchCard key={m.id} match={m} />
+                    ))}
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : null}
 
         {classementFinalLignes ? <ClassementFinalList lignes={classementFinalLignes} /> : null}
 

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { chargerFormat } from "@/lib/tournoi/formatAnimation";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 import { MatchScoreCard, type MatchAffiche } from "../scores/MatchScoreCard";
@@ -31,6 +32,9 @@ export default async function TableauPage({
   if (!tournoi) {
     notFound();
   }
+
+  // Format à partenaires tournants : pas de poules ni de tableau, tout se joue sur l'écran de déroulé.
+  if ((await chargerFormat(supabase, tournamentId)).rotation) redirect(`/admin/tournois/${tournamentId}/deroule`);
 
   const format = tournoi.format_config as unknown as MatchFormat;
 

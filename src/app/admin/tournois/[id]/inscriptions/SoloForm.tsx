@@ -5,7 +5,7 @@ import { ajouterSolo } from "./actions";
 import { ChampsJoueur } from "./ChampsJoueur";
 import { Button } from "@/components/ui/button";
 
-export function SoloForm({ tournamentId }: { tournamentId: string }) {
+export function SoloForm({ tournamentId, libelle }: { tournamentId: string; libelle?: string }) {
   const [state, formAction, isPending] = useActionState(ajouterSolo, null);
 
   return (
@@ -16,7 +16,7 @@ export function SoloForm({ tournamentId }: { tournamentId: string }) {
         <p className="text-sm text-destructive">{state.error}</p>
       ) : null}
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Ajout..." : "Inscrire le joueur seul"}
+        {isPending ? "Ajout..." : (libelle ?? "Inscrire le joueur seul")}
       </Button>
     </form>
   );

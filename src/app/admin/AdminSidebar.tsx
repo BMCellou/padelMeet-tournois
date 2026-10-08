@@ -15,9 +15,20 @@ interface AdminSidebarProps {
    * celui affiché sur l'écran courant. */
   soloScores?: boolean;
   tournoisScoreur?: { id: string; nom: string }[];
+  /** Format à partenaires tournants (capacité `rotation`) : pas de poules ni de tableau, un écran de déroulé. */
+  rotation?: boolean;
 }
 
-function liensTournoi(id: string) {
+function liensTournoi(id: string, rotation?: boolean) {
+  if (rotation) {
+    return [
+      { href: `/admin/tournois/${id}`, label: "Vue d'ensemble" },
+      { href: `/admin/tournois/${id}/inscriptions`, label: "Inscriptions" },
+      { href: `/admin/tournois/${id}/format`, label: "Format & règles" },
+      { href: `/admin/tournois/${id}/deroule`, label: "Déroulé" },
+      { href: `/admin/tournois/${id}/rappels`, label: "Rappels" },
+    ];
+  }
   return [
     { href: `/admin/tournois/${id}`, label: "Vue d'ensemble" },
     { href: `/admin/tournois/${id}/inscriptions`, label: "Inscriptions" },
@@ -35,6 +46,7 @@ export function AdminSidebar({
   tournamentNom,
   soloScores,
   tournoisScoreur,
+  rotation,
 }: AdminSidebarProps) {
   const pathname = usePathname();
 
@@ -136,7 +148,7 @@ export function AdminSidebar({
           <p className="hidden truncate px-3 text-xs font-medium text-muted-foreground sm:block">
             {tournamentNom ?? "Tournoi"}
           </p>
-          {liensTournoi(tournamentId).map((l) => (
+          {liensTournoi(tournamentId, rotation).map((l) => (
             <Link
               key={l.href}
               href={l.href}
