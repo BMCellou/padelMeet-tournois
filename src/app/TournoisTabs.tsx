@@ -26,9 +26,9 @@ export interface TournoiAffiche {
 /** À venir : mis en avant (bordure d'accent, apparition en fondu échelonnée) ; terminé : en retrait. */
 function styleCarte(statut: string): string {
   if (statut === "publie") {
-    return "border-2 border-volt bg-card shadow-[0_0_0_3px_rgba(222,254,23,0.25)] animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both";
+    return "border-2 border-primary bg-card shadow-md shadow-primary/15 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both";
   }
-  if (statut === "en_cours") return "border-2 border-primary bg-card animate-in fade-in duration-500 fill-mode-both";
+  if (statut === "en_cours") return "border-2 border-primary/40 bg-card animate-in fade-in duration-500 fill-mode-both";
   return "border bg-muted/40 opacity-70 hover:opacity-100";
 }
 
@@ -59,7 +59,7 @@ function CarteTournoi({ t, cta, rang = 0 }: { t: TournoiAffiche; cta?: string; r
             {cta}
           </Badge>
         ) : (
-          <Badge variant={t.statut === "en_cours" ? "default" : t.statut === "publie" ? "volt" : "outline"} className="shrink-0">
+          <Badge variant={t.statut === "publie" ? "default" : "outline"} className="shrink-0">
             {LIBELLES_STATUT[t.statut] ?? t.statut}
           </Badge>
         )}
