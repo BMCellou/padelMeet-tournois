@@ -110,6 +110,10 @@ Garde-fous : le tournoi doit être publié ; on ne peut pas être inscrit deux f
 
 Toute inscription en ligne est **« en attente de validation par le club »**. Le participant voit l'état de son inscription (en attente / confirmée) sur la page du tournoi et dans son historique.
 
+**E-mail à l'organisateur** : à chaque inscription en ligne (solo ou paire), tous les comptes administrateurs reçoivent un e-mail (qui, avec qui, places occupées, lien vers l'écran Inscriptions). Il part après la réponse au participant : un envoi qui échoue (service d'e-mail non configuré ou en panne) est journalisé mais ne bloque jamais l'inscription. Il utilise la même configuration que les rappels (`RESEND_API_KEY`, `RESEND_FROM`).
+
+**Annulation par le participant** : sur la page du tournoi et dans « Mes tournois », un bouton « Annuler mon inscription » (avec confirmation) est proposé **jusqu'à 48 h avant le début du tournoi** (date + heure de début, heure de Paris), tant que le tournoi est publié ; passé ce délai, un message renvoie vers l'organisateur. Une inscription solo est supprimée ; pour une **paire**, l'équipe entière est annulée (le/la partenaire est prévenu(e) par e-mail). Si le **tirage est déjà fait**, l'annulation en ligne est refusée (l'équipe est placée en poule) et l'organisateur s'en charge. Chaque annulation est tracée dans le journal d'audit et prévient les administrateurs par e-mail ; la place libérée est immédiatement disponible.
+
 ### 5.2 Inscription par l'admin (`Inscriptions`)
 
 - **Ajouter une paire** : chaque joueur est soit repris d'une fiche existante (recherche parmi tous les joueurs connus, hors joueurs déjà inscrits au tournoi), soit saisi à la main (prénom, nom, sexe H/F, classement FFT comme « 15/1 »). L'équipe est **validée d'emblée**.

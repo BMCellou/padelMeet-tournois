@@ -87,7 +87,9 @@ Toute modification du moteur doit garder ces deux tests au vert.
 
 ## Ce qu'il ne faut PAS faire
 - Ne pas ajouter de paiement des inscriptions.
-- Notifications : uniquement les rappels de match (e-mail / WhatsApp, `src/lib/rappels/`) ; le cron
+- Notifications : les rappels de match (e-mail / WhatsApp, `src/lib/rappels/`) et les e-mails aux
+  administrateurs lors d'une inscription ou annulation en ligne (`src/lib/inscriptions/notifier.ts`,
+  jamais bloquants) ; rien d'autre. Le cron
   est désactivé par défaut (`parametres_rappels.cron_actif`). Les tâches planifiées vivent dans
   `vercel.json` et exigent `CRON_SECRET` (rappels, sauvegarde quotidienne de la base).
 - Ne pas optimiser l'algorithme de planification : glouton + ajustement manuel suffit.

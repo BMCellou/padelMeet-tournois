@@ -5,7 +5,9 @@ import { getParticipantConnecte } from "@/lib/participant/session";
 import { chargerStatutInscription } from "./inscriptionStatus";
 import { chargerPlaces } from "@/lib/inscriptions/occupation";
 import { refusInscription } from "@/lib/inscriptions/places";
+import { notifierNouvelleInscription } from "@/lib/inscriptions/notifier";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 type ActionResult = { error: string } | { success: true };
@@ -79,6 +81,13 @@ export async function sInscrireSolo(
     return { error: "Ce tournoi est complet." };
   }
 
+  // L'e-mail à l'organisateur part après la réponse : il ne ralentit ni ne fait échouer l'inscription.
+  after(() =>
+    notifierNouvelleInscription(service, parsed.data.tournamentId, {
+      type: "solo",
+      joueur: `${participant.prenom} ${participant.nom}`,
+    }),
+  );
   revalidatePath(`/t/${parsed.data.slug}`);
   return { success: true };
 }
@@ -231,6 +240,13 @@ export async function sInscrireEnPaire(
     return { error: "Ce tournoi est complet." };
   }
 
+  after(() =>
+    notifierNouvelleInscription(service, parsed.data.tournamentId, {
+      type: "paire",
+      joueur: `${participant.prenom} ${participant.nom}`,
+      partenaire: nomAffichePartenaire,
+    }),
+  );
   revalidatePath(`/t/${parsed.data.slug}`);
   return { success: true };
 }

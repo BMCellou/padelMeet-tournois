@@ -14,6 +14,9 @@ import { getParticipantConnecte } from "@/lib/participant/session";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargerStatutInscription } from "./inscriptionStatus";
 import { chargerPlaces } from "@/lib/inscriptions/occupation";
+import { verdictAnnulation, formaterLimite } from "@/lib/inscriptions/annulation";
+import { heureLocaleVersISO } from "@/lib/temps";
+import { AnnulerInscription } from "./AnnulerInscription";
 import { libellePlaces } from "@/lib/inscriptions/places";
 import {
   InscriptionNonConnecte,
@@ -241,6 +244,18 @@ export default async function PageTournoiPublic({
         <InscriptionDejaFaite
           libelle={statutInscription.libelle}
           enAttente={statutInscription.enAttente}
+          annulation={(() => {
+            const verdict = verdictAnnulation(
+              tournoi.statut,
+              heureLocaleVersISO(tournoi.date, tournoi.heure_debut.slice(0, 5)),
+              new Date(),
+            );
+            return verdict.possible ? (
+              <AnnulerInscription tournamentId={tournoi.id} slug={slug} limite={formaterLimite(verdict.limite)} />
+            ) : (
+              <AnnulerInscription tournamentId={tournoi.id} slug={slug} message={verdict.message} />
+            );
+          })()}
         />
       ) : (
         <InscriptionFormulaire
