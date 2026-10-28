@@ -14,21 +14,8 @@ export async function chargerStatutInscription(
   tournamentId: string,
   playerId: string,
 ): Promise<StatutInscriptionParticipant> {
-  const { data: soloReg } = await service
-    .from("registrations")
-    .select("statut")
-    .eq("tournament_id", tournamentId)
-    .eq("player_id", playerId)
-    .maybeSingle();
-
-  if (soloReg) {
-    return {
-      inscrit: true,
-      libelle: "Inscrit(e) en solo, en attente d'un binôme",
-      enAttente: soloReg.statut === "en_attente",
-    };
-  }
-
+  // L'équipe prime : un joueur seul placé en équipe par le club y est inscrit,
+  // même si son inscription solo existe toujours.
   const { data: liens } = await service
     .from("team_players")
     .select("teams!inner(nom_affiche, statut, tournament_id)")
@@ -41,6 +28,24 @@ export async function chargerStatutInscription(
       inscrit: true,
       libelle: `Inscrit(e) : ${equipe.nom_affiche}`,
       enAttente: equipe.statut === "en_attente",
+    };
+  }
+
+  const { data: soloReg } = await service
+    .from("registrations")
+    .select("statut")
+    .eq("tournament_id", tournamentId)
+    .eq("player_id", playerId)
+    .maybeSingle();
+
+  if (soloReg) {
+    const enAttente = soloReg.statut === "en_attente";
+    return {
+      inscrit: true,
+      libelle: enAttente
+        ? "Inscrit(e) en solo, en attente d'un binôme"
+        : "Inscription validée, en attente d'un binôme",
+      enAttente,
     };
   }
 

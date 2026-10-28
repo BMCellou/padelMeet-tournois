@@ -47,7 +47,17 @@ export async function annulerMonInscription(tournamentId: string, slug: string):
   };
   const lienAdmin = process.env.NEXT_PUBLIC_SITE_URL ? `${process.env.NEXT_PUBLIC_SITE_URL}/admin/tournois/${tournamentId}/inscriptions` : null;
 
-  // 1. Inscription solo ?
+  // 1. Équipe du tournoi ? Un joueur seul placé en équipe par le club s'annule comme une paire,
+  // même si son inscription solo existe toujours.
+  const { data: lien } = await service
+    .from("team_players")
+    .select("team_id, teams!inner(id, tournament_id, ephemere)")
+    .eq("player_id", participant.playerId)
+    .eq("teams.tournament_id", tournamentId)
+    .eq("teams.ephemere", false)
+    .maybeSingle();
+
+  // 2. Inscription solo (sans équipe) ?
   const { data: solo } = await service
     .from("registrations")
     .select("id")
@@ -58,19 +68,7 @@ export async function annulerMonInscription(tournamentId: string, slug: string):
 
   let partenaire: { nom: string; email: string | null } | null = null;
 
-  if (solo) {
-    await service.from("registrations").delete().eq("id", solo.id);
-  } else {
-    // 2. Paire : l'équipe dont il/elle fait partie.
-    const { data: lien } = await service
-      .from("team_players")
-      .select("team_id, teams!inner(id, tournament_id, ephemere)")
-      .eq("player_id", participant.playerId)
-      .eq("teams.tournament_id", tournamentId)
-      .eq("teams.ephemere", false)
-      .maybeSingle();
-    if (!lien) return { error: "Tu n'es pas inscrit(e) à ce tournoi." };
-
+  if (lien) {
     const { count: enPoule } = await service
       .from("group_teams")
       .select("team_id", { count: "exact", head: true })
@@ -87,15 +85,21 @@ export async function annulerMonInscription(tournamentId: string, slug: string):
     const autre = coequipiers?.[0]?.players;
     if (autre) partenaire = { nom: `${autre.prenom} ${autre.nom}`, email: autre.email };
 
-    // La suppression de l'équipe cascade sur team_players et registrations ; les fiches joueurs restent.
+    // La suppression de l'équipe cascade sur team_players et registrations de paire ; les fiches
+    // joueurs restent. L'inscription solo éventuelle n'est pas rattachée à l'équipe : on la retire.
     await service.from("teams").delete().eq("id", lien.team_id);
+    if (solo) await service.from("registrations").delete().eq("id", solo.id);
+  } else if (solo) {
+    await service.from("registrations").delete().eq("id", solo.id);
+  } else {
+    return { error: "Tu n'es pas inscrit(e) à ce tournoi." };
   }
 
   await service.from("audit_log").insert({
     tournament_id: tournamentId,
     acteur: `${nomComplet} (participant)`,
     action: "annulation_inscription",
-    payload: { playerId: participant.playerId, type: solo ? "solo" : "paire", partenaire: partenaire?.nom ?? null } as unknown as Json,
+    payload: { playerId: participant.playerId, type: lien ? "paire" : "solo", partenaire: partenaire?.nom ?? null } as unknown as Json,
   });
 
   after(async () => {

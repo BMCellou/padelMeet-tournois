@@ -16,6 +16,7 @@ import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargerPlaces } from "@/lib/inscriptions/occupation";
+import { repartirSolos } from "@/lib/inscriptions/solos";
 import { RealtimeRefresher } from "@/components/tournoi/RealtimeRefresher";
 
 export default async function InscriptionsPage({
@@ -36,14 +37,14 @@ export default async function InscriptionsPage({
     notFound();
   }
 
-  const { data: solosEnAttente } = await supabase
+  const { data: solosBruts } = await supabase
     .from("registrations")
     .select(
-      "id, players(id, nom, prenom, sexe, classement_fft, telephone, email)",
+      "id, statut, player_id, players(id, nom, prenom, sexe, classement_fft, telephone, email)",
     )
     .eq("tournament_id", tournamentId)
     .eq("type", "solo")
-    .eq("statut", "en_attente");
+    .in("statut", ["en_attente", "valide"]);
 
   const { data: equipesToutesBrutes } = await supabase
     .from("teams")
@@ -58,9 +59,17 @@ export default async function InscriptionsPage({
     (e) => e.statut === "en_attente",
   );
 
+  const joueursEnEquipe = new Set(
+    (equipesToutesBrutes ?? []).flatMap((e) => e.team_players.flatMap((tp) => (tp.players ? [tp.players.id] : []))),
+  );
+  const { aValider: solosAValider, valides: solosValides } = repartirSolos(
+    (solosBruts ?? []).flatMap((r) => (r.player_id ? [{ ...r, playerId: r.player_id }] : [])),
+    joueursEnEquipe,
+  );
+
   const joueursMap = new Map<string, JoueurAffiche>();
 
-  for (const r of solosEnAttente ?? []) {
+  for (const r of [...solosAValider, ...solosValides]) {
     const p = r.players;
     if (!p) continue;
     joueursMap.set(p.id, {
@@ -164,13 +173,17 @@ export default async function InscriptionsPage({
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                Joueurs seuls en attente ({solosEnAttente?.length ?? 0})
+                Joueurs seuls ({solosAValider.length + solosValides.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <SolosEnAttenteList
                 tournamentId={tournamentId}
-                solos={(solosEnAttente ?? []).map((r) => ({
+                aValider={solosAValider.map((r) => ({
+                  id: r.id,
+                  nomComplet: `${r.players?.prenom ?? ""} ${r.players?.nom ?? ""}`.trim(),
+                }))}
+                valides={solosValides.map((r) => ({
                   id: r.id,
                   nomComplet: `${r.players?.prenom ?? ""} ${r.players?.nom ?? ""}`.trim(),
                 }))}

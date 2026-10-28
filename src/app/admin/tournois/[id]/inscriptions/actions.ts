@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { apparierSolos, type JoueurSolo, type StrategieAppariement } from "@/lib/engine/appariement";
 import { creerRng } from "@/lib/engine/rng";
 import { niveauDepuisClassementFft } from "@/lib/engine/classementFft";
+import { solosAApparier } from "@/lib/inscriptions/solos";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -333,18 +334,31 @@ export async function genererEquipesAleatoires(
 
   const supabase = await createClient();
 
-  const { data: registrations, error: regError } = await supabase
-    .from("registrations")
-    .select("id, player_id, players(id, nom, prenom, sexe, classement_fft)")
-    .eq("tournament_id", tournamentId)
-    .eq("type", "solo")
-    .eq("statut", "en_attente");
+  const [{ data: inscriptionsSolo, error: regError }, { data: membres }] = await Promise.all([
+    supabase
+      .from("registrations")
+      .select("id, player_id, statut, players(id, nom, prenom, sexe, classement_fft)")
+      .eq("tournament_id", tournamentId)
+      .eq("type", "solo")
+      .in("statut", ["en_attente", "valide"]),
+    supabase
+      .from("team_players")
+      .select("player_id, teams!inner(tournament_id)")
+      .eq("teams.tournament_id", tournamentId),
+  ]);
 
   if (regError) {
     return { error: "Impossible de charger les joueurs seuls." };
   }
 
-  if (!registrations || registrations.length === 0) {
+  // Les joueurs seuls à placer : ceux à valider et ceux déjà validés sans équipe.
+  // Un joueur validé puis placé en équipe garde son inscription « valide » : on l'écarte.
+  const registrations = solosAApparier(
+    (inscriptionsSolo ?? []).flatMap((r) => (r.player_id ? [{ ...r, playerId: r.player_id }] : [])),
+    new Set((membres ?? []).map((m) => m.player_id)),
+  );
+
+  if (registrations.length === 0) {
     return { error: "Aucun joueur seul en attente." };
   }
 
@@ -497,6 +511,22 @@ export async function renommerEquipe(
 
   revalidatePath(`/admin/tournois/${parsed.data.tournamentId}/inscriptions`);
   return { success: true };
+}
+
+/**
+ * Valide l'inscription d'un joueur seul sans le placer en équipe : il reste dans la liste des
+ * joueurs seuls (et compte dans les places) jusqu'à l'appariement.
+ */
+export async function validerSolo(registrationId: string, tournamentId: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase
+    .from("registrations")
+    .update({ statut: "valide" })
+    .eq("id", registrationId)
+    .eq("tournament_id", tournamentId)
+    .eq("type", "solo")
+    .eq("statut", "en_attente");
+  revalidatePath(`/admin/tournois/${tournamentId}/inscriptions`);
 }
 
 export async function validerEquipe(teamId: string, tournamentId: string): Promise<void> {

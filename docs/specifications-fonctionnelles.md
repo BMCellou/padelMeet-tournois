@@ -112,14 +112,15 @@ Toute inscription en ligne est **« en attente de validation par le club »**. L
 
 **E-mail à l'organisateur** : à chaque inscription en ligne (solo ou paire), tous les comptes administrateurs reçoivent un e-mail (qui, avec qui, places occupées, lien vers l'écran Inscriptions). Il part après la réponse au participant : un envoi qui échoue (service d'e-mail non configuré ou en panne) est journalisé mais ne bloque jamais l'inscription. Il utilise la même configuration que les rappels (`RESEND_API_KEY`, `RESEND_FROM`).
 
-**Annulation par le participant** : sur la page du tournoi et dans « Mes tournois », un bouton « Annuler mon inscription » (avec confirmation) est proposé **jusqu'à 48 h avant le début du tournoi** (date + heure de début, heure de Paris), tant que le tournoi est publié ; passé ce délai, un message renvoie vers l'organisateur. Une inscription solo est supprimée ; pour une **paire**, l'équipe entière est annulée (le/la partenaire est prévenu(e) par e-mail). Si le **tirage est déjà fait**, l'annulation en ligne est refusée (l'équipe est placée en poule) et l'organisateur s'en charge. Chaque annulation est tracée dans le journal d'audit et prévient les administrateurs par e-mail ; la place libérée est immédiatement disponible.
+**Annulation par le participant** : sur la page du tournoi et dans « Mes tournois », un bouton « Annuler mon inscription » (avec confirmation) est proposé **jusqu'à 48 h avant le début du tournoi** (date + heure de début, heure de Paris), tant que le tournoi est publié ; passé ce délai, un message renvoie vers l'organisateur. Une inscription solo est supprimée ; pour une **paire** (ou un joueur seul que le club a déjà placé en équipe), l'équipe entière est annulée (le/la partenaire est prévenu(e) par e-mail). Si le **tirage est déjà fait**, l'annulation en ligne est refusée (l'équipe est placée en poule) et l'organisateur s'en charge. Chaque annulation est tracée dans le journal d'audit et prévient les administrateurs par e-mail ; la place libérée est immédiatement disponible.
 
 ### 5.2 Inscription par l'admin (`Inscriptions`)
 
 - **Ajouter une paire** : chaque joueur est soit repris d'une fiche existante (recherche parmi tous les joueurs connus, hors joueurs déjà inscrits au tournoi), soit saisi à la main (prénom, nom, sexe H/F, classement FFT comme « 15/1 »). L'équipe est **validée d'emblée**.
-- **Inscrire un joueur seul** (en attente d'appariement).
+- **Inscrire un joueur seul** (en attente de validation).
+- **Valider un joueur seul sans lui attribuer d'équipe** : une inscription solo passe de « à valider » à « validée, en attente d'un binôme » (boutons Valider / Refuser, puis Retirer pour un joueur déjà validé). Le joueur reste dans la liste des joueurs seuls, compte dans les places, et son statut visible côté joueur devient « Inscription validée, en attente d'un binôme ».
 - **Valider** une équipe en attente, **renommer**, **supprimer** une équipe, **modifier** la fiche d'un joueur, **remplacer** un joueur d'une équipe.
-- **Générer des équipes** à partir des joueurs seuls en attente, selon une stratégie : **Aléatoire**, **Équilibré (par classement)** (le classement FFT saisi en texte — « 15/1 », « 30/2 », « NC »… — est converti selon l'échelle officielle, de -30 jusqu'à NC ; un classement vide ou non reconnu est classé tout en bas sans bloquer), **Mixte forcé (H/F)**. Les équipes créées sont validées. Un joueur qui reste sans partenaire (nombre impair, ou contrainte non satisfiable) est **signalé, jamais supprimé**.
+- **Générer des équipes** à partir des joueurs seuls (à valider ou déjà validés, sans équipe), selon une stratégie : **Aléatoire**, **Équilibré (par classement)** (le classement FFT saisi en texte — « 15/1 », « 30/2 », « NC »… — est converti selon l'échelle officielle, de -30 jusqu'à NC ; un classement vide ou non reconnu est classé tout en bas sans bloquer), **Mixte forcé (H/F)**. Les équipes créées sont validées. Un joueur qui reste sans partenaire (nombre impair, ou contrainte non satisfiable) est **signalé, jamais supprimé**.
 - Seules les équipes **validées** participent au tirage.
 
 ### 5.3 Compte participant (`/compte`)
@@ -132,7 +133,7 @@ Toute inscription en ligne est **« en attente de validation par le club »**. L
 ### 5.4 Limite de places
 
 Le tournoi peut fixer un **nombre maximum de joueurs** (vide = illimité). L'unité est le **joueur** : une paire compte pour 2, un solo pour 1 (16 joueurs = 8 paires).
-- Sont comptés : les membres des équipes (validées ou en attente) et les solos en attente d'appariement ; un joueur n'est compté qu'une fois.
+- Sont comptés : les membres des équipes (validées ou en attente) et les joueurs seuls sans équipe (à valider ou validés) ; un joueur n'est compté qu'une fois.
 - Le visiteur et l'inscrit voient « N places restantes », « 1 place restante » ou « Complet » dans la carte d'inscription.
 - Complet : plus de formulaire. Une seule place : seule l'inscription en solo est proposée.
 - Le serveur refuse l'inscription (pas seulement l'affichage) et, si deux inscriptions simultanées se disputent la dernière place, annule celle qui dépasse.
