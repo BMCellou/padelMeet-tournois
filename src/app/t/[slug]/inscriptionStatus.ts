@@ -16,24 +16,9 @@ export async function chargerStatutInscription(
   /** Format à partenaires tournants : un joueur inscrit n'attend aucun binôme. */
   parJoueur = false,
 ): Promise<StatutInscriptionParticipant> {
-  const { data: soloReg } = await service
-    .from("registrations")
-    .select("statut")
-    .eq("tournament_id", tournamentId)
-    .eq("player_id", playerId)
-    .maybeSingle();
-
-  if (soloReg) {
-    return {
-      inscrit: true,
-      libelle: parJoueur
-        ? "Inscrit(e) — tu changeras de partenaire à chaque tour"
-        : "Inscrit(e) en solo, en attente d'un binôme",
-      // Dans un format à rotation, l'inscription solo est définitive : il n'y a pas de binôme à attendre.
-      enAttente: parJoueur ? false : soloReg.statut === "en_attente",
-    };
-  }
-
+  // L'équipe prime : un joueur seul placé en équipe par le club y est inscrit,
+  // même si son inscription solo existe toujours. Les équipes éphémères (une par tour d'un format
+  // à partenaires tournants) ne sont pas une inscription.
   const { data: liens } = await service
     .from("team_players")
     .select("teams!inner(nom_affiche, statut, tournament_id)")
@@ -47,6 +32,27 @@ export async function chargerStatutInscription(
       inscrit: true,
       libelle: `Inscrit(e) : ${equipe.nom_affiche}`,
       enAttente: equipe.statut === "en_attente",
+    };
+  }
+
+  const { data: soloReg } = await service
+    .from("registrations")
+    .select("statut")
+    .eq("tournament_id", tournamentId)
+    .eq("player_id", playerId)
+    .maybeSingle();
+
+  if (soloReg) {
+    const enAttente = soloReg.statut === "en_attente";
+    return {
+      inscrit: true,
+      libelle: parJoueur
+        ? "Inscrit(e) — tu changeras de partenaire à chaque tour"
+        : enAttente
+          ? "Inscrit(e) en solo, en attente d'un binôme"
+          : "Inscription validée, en attente d'un binôme",
+      // Dans un format à rotation, l'inscription solo est définitive : il n'y a pas de binôme à attendre.
+      enAttente: parJoueur ? false : enAttente,
     };
   }
 

@@ -5,9 +5,9 @@ type Service = ReturnType<typeof createServiceClient>;
 
 /**
  * Nombre de joueurs qui occupent une place : membres des équipes du
- * tournoi (validées ou en attente) + solos encore en attente
- * d'appariement. Un solo déjà placé en équipe n'est compté qu'une fois
- * (via l'équipe). service_role requis : ces tables ne sont pas lisibles
+ * tournoi (validées ou en attente) + solos en attente de validation ou
+ * validés mais sans équipe. Un solo déjà placé en équipe n'est compté
+ * qu'une fois (via l'équipe). service_role requis : ces tables ne sont pas lisibles
  * publiquement.
  */
 export async function chargerPlaces(service: Service, tournamentId: string): Promise<Places> {
@@ -22,7 +22,7 @@ export async function chargerPlaces(service: Service, tournamentId: string): Pro
       .select("player_id")
       .eq("tournament_id", tournamentId)
       .eq("type", "solo")
-      .eq("statut", "en_attente"),
+      .in("statut", ["en_attente", "valide"]),
   ]);
 
   const joueurs = new Set<string>();
