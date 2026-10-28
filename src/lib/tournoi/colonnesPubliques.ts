@@ -8,7 +8,7 @@ const SETS = "match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)";
 export const COLONNES_PUBLIQUES = {
   accueilClubs: "id, nom, ville",
   accueilTournois: "id, nom, date, statut, genre, niveau, public_slug, club_id",
-  tournoi: "id, nom, date, statut, genre, niveau, format_animation, config_animation",
+  tournoi: "id, nom, date, heure_debut, statut, genre, niveau, format_animation, config_animation",
   groupes: "id, nom, ordre",
   equipes: "id, nom_affiche",
   terrains: "id, nom",

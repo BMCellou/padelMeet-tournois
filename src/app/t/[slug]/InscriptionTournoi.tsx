@@ -53,9 +53,12 @@ export function InscriptionNonConnecte({
 export function InscriptionDejaFaite({
   libelle,
   enAttente,
+  annulation,
 }: {
   libelle: string;
   enAttente: boolean;
+  /** Bouton d'annulation (ou explication) fourni par la page serveur. */
+  annulation?: React.ReactNode;
 }) {
   return (
     <Card>
@@ -71,6 +74,7 @@ export function InscriptionDejaFaite({
         ) : (
           <Badge variant="volt">Confirmée</Badge>
         )}
+        {annulation}
       </CardContent>
     </Card>
   );

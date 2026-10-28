@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { BrandLogo } from "@/components/BrandLogo";
 import { getFormat } from "@/lib/engine/formats";
+import { heureLocaleVersISO } from "@/lib/temps";
+import { verdictAnnulation, formaterLimite } from "@/lib/inscriptions/annulation";
+import { AnnulerInscription } from "@/app/t/[slug]/AnnulerInscription";
 
 const LIBELLES_STATUT_TOURNOI: Record<string, string> = {
   brouillon: "À venir",
@@ -23,6 +26,8 @@ interface LigneHistorique {
   statutTournoi: string;
   partenaireOuStatut: string;
   enAttenteValidation: boolean;
+  /** Début du tournoi (instant ISO), pour la limite d'annulation. */
+  debut: string;
 }
 
 export default async function HistoriqueParticipantPage() {
@@ -36,7 +41,7 @@ export default async function HistoriqueParticipantPage() {
   const { data: mesEquipes } = await service
     .from("team_players")
     .select(
-      "teams!inner(id, nom_affiche, statut, tournament_id, tournaments(id, nom, date, statut, public_slug, club_id, format_animation, clubs(nom)))",
+      "teams!inner(id, nom_affiche, statut, tournament_id, tournaments(id, nom, date, heure_debut, statut, public_slug, club_id, format_animation, clubs(nom)))",
     )
     .eq("player_id", participant.playerId)
     // Les binômes éphémères d'un format à rotation ne sont pas des équipes inscrites.
@@ -44,7 +49,7 @@ export default async function HistoriqueParticipantPage() {
 
   const { data: mesSolos } = await service
     .from("registrations")
-    .select("id, statut, tournament_id, tournaments(id, nom, date, statut, public_slug, club_id, format_animation, clubs(nom))")
+    .select("id, statut, tournament_id, tournaments(id, nom, date, heure_debut, statut, public_slug, club_id, format_animation, clubs(nom))")
     .eq("player_id", participant.playerId)
     .eq("type", "solo");
 
@@ -63,6 +68,7 @@ export default async function HistoriqueParticipantPage() {
       statutTournoi: tournoi.statut,
       partenaireOuStatut: equipe.nom_affiche,
       enAttenteValidation: equipe.statut === "en_attente",
+      debut: heureLocaleVersISO(tournoi.date, tournoi.heure_debut.slice(0, 5)),
     });
   }
 
@@ -84,6 +90,7 @@ export default async function HistoriqueParticipantPage() {
         ? "Inscrit(e) — un partenaire différent à chaque tour"
         : "Joueur seul, en attente d'un binôme",
       enAttenteValidation: reg.statut === "en_attente",
+      debut: heureLocaleVersISO(tournoi.date, tournoi.heure_debut.slice(0, 5)),
     });
   }
 
@@ -139,6 +146,16 @@ export default async function HistoriqueParticipantPage() {
                       <Link href={`/t/${l.slug}`} className="block text-sm underline">
                         Voir le tournoi
                       </Link>
+                    ) : null}
+                    {l.statutTournoi === "publie" && l.slug ? (
+                      (() => {
+                        const verdict = verdictAnnulation(l.statutTournoi, l.debut, new Date());
+                        return verdict.possible ? (
+                          <AnnulerInscription tournamentId={l.tournamentId} slug={l.slug!} limite={formaterLimite(verdict.limite)} />
+                        ) : (
+                          <AnnulerInscription tournamentId={l.tournamentId} slug={l.slug!} message={verdict.message} />
+                        );
+                      })()
                     ) : null}
                   </CardContent>
                 </Card>
