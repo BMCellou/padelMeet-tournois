@@ -271,6 +271,16 @@ Un onglet **Rappels** par tournoi liste les **matchs à venir ayant un horaire**
 - **Envoi automatique (cron)** : réglage global (tous tournois) **désactivé par défaut**, avec délai en heures (1 à 72, 24 par défaut). Une fois activé, la tâche planifiée envoie e-mails et WhatsApp (API) aux matchs dans le délai. La fréquence actuelle est **quotidienne** (7 h UTC), limite du plan d'hébergement ; elle se resserre en changeant le planning.
 - Seuls les matchs encore « à venir / prêt » avec un horaire et les deux équipes connues sont rappelés.
 
+### Messages aux inscrits
+
+Un onglet **Messages** par tournoi permet d'envoyer un e-mail libre aux inscrits (infos pratiques, code d'accès au club, planning…), en dehors des rappels de match.
+
+- **Modèle pré-rempli** : sujet et texte avec nom, date, heure de début et lieu du tournoi. La ligne « Code d'accès au club : [à compléter] » doit être remplacée : **l'envoi est refusé tant que « [à compléter] » figure dans le message**. `{prenom}` et `{nom}` sont remplacés pour chaque destinataire.
+- **Pièce jointe** : case « Joindre le planning du déroulé (PDF) » — titre, club, date, composition des poules et calendrier, sans feuilles de score ni grilles vierges. Le PDF est généré à l'envoi (calendrier à jour) et transmis directement, sans adresse publique ; la case est désactivée tant que le calendrier n'est pas généré.
+- **Destinataires** : tous les inscrits (équipes et joueurs seuls) avec leur adresse ; ceux sans e-mail valide sont grisés ; les inscriptions non validées sont signalées et décochées par défaut. Les adresses sont relues en base côté serveur, jamais fournies par le navigateur. Maximum 100 destinataires par envoi.
+- **Essai** : « M'envoyer un essai » envoie le message (préfixe [ESSAI]) uniquement à l'adresse du compte administrateur connecté.
+- **Envoi** : confirmation en deux temps, puis un e-mail par destinataire (5 à la fois) ; le bilan liste les échecs. L'envoi est tracé dans le journal d'audit (sujet, nombre de destinataires, échecs, planning joint). Réservé aux administrateurs.
+
 ## 14. Pages publiques
 
 - **Accueil** : tournois publiés, en cours et terminés (en cours d'abord, puis à venir par date croissante, puis terminés du plus récent).
