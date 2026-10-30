@@ -36,6 +36,7 @@ function liensTournoi(id: string, rotation?: boolean) {
     { href: `/admin/tournois/${id}/poules`, label: "Poules et tirage" },
     { href: `/admin/tournois/${id}/calendrier`, label: "Calendrier" },
     { href: `/admin/tournois/${id}/rappels`, label: "Rappels" },
+    { href: `/admin/tournois/${id}/messages`, label: "Messages" },
     { href: `/admin/tournois/${id}/scores`, label: "Scores et classements" },
     { href: `/admin/tournois/${id}/tableau`, label: "Tableau final" },
   ];

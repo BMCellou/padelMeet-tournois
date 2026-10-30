@@ -14,9 +14,7 @@ Crée un scénario avec trois modules, dans cet ordre :
    - *To* : `destinataire`
    - *Subject* : `sujet`
    - *Content* : `texte` (type *Plain text*)
-   - *Attachments* (si utilisé) : tableau `pieces_jointes` ; pour chaque pièce, le nom (`nom`) et le
-     contenu téléchargé depuis `url` par un module **HTTP → Get a file** placé avant Gmail, avec un
-     *Iterator* sur `pieces_jointes`.
+   - *Attachments* : voir « Pièce jointe » ci-dessous.
 3. **Webhooks → Webhook response** (obligatoire) : statut `200`, en-tête `Content-Type:
    application/json`, corps `{"ok": true}`.
    - Ajoute sur le module Gmail un *error handler* de type **Webhook response** : statut `200`,
@@ -27,6 +25,24 @@ Crée un scénario avec trois modules, dans cet ordre :
 valeur de `MAKE_WEBHOOK_SECRET` (sinon n'importe qui connaissant l'URL pourrait envoyer des mails
 depuis ton Gmail).
 
+### Pièce jointe
+
+L'application joint le planning PDF sous forme de texte base64 dans `pieces_jointes` (aucune adresse
+publique n'est nécessaire). Dans Make, fais deux branches avec un **Router** après le filtre de
+sécurité :
+
+- **Branche avec pièce jointe** (filtre : `length(pieces_jointes)` supérieur à 0) : module Gmail
+  avec une pièce jointe dont le *File name* est `first(pieces_jointes).nom` et le *Data* est
+  `toBinary(first(pieces_jointes).contenu_base64; base64)`.
+- **Branche sans pièce jointe** : module Gmail sans pièce jointe.
+
+Chacune se termine par ses modules *Webhook response* (succès et erreur) comme ci-dessus. Pour que
+Make reconnaisse la structure de `pieces_jointes`, envoie d'abord un essai **avec** planning depuis
+l'onglet Messages, puis relance « Re-determine data structure » sur le webhook. La taille d'une
+requête vers un webhook Make est limitée (quelques Mo) : un planning fait quelques dizaines de ko.
+Une pièce peut aussi arriver avec `url` au lieu de `contenu_base64` (document hébergé) : dans ce cas,
+télécharge-la avec **HTTP → Get a file** avant Gmail.
+
 ## 2. Données envoyées par l'application
 
 ```json
@@ -34,12 +50,12 @@ depuis ton Gmail).
   "destinataire": "joueur@exemple.fr",
   "sujet": "Rappel — ton match à 14:00",
   "texte": "…",
-  "pieces_jointes": [{ "nom": "poules.pdf", "url": "https://…" }]
+  "pieces_jointes": [{ "nom": "planning-open-de-lyon.pdf", "contenu_base64": "JVBERi0xLjcK…" }]
 }
 ```
 
-`pieces_jointes` est toujours présent (liste vide si aucune). L'application n'en joint aucune
-aujourd'hui : le champ est prêt pour quand un document sera proposé en téléchargement public.
+`pieces_jointes` est toujours présent (liste vide si aucune). Depuis l'onglet **Messages** d'un
+tournoi, le planning PDF est joint en `contenu_base64`.
 
 ## 3. Variables d'environnement (Vercel)
 

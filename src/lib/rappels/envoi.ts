@@ -5,11 +5,11 @@
 
 export type ResultatEnvoi = { ok: true } | { ok: false; error: string };
 
-/** Fichier joint à un e-mail : le prestataire le télécharge depuis `url`. */
-export interface PieceJointe {
-  nom: string;
-  url: string;
-}
+/**
+ * Fichier joint à un e-mail : soit téléchargé par le prestataire depuis `url`, soit transmis
+ * directement (`contenuBase64`, pour un document généré par l'application et jamais publié).
+ */
+export type PieceJointe = { nom: string } & ({ url: string } | { contenuBase64: string });
 
 export interface Envoyeurs {
   email(to: string, sujet: string, texte: string, piecesJointes?: PieceJointe[]): Promise<ResultatEnvoi>;
@@ -46,7 +46,11 @@ export async function emailParResend(
       subject: sujet,
       text: texte,
       ...(piecesJointes.length > 0
-        ? { attachments: piecesJointes.map((p) => ({ filename: p.nom, path: p.url })) }
+        ? {
+            attachments: piecesJointes.map((p) =>
+              "url" in p ? { filename: p.nom, path: p.url } : { filename: p.nom, content: p.contenuBase64 },
+            ),
+          }
         : {}),
     }),
   });
@@ -70,7 +74,14 @@ export async function emailParMake(
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-padelmeet-secret": secret },
-      body: JSON.stringify({ destinataire: to, sujet, texte, pieces_jointes: piecesJointes }),
+      body: JSON.stringify({
+        destinataire: to,
+        sujet,
+        texte,
+        pieces_jointes: piecesJointes.map((p) =>
+          "url" in p ? { nom: p.nom, url: p.url } : { nom: p.nom, contenu_base64: p.contenuBase64 },
+        ),
+      }),
       signal: AbortSignal.timeout(25_000),
     });
     const corps = await res.text().catch(() => "");

@@ -372,3 +372,29 @@ export async function genererDossierOrganisation(d: DonneesTournoi, maintenant: 
   const bytes = await r.finaliser();
   return { bytes, sections: r.sections, nbPages: r.doc.getPageCount(), journal: r.journal };
 }
+
+// ── Planning à destination des participants ─────────────────────────────
+
+/** Titre, club, date, composition des poules et calendrier : sans feuilles de score ni grilles vierges. */
+export async function genererPlanningParticipants(d: DonneesTournoi, maintenant: Date): Promise<DocumentPdf> {
+  const r = await Rendu.creer(`Planning - ${d.tournoi.nom}`, `Planning - ${d.tournoi.nom}`);
+  r.debutSection("Planning du tournoi");
+  for (const ligne of r.retourALaLigne(d.tournoi.nom, r.largeurUtile, 22, true)) {
+    r.texte(MARGE, r.y - 22, ligne, { taille: 22, gras: true });
+    r.y -= 28;
+  }
+  const club = d.club ? `${d.club.nom}${d.club.ville ? ` - ${d.club.ville}` : ""}` : null;
+  if (club) {
+    r.texte(MARGE, r.y - 13, club, { taille: 13 });
+    r.y -= 19;
+  }
+  r.texte(MARGE, r.y - 13, majuscule(dateEnLettres(d.tournoi.date)), { taille: 13 });
+  r.y -= 24;
+  r.texte(MARGE, r.y - 8, `Édité le ${dateHeureParis(maintenant)} (heure de Paris)`, { taille: 8, gris: 0.4 });
+  r.y -= 12;
+
+  poules(r, d);
+  calendrier(r, d);
+  const bytes = await r.finaliser();
+  return { bytes, sections: r.sections, nbPages: r.doc.getPageCount(), journal: r.journal };
+}
