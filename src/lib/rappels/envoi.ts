@@ -1,11 +1,18 @@
-// Envoi réel des rappels : e-mail via Resend, WhatsApp via l'API Cloud de
-// Meta (modèle de message approuvé). Un seul endroit à adapter si le
-// prestataire change. Aucune dépendance : simple `fetch`.
+// Envoi réel des rappels : e-mail via Resend (par défaut) ou via un scénario
+// Make (EMAIL_FOURNISSEUR=make), WhatsApp via l'API Cloud de Meta (modèle de
+// message approuvé). Un seul endroit à adapter si le prestataire change.
+// Aucune dépendance : simple `fetch`.
 
 export type ResultatEnvoi = { ok: true } | { ok: false; error: string };
 
+/** Fichier joint à un e-mail : le prestataire le télécharge depuis `url`. */
+export interface PieceJointe {
+  nom: string;
+  url: string;
+}
+
 export interface Envoyeurs {
-  email(to: string, sujet: string, texte: string): Promise<ResultatEnvoi>;
+  email(to: string, sujet: string, texte: string, piecesJointes?: PieceJointe[]): Promise<ResultatEnvoi>;
   /** `parametres` remplit dans l'ordre les variables {{1}}, {{2}}… du modèle. */
   whatsappApi(telephone: string, parametres: string[]): Promise<ResultatEnvoi>;
 }
@@ -21,16 +28,73 @@ async function appeler(url: string, init: RequestInit): Promise<ResultatEnvoi> {
   }
 }
 
-export const envoyeursReels: Envoyeurs = {
-  async email(to, sujet, texte) {
-    const cle = process.env.RESEND_API_KEY;
-    const from = process.env.RESEND_FROM;
-    if (!cle || !from) return { ok: false, error: "E-mail non configuré (RESEND_API_KEY / RESEND_FROM)." };
-    return appeler("https://api.resend.com/emails", {
+export async function emailParResend(
+  to: string,
+  sujet: string,
+  texte: string,
+  piecesJointes: PieceJointe[] = [],
+): Promise<ResultatEnvoi> {
+  const cle = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  if (!cle || !from) return { ok: false, error: "E-mail non configuré (RESEND_API_KEY / RESEND_FROM)." };
+  return appeler("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: sujet,
+      text: texte,
+      ...(piecesJointes.length > 0
+        ? { attachments: piecesJointes.map((p) => ({ filename: p.nom, path: p.url })) }
+        : {}),
+    }),
+  });
+}
+
+/**
+ * Envoi par un scénario Make (webhook → Gmail). Le scénario doit se terminer par un module
+ * « Webhook response » : sans lui Make répond « reçu » avant l'envoi, et un échec de Gmail
+ * passerait inaperçu. Une réponse JSON `{ "ok": false, "error": "…" }` est traitée comme un échec.
+ */
+export async function emailParMake(
+  to: string,
+  sujet: string,
+  texte: string,
+  piecesJointes: PieceJointe[] = [],
+): Promise<ResultatEnvoi> {
+  const url = process.env.MAKE_WEBHOOK_URL;
+  const secret = process.env.MAKE_WEBHOOK_SECRET;
+  if (!url || !secret) return { ok: false, error: "E-mail non configuré (MAKE_WEBHOOK_URL / MAKE_WEBHOOK_SECRET)." };
+  try {
+    const res = await fetch(url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject: sujet, text: texte }),
+      headers: { "Content-Type": "application/json", "x-padelmeet-secret": secret },
+      body: JSON.stringify({ destinataire: to, sujet, texte, pieces_jointes: piecesJointes }),
+      signal: AbortSignal.timeout(25_000),
     });
+    const corps = await res.text().catch(() => "");
+    if (!res.ok) return { ok: false, error: `Make a répondu ${res.status} ${corps.slice(0, 200)}`.trim() };
+    try {
+      const reponse: unknown = JSON.parse(corps);
+      if (typeof reponse === "object" && reponse !== null && "ok" in reponse && reponse.ok === false) {
+        const detail = "error" in reponse ? String(reponse.error) : "";
+        return { ok: false, error: `Make n'a pas pu envoyer l'e-mail. ${detail}`.trim() };
+      }
+    } catch {
+      // Réponse non JSON (ex. « Accepted ») : le statut HTTP fait foi.
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Envoi impossible." };
+  }
+}
+
+export const envoyeursReels: Envoyeurs = {
+  email(to, sujet, texte, piecesJointes) {
+    return process.env.EMAIL_FOURNISSEUR === "make"
+      ? emailParMake(to, sujet, texte, piecesJointes)
+      : emailParResend(to, sujet, texte, piecesJointes);
   },
 
   async whatsappApi(telephone, parametres) {
