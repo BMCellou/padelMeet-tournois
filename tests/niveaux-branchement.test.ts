@@ -59,3 +59,30 @@ describe("branchement du second tour dans les écrans de scores", () => {
     expect(corps.indexOf("matchCommence")).toBeLessThan(corps.indexOf(".delete()"));
   });
 });
+
+describe("variante avec phase finale : branchements", () => {
+  it("les qualifiés ne se choisissent pas à la main quand des niveaux dépendent d'eux", () => {
+    const source = lire("src/app/admin/tournois/[id]/tableau/actions.ts");
+    expect(source.indexOf(".niveaux")).toBeGreaterThan(-1);
+    expect(source.indexOf(".niveaux")).toBeLessThan(source.indexOf("calculerContexteQualification(supabase"));
+  });
+
+  it("la qualification et le tableau ne regardent que les poules du premier tour", () => {
+    const source = lire("src/lib/tournoi/tableauFinal.ts");
+    expect(source.match(/\.is\("niveau", null\)/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("le placement du tableau inclut les matchs de niveau, en même temps que les tours du tableau", () => {
+    const source = lire("src/lib/tournoi/planificationTableau.ts");
+    expect(source).toContain('phase: "classement_5e" as const');
+    expect(source).toContain("m.round - dernierTourPremier");
+    expect(source).toContain('.not("niveau", "is", null)');
+  });
+
+  it("la suppression du second tour retire aussi le tableau, et seulement si rien n'a commencé", () => {
+    const source = lire("src/lib/tournoi/niveaux.ts");
+    const corps = source.slice(source.indexOf("export async function supprimerSecondTour"), source.indexOf("export async function tenterGenerationNiveaux"));
+    expect(corps.indexOf("matchCommence")).toBeLessThan(corps.indexOf(".delete()"));
+    expect(source).toContain("PHASES_TABLEAU");
+  });
+});

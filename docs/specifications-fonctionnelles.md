@@ -317,6 +317,16 @@ Format d'animation à binômes fixes, **sans tableau**, choisi à la création d
 - **Classement final** : niveau 1, puis niveau 2, etc. ; à l'intérieur d'un niveau, le classement de sa tournante (mêmes critères de départage que les poules). Affiché (admin et public) quand tous les matchs des niveaux sont joués. Le vainqueur du tournoi est le premier du niveau 1. Une égalité parfaite entre deux équipes d'une même poule qui les placerait dans deux niveaux différents est tranchée par l'ordre du classement et **tracée dans le journal d'audit** (action « generation_niveaux »).
 - **Corrections** : un match d'un niveau se corrige librement. Corriger, déclarer forfait ou réinitialiser un match du **premier** tour recompose le second tour tant qu'**aucun match de niveau n'a commencé** ; ensuite c'est refusé, avec un message explicite.
 - **Aperçu** : l'écran « Poules et tirage » indique, avant le tirage, le nombre de poules et de niveaux, le nombre de matchs, les matchs par équipe et le nombre minimal de créneaux sur les terrains assignés.
+- **Deux variantes**, au choix à la création du tournoi (étape 1) : « **Poules de niveau** » (ci-dessus, sans tableau) et « **Poules de niveau + phase finale** ».
+
+#### Variante avec phase finale
+
+- Le **nombre de qualifiés** du tournoi (comme en « poules + tableau ») désigne les équipes du **tableau** : demi-finales, finale, match pour la 3e place (mêmes règles de qualification, de placement des têtes et de petite finale). Les qualifiés ne se choisissent pas à la main dans ce format.
+- Les **autres équipes** se classent dans des **niveaux** : les non-qualifiés de même rang de poule se retrouvent (tournante, ou un seul match de classement s'ils sont deux). Un qualifié ne rejoue donc pas dans un niveau, et personne ne rejoue un adversaire déjà rencontré.
+- Tableau et niveaux sont **générés ensemble** dès que le premier tour est terminé et **placés ensemble** : les matchs de niveau se jouent en même temps que les tours du tableau, le tableau restant prioritaire. Le bouton « Replanifier le tableau final » replace tableau et niveaux.
+- **Classement final** : le tableau d'abord (1re à 4e place pour un tableau de 4), puis les niveaux ; affiché quand le tableau et tous les niveaux sont joués.
+- **Corrections** : comme sans phase finale, un match du premier tour ne se corrige, ne passe en forfait et ne se réinitialise que tant qu'aucun match du second tour (tableau ou niveau) n'a commencé ; le second tour est alors recomposé en entier.
+- Exemple : 9 équipes, 4 qualifiés → 9 matchs de poule, puis 4 matchs de tableau et 4 matchs de classement (1 match pour les deux 2es non qualifiés, 3 matchs pour les trois 3es) : 17 matchs, chaque équipe joue au moins 3 matchs, fin environ 2 h 15 après le début avec 15 min de jeu, 5 min de rotation et 5 min de repos sur 3 terrains.
 - Exemple : 9 équipes, 3 terrains, 15 min de jeu + 5 min de rotation, repos 5 min → 18 matchs, 4 matchs par équipe, 6 créneaux, tournoi terminé en 2 h environ (début à 13 h : fin vers 15 h).
 
 ## 14. Pages publiques

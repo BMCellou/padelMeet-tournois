@@ -29,7 +29,7 @@ function etatInitial(sc: Scenario): EtatTournoi {
 
 describe("registre", () => {
   it("expose les formats enregistrés, poules + tableau restant le format par défaut", () => {
-    expect(listerFormats().map((f) => f.code)).toEqual(["poules_tableau", "americano", "poules_niveaux"]);
+    expect(listerFormats().map((f) => f.code)).toEqual(["poules_tableau", "americano", "poules_niveaux", "poules_niveaux_finale"]);
     expect(CODE_FORMAT_PAR_DEFAUT).toBe("poules_tableau");
     expect(getFormat("poules_tableau")).toBe(listerFormats()[0]);
   });

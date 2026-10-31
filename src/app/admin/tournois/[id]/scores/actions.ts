@@ -424,7 +424,13 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
     return { error: "Ce match n'a pas encore de score à réinitialiser." };
   }
 
-  if (match.phase === "poule") {
+  // Un match de niveau (second tour d'un format « poules de niveau ») se rouvre indépendamment du tableau.
+  const { data: groupeDuMatch } = match.group_id
+    ? await supabase.from("groups").select("niveau").eq("id", match.group_id).single()
+    : { data: null };
+  const matchDeNiveau = groupeDuMatch?.niveau != null;
+
+  if (match.phase === "poule" && !matchDeNiveau) {
     // Le tableau final a pu être généré automatiquement dès la fin des
     // poules (voir tenterGenerationAutomatique) : rouvrir un score de
     // poule après coup rendrait les qualifiés obsolètes. On l'autorise
@@ -449,8 +455,7 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
     // Format à second tour par niveaux : rouvrir un score du premier tour change les classements, donc
     // les niveaux. Possible tant qu'aucun match de niveau n'a commencé (le second tour est retiré, il
     // se recompose quand le premier tour est de nouveau terminé) ; refusé ensuite.
-    const { data: groupe } = await supabase.from("groups").select("niveau").eq("id", match.group_id).single();
-    if (groupe && groupe.niveau === null && (await chargerFormat(supabase, tournamentId)).niveaux) {
+    if (groupeDuMatch && groupeDuMatch.niveau === null && (await chargerFormat(supabase, tournamentId)).niveaux) {
       const secondTour = await etatDuSecondTour(supabase, tournamentId);
       if (secondTour.commence) {
         return { error: "Le second tour a déjà commencé : impossible de réinitialiser ce score du premier tour." };

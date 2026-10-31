@@ -2,7 +2,7 @@
 // ici et ne connaissent jamais un format en particulier.
 
 import { americano } from "./americano";
-import { poulesNiveaux } from "./poulesNiveaux";
+import { poulesNiveaux, poulesNiveauxFinale } from "./poulesNiveaux";
 import { poulesTableau } from "./poulesTableau";
 import type { CodeFormat, FormatAnimation } from "./types";
 
@@ -12,6 +12,7 @@ const FORMATS: Record<CodeFormat, FormatAnimation> = {
   poules_tableau: poulesTableau,
   americano,
   poules_niveaux: poulesNiveaux,
+  poules_niveaux_finale: poulesNiveauxFinale,
 };
 
 /** Format de tout tournoi dont la colonne format_animation vaut sa valeur par défaut en base. */

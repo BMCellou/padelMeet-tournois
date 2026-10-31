@@ -54,7 +54,8 @@ export async function verifierPoulesTerminees(
     return { ok: false, error: "Nombre de qualifiés non défini pour ce tournoi." };
   }
 
-  const { data: groupes } = await supabase.from("groups").select("id").eq("tournament_id", tournamentId);
+  // Les niveaux du second tour (formats « poules de niveau ») ne sont pas des poules de qualification.
+  const { data: groupes } = await supabase.from("groups").select("id").eq("tournament_id", tournamentId).is("niveau", null);
 
   if (!groupes || groupes.length === 0) {
     return { ok: false, error: "Tire d'abord les poules." };
@@ -70,7 +71,8 @@ export async function verifierPoulesTerminees(
     .from("matches")
     .select("id, statut")
     .eq("tournament_id", tournamentId)
-    .eq("phase", "poule");
+    .eq("phase", "poule")
+    .in("group_id", groupes.map((g) => g.id));
 
   if (
     !matchsPoule ||
@@ -135,7 +137,8 @@ export async function calculerContexteQualification(
   const { data: groupes } = await supabase
     .from("groups")
     .select("id, nom")
-    .eq("tournament_id", tournamentId);
+    .eq("tournament_id", tournamentId)
+    .is("niveau", null);
 
   const { data: teams } = await supabase
     .from("teams")

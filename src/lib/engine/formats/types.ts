@@ -32,7 +32,7 @@ export type { PhaseDeFormat } from "../formatPhases";
 // ── Identité et propriétés d'un format ──────────────────────────────────
 
 /** Code d'un format enregistré (valeur de tournaments.format_animation). */
-export type CodeFormat = "poules_tableau" | "americano" | "poules_niveaux";
+export type CodeFormat = "poules_tableau" | "americano" | "poules_niveaux" | "poules_niveaux_finale";
 
 export interface Validation {
   ok: boolean;
@@ -231,10 +231,10 @@ export interface OperationsPhaseFinale {
 export interface OperationsNiveaux {
   /** Autant de poules que possible (3 équipes minimum), ou le nombre imposé. Lève si impossible. */
   repartir(effectif: number, options?: { nombreGroupesForce?: number }): RepartitionNiveaux;
-  /** Niveaux du second tour d'après les classements du premier. */
-  composer(classements: ClassementDePoule[]): Niveau[];
-  /** Classement de la 1re à la dernière place. */
-  classementFinal(niveaux: ClassementDeNiveau[]): LigneClassementNiveaux[];
+  /** Niveaux du second tour d'après les classements du premier ; `exclus` : équipes déjà qualifiées pour une phase finale. */
+  composer(classements: ClassementDePoule[], exclus?: ReadonlySet<string>): Niveau[];
+  /** Classement de la 1re à la dernière place ; `placesDejaPrises` : places occupées avant le niveau 1 (qualifiés d'une phase finale). */
+  classementFinal(niveaux: ClassementDeNiveau[], placesDejaPrises?: number): LigneClassementNiveaux[];
   /** Matchs, matchs par équipe et créneaux, pour une répartition donnée. */
   estimer(tailles: number[], terrains: number): EstimationNiveaux;
 }

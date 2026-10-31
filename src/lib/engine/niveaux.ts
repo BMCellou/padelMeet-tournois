@@ -89,11 +89,14 @@ export interface Niveau {
  * à l'intérieur d'un niveau suit l'ordre des poules (déterministe). Un classement en
  * égalité parfaite est départagé par l'ordre dans lequel le moteur le renvoie.
  */
-export function composerNiveaux(classements: ClassementDePoule[]): Niveau[] {
+export function composerNiveaux(classements: ClassementDePoule[], exclus: ReadonlySet<string> = new Set()): Niveau[] {
   const max = Math.max(0, ...classements.map((c) => c.equipes.length));
   const niveaux: Niveau[] = [];
   for (let k = 1; k <= max; k++) {
-    const equipeIds = classements.flatMap((c) => (c.equipes[k - 1] ? [c.equipes[k - 1].teamId] : []));
+    // `exclus` : les équipes déjà qualifiées pour une phase finale ne rejouent pas dans un niveau.
+    const equipeIds = classements.flatMap((c) =>
+      c.equipes[k - 1] && !exclus.has(c.equipes[k - 1].teamId) ? [c.equipes[k - 1].teamId] : [],
+    );
     niveaux.push({ niveau: k, equipeIds, joue: equipeIds.length >= 2 });
   }
   return niveaux;
@@ -146,11 +149,12 @@ export interface LigneClassementNiveaux {
 
 /**
  * Classement de la 1re à la dernière place : les équipes du niveau 1 occupent les premières
- * places dans l'ordre de leur mini-poule, puis celles du niveau 2, etc.
+ * places dans l'ordre de leur mini-poule, puis celles du niveau 2, etc. `placesDejaPrises` :
+ * nombre de places occupées avant le niveau 1 (les qualifiés d'une phase finale).
  */
-export function classementFinalNiveaux(niveaux: ClassementDeNiveau[]): LigneClassementNiveaux[] {
+export function classementFinalNiveaux(niveaux: ClassementDeNiveau[], placesDejaPrises = 0): LigneClassementNiveaux[] {
   const lignes: LigneClassementNiveaux[] = [];
-  let decalage = 0;
+  let decalage = placesDejaPrises;
   for (const n of [...niveaux].sort((a, b) => a.niveau - b.niveau)) {
     for (const e of n.equipes) {
       lignes.push({ rang: decalage + e.rang, equipeId: e.teamId, niveau: n.niveau });

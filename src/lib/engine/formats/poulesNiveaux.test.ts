@@ -202,3 +202,104 @@ describe("fin de tournoi et classement", () => {
     expect(final.find((l) => l.rang === 1)!.equipeId).toBe("e01");
   });
 });
+
+// ── Variante avec phase finale ──────────────────────────────────────────
+
+describe("poules de niveau + phase finale : 9 équipes, 4 qualifiés, 3 terrains", () => {
+  const avecFinale = getFormat("poules_niveaux_finale");
+
+  function premierTourJoue(n: number, nbQualifies: number) {
+    const repartition = avecFinale.groupes!.repartir(n);
+    const tirage = avecFinale.groupes!.tirer(equipes(n), repartition.tailles, 42);
+    const groupes: GroupeEtat[] = tirage.poules.map((p) => ({ id: `poule-${p.nom}`, nom: p.nom, participantIds: p.equipeIds }));
+    const base: EtatTournoi = { participants: equipes(n), terrains, config: { nbQualifies }, graine: 42, planification, groupes, matchs: [] };
+    const matchs = avecFinale.genererTours(base).flatMap((t) => t.matchs);
+    return { etat: { ...base, matchs: matchs.map(jouer) } as EtatTournoi, matchs, groupes };
+  }
+
+  const { etat, matchs: matchsPremier } = premierTourJoue(9, 4);
+
+  it("déclare un tableau final et un second tour par niveaux, sans rotation", () => {
+    expect(avecFinale.aUnTableauFinal).toBe(true);
+    expect(avecFinale.phaseFinale).toBeDefined();
+    expect(avecFinale.niveaux).toBeDefined();
+    expect(avecFinale.rotation).toBeUndefined();
+    expect(avecFinale.phases.map((p) => p.code)).toContain("demis");
+  });
+
+  const suivant = avecFinale.tourSuivant(etat)!;
+  const bracket = suivant.matchs.filter((m) => m.phase === "finale" || m.phase === "classement");
+  const matchsNiveaux = suivant.matchs.filter((m) => m.phase === "groupe");
+
+  it("tableau de 4 (2 demies, finale, 3e place) + niveaux de classement pour les 5 autres", () => {
+    expect(bracket).toHaveLength(4);
+    // 3 premiers + meilleur 2e qualifiés : restent deux 2es (un match de classement) et trois 3es (une tournante).
+    expect(suivant.groupes!.map((g) => [g.nom, g.participantIds.length])).toEqual([
+      ["Niveau 2", 2],
+      ["Niveau 3", 3],
+    ]);
+    expect(matchsNiveaux).toHaveLength(1 + 3);
+  });
+
+  it("aucune équipe qualifiée ne rejoue dans un niveau, et chaque équipe joue au moins 3 matchs", () => {
+    const qualifies = new Set(bracket.flatMap((m) => [m.teamAId, m.teamBId]).filter((id): id is string => !!id));
+    expect(qualifies.size).toBe(4);
+    for (const g of suivant.groupes!) for (const id of g.participantIds) expect(qualifies.has(id)).toBe(false);
+
+    const parEquipe = new Map<string, number>();
+    const compter = (id: string | null) => id && parEquipe.set(id, (parEquipe.get(id) ?? 0) + 1);
+    for (const m of [...matchsPremier, ...matchsNiveaux]) { compter(m.teamAId); compter(m.teamBId); }
+    for (const id of qualifies) parEquipe.set(id, (parEquipe.get(id) ?? 0) + 2); // demi-finale + finale ou 3e place
+    expect(parEquipe.size).toBe(9);
+    expect(Math.min(...parEquipe.values())).toBeGreaterThanOrEqual(3);
+  });
+
+  it("aucune revanche dans les niveaux", () => {
+    const deja = new Set(matchsPremier.map((m) => [m.teamAId, m.teamBId].sort().join("|")));
+    for (const m of matchsNiveaux) expect(deja.has([m.teamAId, m.teamBId].sort().join("|"))).toBe(false);
+  });
+
+  it("tableau et niveaux sont placés ensemble après le premier tour, sans conflit de terrain", () => {
+    const finPremier = Math.max(...matchsPremier.map((m) => new Date(m.placement!.fin).getTime()));
+    const tous = suivant.matchs;
+    expect(tous.every((m) => m.placement)).toBe(true);
+    for (const m of tous) expect(new Date(m.placement!.debut).getTime()).toBeGreaterThanOrEqual(finPremier + 5 * 60_000);
+    const cles = tous.map((m) => `${m.placement!.terrainId}@${m.placement!.debut}`);
+    expect(new Set(cles).size).toBe(cles.length);
+  });
+
+  it("l'ensemble de la journée tient dans 3 heures (début à 13 h)", () => {
+    const fin = Math.max(...suivant.matchs.map((m) => new Date(m.placement!.fin).getTime()));
+    expect((fin - new Date(planification.heureDebut).getTime()) / 60_000).toBeLessThanOrEqual(180);
+  });
+
+  it("ne régénère rien une seconde fois, ni sans nombre de qualifiés", () => {
+    expect(avecFinale.tourSuivant({ ...etat, groupes: [...etat.groupes!, ...suivant.groupes!] })).toBeNull();
+    expect(avecFinale.tourSuivant({ ...etat, matchs: [...etat.matchs, jouerFinale(bracket[0])] })).toBeNull();
+    expect(avecFinale.tourSuivant({ ...etat, config: {} })).toBeNull();
+  });
+
+  function jouerFinale(m: MatchPrevu): MatchEtat {
+    return { id: m.id, phase: m.phase, groupeId: null, tour: m.tour, teamAId: m.teamAId, teamBId: m.teamBId, termine: false, vainqueurId: null };
+  }
+
+  it("classement final : les qualifiés d'abord (places 1 à 4), puis les niveaux", () => {
+    const final = avecFinale.niveaux!.classementFinal(
+      [
+        { niveau: 2, equipes: [{ teamId: "x", rang: 1 }, { teamId: "y", rang: 2 }] },
+        { niveau: 3, equipes: [{ teamId: "a", rang: 1 }, { teamId: "b", rang: 2 }, { teamId: "c", rang: 3 }] },
+      ],
+      4,
+    );
+    expect(final.map((l) => [l.rang, l.equipeId])).toEqual([[5, "x"], [6, "y"], [7, "a"], [8, "b"], [9, "c"]]);
+  });
+
+  it("à 12 équipes (4 poules de 3, 8 qualifiés), les niveaux de classement sont des matchs entre non-qualifiés", () => {
+    const { etat: e12 } = premierTourJoue(12, 8);
+    const s = avecFinale.tourSuivant(e12)!;
+    expect(s.matchs.filter((m) => m.phase === "finale").length).toBeGreaterThan(0);
+    const qualifies = new Set(s.matchs.filter((m) => m.phase === "finale").flatMap((m) => [m.teamAId, m.teamBId]).filter(Boolean));
+    expect(qualifies.size).toBe(8);
+    for (const g of s.groupes!) for (const id of g.participantIds) expect(qualifies.has(id)).toBe(false);
+  });
+});

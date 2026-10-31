@@ -8,6 +8,7 @@ import { QualifiesEditor } from "./QualifiesEditor";
 import { ClassementFinalList, type LigneFinale } from "@/components/tournoi/ClassementFinalList";
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
 import { calculerContexteQualification } from "@/lib/tournoi/tableauFinal";
+import { chargerClassementFinalNiveaux } from "@/lib/tournoi/niveaux";
 import { getFormat } from "@/lib/engine/formats";
 import { comparerQualifies, messageIncoherenceTableau } from "@/lib/engine/impactQualifies";
 import { estAdmin, getTournoisScoreur } from "@/lib/staff/session";
@@ -36,8 +37,9 @@ export default async function TableauPage({
   // Format à partenaires tournants : pas de poules ni de tableau, tout se joue sur l'écran de déroulé.
   const formatAnimation = await chargerFormat(supabase, tournamentId);
   if (formatAnimation.rotation) redirect(`/admin/tournois/${tournamentId}/deroule`);
-  // Format par niveaux : pas de tableau, le classement final s'affiche avec les scores.
-  if (formatAnimation.niveaux) redirect(`/admin/tournois/${tournamentId}/scores`);
+  // Format par niveaux sans phase finale : pas de tableau, le classement final s'affiche avec les scores.
+  if (formatAnimation.niveaux && !formatAnimation.phaseFinale) redirect(`/admin/tournois/${tournamentId}/scores`);
+  const parNiveaux = !!formatAnimation.niveaux;
 
   const format = tournoi.format_config as unknown as MatchFormat;
 
@@ -217,7 +219,8 @@ export default async function TableauPage({
         editeurQualifies = admin ? (
           <p className="text-sm text-muted-foreground">{contexte.error}</p>
         ) : null;
-      } else if (admin) {
+      } else if (admin && !parNiveaux) {
+        // Avec des niveaux de classement, les qualifiés ne se choisissent pas à la main (voir l'action).
         editeurQualifies = (
           <QualifiesEditor
             tournamentId={tournamentId}
@@ -245,15 +248,18 @@ export default async function TableauPage({
       const tours = [...parTour.keys()].sort((a, b) => a - b);
       const dernierTour = tours[tours.length - 1];
 
-      const classementFinalLignes = calculerClassementFinalTableau(
-        matchsBruts,
-        matchPetiteFinaleBrut ?? null,
-        matchClassement5eBrut ?? null,
-        (teams ?? []).map((t) => t.id),
-        standingsParEquipe,
-        nomEquipe,
-        getFormat(tournoi.format_animation),
-      );
+      // Avec des niveaux de classement : le tableau d'abord, puis les niveaux (une fois tout joué).
+      const classementFinalLignes = parNiveaux
+        ? await chargerClassementFinalNiveaux(supabase, tournamentId)
+        : calculerClassementFinalTableau(
+            matchsBruts,
+            matchPetiteFinaleBrut ?? null,
+            matchClassement5eBrut ?? null,
+            (teams ?? []).map((t) => t.id),
+            standingsParEquipe,
+            nomEquipe,
+            getFormat(tournoi.format_animation),
+          );
 
       const petiteFinaleAffichee: MatchAffiche | null =
         matchPetiteFinaleBrut && matchPetiteFinaleBrut.team_a_id && matchPetiteFinaleBrut.team_b_id

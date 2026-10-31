@@ -237,7 +237,7 @@ export default async function PageTournoiPublic({
     ? await chargerClassementFinalNiveaux(supabase, tournoi.id)
     : null;
 
-  const classementFinalLignes = classementNiveaux
+  const classementFinalLignes = getFormat(tournoi.format_animation).niveaux
     ? classementNiveaux
     : groupes && groupes.length === 1
       ? (standingsBrutes ?? [])

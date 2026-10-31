@@ -9,6 +9,7 @@ import {
   type ResultatAction,
 } from "@/lib/tournoi/tableauFinal";
 import type { Qualifie } from "@/lib/engine/tableau";
+import { chargerFormat } from "@/lib/tournoi/formatAnimation";
 
 /**
  * Régénère le tableau à partir d'une sélection de qualifiés choisie à la
@@ -21,6 +22,12 @@ export async function regenererTableauAvecQualifies(
   teamIds: string[],
 ): Promise<ResultatAction> {
   const supabase = await createClient();
+
+  // Format « poules de niveau + phase finale » : les niveaux de classement dépendent des qualifiés,
+  // ils sont recalculés ensemble automatiquement ; un choix à la main les rendrait incohérents.
+  if ((await chargerFormat(supabase, tournamentId)).niveaux) {
+    return { error: "Dans ce format, les qualifiés suivent le classement des poules : ils ne se choisissent pas à la main." };
+  }
 
   const contexte = await calculerContexteQualification(supabase, tournamentId);
   if ("error" in contexte) return { error: contexte.error };

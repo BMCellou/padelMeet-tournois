@@ -91,7 +91,7 @@ export default async function PoulesPage({
     try {
       const r = formatAnimation.groupes!.repartir(teams.length);
       apercu = `${r.nombrePoules} poule(s) de ${[...r.tailles].sort((a, b) => b - a).join("/")}`;
-      if (formatAnimation.niveaux) {
+      if (formatAnimation.niveaux && !formatAnimation.phaseFinale) {
         const e = formatAnimation.niveaux.estimer(r.tailles, nbTerrains);
         apercu += `, puis ${formatAnimation.niveaux.repartir(teams.length).niveaux.length} niveaux — ${e.nbMatchs} matchs, ${e.matchsMin === e.matchsMax ? e.matchsMin : `${e.matchsMin} à ${e.matchsMax}`} par équipe, ${e.creneauxMin} créneaux au minimum sur ${nbTerrains} terrain(s)`;
       }
@@ -128,10 +128,11 @@ export default async function PoulesPage({
                   <CardContent className="space-y-3 text-sm">
                     {niveaux.length === 0 ? (
                       <p className="text-muted-foreground">
-                        Quand tous les matchs du premier tour sont validés, le second tour se compose seul : les premiers de
-                        chaque poule dans le niveau 1, les deuxièmes dans le niveau 2, etc. Chaque niveau se joue en
-                        tournante (ou en un seul match de classement s&apos;il compte deux équipes), et le classement final
-                        va de la 1re à la dernière place.
+                        {formatAnimation.phaseFinale
+                          ? "Quand tous les matchs du premier tour sont validés, le second tour se compose seul : les meilleures équipes (selon le nombre de qualifiés du tournoi) jouent le tableau, et les autres se classent dans des niveaux (les équipes de même rang de poule ensemble), en même temps que le tableau. "
+                          : "Quand tous les matchs du premier tour sont validés, le second tour se compose seul : les premiers de chaque poule dans le niveau 1, les deuxièmes dans le niveau 2, etc. "}
+                        Chaque niveau se joue en tournante (ou en un seul match de classement s&apos;il compte deux
+                        équipes), et le classement final va de la 1re à la dernière place.
                       </p>
                     ) : (
                       niveaux.map((n) => (

@@ -42,7 +42,7 @@ const operationsGroupes: OperationsPhaseDeGroupes = {
   classerGroupe: calculerClassement,
 };
 
-const operationsFinale: OperationsPhaseFinale = {
+export const operationsFinale: OperationsPhaseFinale = {
   qualifier: selectionnerQualifies,
   construireTableau: genererTableau,
   planifierTableau,
