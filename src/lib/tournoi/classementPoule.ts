@@ -3,7 +3,9 @@
 // des scores et le calcul de l'impact d'une correction sur les qualifiés.
 
 import type { createClient } from "@/lib/supabase/server";
-import { calculerClassement, type CritereDepartage, type EquipeClassee, type MatchTermine } from "@/lib/engine/classement";
+import type { CritereDepartage, EquipeClassee, MatchTermine } from "@/lib/engine/classement";
+import type { FormatAnimation } from "@/lib/engine/formats";
+import { chargerFormat } from "./formatAnimation";
 import type { SetSaisi } from "@/lib/engine/score";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -18,6 +20,9 @@ interface LigneMatch {
 }
 
 export function versMatchTermine(m: LigneMatch): MatchTermine {
+  // Un match de poule terminé a toujours un vainqueur (le nul n'existe que sur une manche).
+  // Sans cette garde, un vainqueur nul serait compté comme une victoire de l'équipe B.
+  if (!m.winner_id) throw new Error("Match de poule terminé sans vainqueur : classement impossible.");
   if (m.statut === "forfait") {
     return {
       teamAId: m.team_a_id!,
@@ -59,6 +64,7 @@ export interface RemplacementMatch {
 
 export async function classementDuGroupe(
   supabase: SupabaseServerClient,
+  format: FormatAnimation,
   groupId: string,
   tiebreakRules: CritereDepartage[],
   remplacement?: RemplacementMatch,
@@ -89,7 +95,8 @@ export async function classementDuGroupe(
     return m;
   });
 
-  return calculerClassement(lignes.map(versMatchTermine), equipeIds, tiebreakRules);
+  if (!format.groupes) throw new Error("Ce format d'animation n'a pas de classement de poule.");
+  return format.groupes.classerGroupe(lignes.map(versMatchTermine), equipeIds, tiebreakRules);
 }
 
 export async function recalculerClassementPoule(
@@ -98,7 +105,8 @@ export async function recalculerClassementPoule(
   groupId: string,
   tiebreakRules: CritereDepartage[],
 ): Promise<void> {
-  const classement = await classementDuGroupe(supabase, groupId, tiebreakRules);
+  const format = await chargerFormat(supabase, tournamentId);
+  const classement = await classementDuGroupe(supabase, format, groupId, tiebreakRules);
 
   await supabase.from("standings").delete().eq("group_id", groupId);
   if (classement.length > 0) {

@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import type { MatchFormat } from "@/lib/engine/types";
-import { estEgaliteAuBuzzer, expliquerScoreIndetermine, type SetSaisi } from "@/lib/engine/score";
+import {
+  deduireAutreCamp,
+  egalitePossibleEnPoints,
+  estEgaliteAuBuzzer,
+  estModePoints,
+  expliquerScoreIndetermine,
+  verifierSaisiePoints,
+  type SetSaisi,
+} from "@/lib/engine/score";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,7 +90,7 @@ function DepartageBuzzer({
   );
 }
 
-export function SetsForm({
+function SetsFormJeuxSets({
   format,
   initialSets,
   onSubmit,
@@ -219,5 +227,182 @@ export function SetsForm({
         {isPending ? "Enregistrement..." : libelleSubmit}
       </Button>
     </div>
+  );
+}
+
+interface PropsSaisie {
+  format: MatchFormat;
+  /** Phase du match : un nul n'est accepté que sur une manche (voir nulAutorise). */
+  phase?: string;
+  initialSets?: SetSaisi[];
+  onSubmit: (sets: SetSaisi[]) => void;
+  isPending: boolean;
+  error: string | null;
+  libelleSubmit: string;
+}
+
+/**
+ * Mode points : un seul champ. Avec un total exact, les points d'un camp suffisent,
+ * l'autre se déduit ; une égalité possible (cible paire) demande le gagnant du point en or.
+ */
+function SaisiePoints({
+  format,
+  phase,
+  initialSets,
+  onSubmit,
+  isPending,
+  error,
+  libelleSubmit,
+}: PropsSaisie) {
+  const exact = format.sommeExacte !== false;
+  const depart = initialSets?.[0];
+  const [pointsA, setPointsA] = useState<string>(
+    depart ? String(depart.jeuxA) : "",
+  );
+  const [pointsBLibre, setPointsBLibre] = useState<string>(
+    depart ? String(depart.jeuxB) : "",
+  );
+  const [pointEnOr, setPointEnOr] = useState<"a" | "b" | null>(
+    depart?.tiebreakA != null &&
+      depart.tiebreakB != null &&
+      depart.tiebreakA !== depart.tiebreakB
+      ? depart.tiebreakA > depart.tiebreakB
+        ? "a"
+        : "b"
+      : null,
+  );
+
+  const a = pointsA === "" ? null : Number(pointsA);
+  const b = exact
+    ? a === null
+      ? null
+      : deduireAutreCamp(a, format)
+    : pointsBLibre === ""
+      ? null
+      : Number(pointsBLibre);
+  const egalite = a !== null && b !== null && a === b;
+  const demandePointEnOr = egalite && egalitePossibleEnPoints(format);
+
+  const sets: SetSaisi[] =
+    a !== null && b !== null
+      ? [
+          {
+            jeuxA: a,
+            jeuxB: b,
+            tiebreakA:
+              demandePointEnOr && pointEnOr
+                ? pointEnOr === "a"
+                  ? 1
+                  : 0
+                : null,
+            tiebreakB:
+              demandePointEnOr && pointEnOr
+                ? pointEnOr === "a"
+                  ? 0
+                  : 1
+                : null,
+          },
+        ]
+      : [];
+  const probleme =
+    sets.length > 0
+      ? (verifierSaisiePoints(sets, format) ??
+        expliquerScoreIndetermine(sets, format, phase))
+      : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="points-a">Points équipe A</Label>
+          <Input
+            id="points-a"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={exact ? format.pointsCible : undefined}
+            value={pointsA}
+            onChange={(e) => setPointsA(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="points-b">
+            Points équipe B{exact ? " (déduits)" : ""}
+          </Label>
+          {exact ? (
+            <Input
+              id="points-b"
+              type="number"
+              value={b ?? ""}
+              readOnly
+              tabIndex={-1}
+            />
+          ) : (
+            <Input
+              id="points-b"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={pointsBLibre}
+              onChange={(e) => setPointsBLibre(e.target.value)}
+            />
+          )}
+        </div>
+      </div>
+      {exact ? (
+        <p className="text-xs text-muted-foreground">
+          Total de la manche : {format.pointsCible} points.
+        </p>
+      ) : null}
+
+      {demandePointEnOr ? (
+        <div className="space-y-2 rounded-md bg-muted/40 p-2">
+          <p className="text-xs font-medium">
+            Égalité {a}-{b} : une égalité est refusée. Qui a gagné le point en
+            or ?
+          </p>
+          <div className="flex gap-4 text-sm">
+            {(["a", "b"] as const).map((g) => (
+              <label key={g} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="point-en-or"
+                  checked={pointEnOr === g}
+                  onChange={() => setPointEnOr(g)}
+                />
+                Équipe {g.toUpperCase()}
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {probleme ? (
+        <p
+          className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm"
+          role="status"
+        >
+          {probleme}
+        </p>
+      ) : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <Button
+        type="button"
+        onClick={() => onSubmit(sets)}
+        disabled={isPending || sets.length === 0}
+        className="w-full"
+      >
+        {isPending ? "Enregistrement..." : libelleSubmit}
+      </Button>
+    </div>
+  );
+}
+
+export function SetsForm(props: PropsSaisie) {
+  return estModePoints(props.format) ? (
+    <SaisiePoints {...props} />
+  ) : (
+    <SetsFormJeuxSets {...props} />
   );
 }

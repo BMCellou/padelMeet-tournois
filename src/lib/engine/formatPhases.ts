@@ -4,10 +4,23 @@
 import type { MatchFormat } from "./types";
 import { validerFormat } from "./formatMatch";
 
-export const PHASES_FORMAT = ["poule", "quarts", "demis", "finale", "classement"] as const;
-export type PhaseFormat = (typeof PHASES_FORMAT)[number];
+// Les phases d'un tournoi dépendent de son format d'animation : c'est le format qui les
+// déclare (FormatAnimation.phases, FormatAnimation.resoudrePhases). Les constantes ci-dessous
+// ne décrivent que les phases du format « poules + tableau » et servent de valeur par défaut
+// aux fonctions de ce fichier quand l'appelant ne fournit pas la définition d'un format.
 
-export const LIBELLES_PHASES: Record<PhaseFormat, string> = {
+/** Une phase à laquelle on peut donner un format de match propre. */
+export interface PhaseDeFormat {
+  code: string;
+  libelle: string;
+}
+
+/** Code d'une phase (clé de tournaments.format_par_phase). */
+export type PhaseFormat = string;
+
+export const PHASES_FORMAT = ["poule", "quarts", "demis", "finale", "classement"] as const;
+
+export const LIBELLES_PHASES: Record<(typeof PHASES_FORMAT)[number], string> = {
   poule: "Poules",
   quarts: "Quarts de finale",
   demis: "Demi-finales",
@@ -15,7 +28,13 @@ export const LIBELLES_PHASES: Record<PhaseFormat, string> = {
   classement: "Matchs de classement",
 };
 
-export type FormatsParPhase = Partial<Record<PhaseFormat, MatchFormat>>;
+/** Phases du format « poules + tableau ». */
+export const PHASES_POULES_TABLEAU: readonly PhaseDeFormat[] = PHASES_FORMAT.map((code) => ({
+  code,
+  libelle: LIBELLES_PHASES[code],
+}));
+
+export type FormatsParPhase = Partial<Record<string, MatchFormat>>;
 
 export interface MatchPourPhase {
   phase: string;
@@ -45,6 +64,27 @@ export function matchCommence(statut: string): boolean {
   return statut !== "a_venir" && statut !== "pret";
 }
 
+/** Ce qu'un format déclare de ses phases : leur liste, et comment ranger un match dans l'une d'elles. */
+export interface DefinitionPhases {
+  phases: readonly PhaseDeFormat[];
+  /**
+   * Fabrique la fonction qui range un match dans sa phase d'après l'ensemble des matchs du
+   * tournoi (le dernier tour d'un tableau en dépend). Null : match hors de toute phase configurable.
+   */
+  resoudrePhases(matchs: MatchPourPhase[]): (m: MatchPourPhase) => string | null;
+  /** Phase dont le premier match joué verrouille l'ordre de départage du classement. */
+  phaseDuDepartage: string;
+}
+
+export const DEFINITION_POULES_TABLEAU: DefinitionPhases = {
+  phases: PHASES_POULES_TABLEAU,
+  resoudrePhases(matchs) {
+    const dernier = dernierTourTableau(matchs);
+    return (m) => phaseDuMatch(m, dernier);
+  },
+  phaseDuDepartage: "poule",
+};
+
 export interface Verrou {
   verrouille: boolean;
   raison: string | null;
@@ -52,7 +92,7 @@ export interface Verrou {
 
 export interface Verrous {
   defaut: Verrou;
-  phases: Record<PhaseFormat, Verrou>;
+  phases: Record<string, Verrou>;
   departage: Verrou;
 }
 
@@ -61,32 +101,34 @@ const LIBRE: Verrou = { verrouille: false, raison: null };
 export function calculerVerrous(
   matchs: (MatchPourPhase & { statut: string })[],
   phasesAvecFormatPropre: ReadonlySet<PhaseFormat>,
+  definition: DefinitionPhases = DEFINITION_POULES_TABLEAU,
 ): Verrous {
-  const dernier = dernierTourTableau(matchs);
-  const commencee = new Set<PhaseFormat>();
+  const phaseDe = definition.resoudrePhases(matchs);
+  const libelle = (code: string) => definition.phases.find((p) => p.code === code)?.libelle ?? code;
+  const commencee = new Set<string>();
   for (const m of matchs) {
-    const phase = phaseDuMatch(m, dernier);
+    const phase = phaseDe(m);
     if (phase && matchCommence(m.statut)) commencee.add(phase);
   }
 
   const phases = Object.fromEntries(
-    PHASES_FORMAT.map((p) => [
-      p,
-      commencee.has(p)
-        ? { verrouille: true, raison: `Des matchs de « ${LIBELLES_PHASES[p]} » ont déjà été joués : leurs règles ne peuvent plus changer.` }
+    definition.phases.map(({ code }) => [
+      code,
+      commencee.has(code)
+        ? { verrouille: true, raison: `Des matchs de « ${libelle(code)} » ont déjà été joués : leurs règles ne peuvent plus changer.` }
         : LIBRE,
     ]),
-  ) as Record<PhaseFormat, Verrou>;
+  ) as Record<string, Verrou>;
 
-  const phaseSurDefaut = PHASES_FORMAT.find((p) => commencee.has(p) && !phasesAvecFormatPropre.has(p));
+  const phaseSurDefaut = definition.phases.find((p) => commencee.has(p.code) && !phasesAvecFormatPropre.has(p.code));
   const defaut: Verrou = phaseSurDefaut
     ? {
         verrouille: true,
-        raison: `Des matchs de « ${LIBELLES_PHASES[phaseSurDefaut]} » ont déjà été joués avec ce format : le changer modifierait leurs règles après coup. Pour agir sur les phases à venir, donne-leur un format propre dans la section 2.`,
+        raison: `Des matchs de « ${phaseSurDefaut.libelle} » ont déjà été joués avec ce format : le changer modifierait leurs règles après coup. Pour agir sur les phases à venir, donne-leur un format propre dans la section 2.`,
       }
     : LIBRE;
 
-  const departage: Verrou = commencee.has("poule")
+  const departage: Verrou = commencee.has(definition.phaseDuDepartage)
     ? {
         verrouille: true,
         raison: "Des matchs de poule ont déjà été joués : changer l'ordre de départage modifierait des classements existants.",
@@ -99,6 +141,7 @@ export function calculerVerrous(
 /** Valide un objet « format par phase » reçu du client. */
 export function validerFormatsParPhase(
   brut: unknown,
+  phases: readonly PhaseDeFormat[] = PHASES_POULES_TABLEAU,
 ): { ok: true; formats: FormatsParPhase } | { ok: false; erreurs: string[] } {
   if (!brut || typeof brut !== "object" || Array.isArray(brut)) {
     return { ok: false, erreurs: ["Requête invalide."] };
@@ -106,14 +149,14 @@ export function validerFormatsParPhase(
   const formats: FormatsParPhase = {};
   const erreurs: string[] = [];
   for (const [cle, valeur] of Object.entries(brut)) {
-    if (!(PHASES_FORMAT as readonly string[]).includes(cle)) {
+    if (!phases.some((p) => p.code === cle)) {
       erreurs.push(`Phase inconnue : ${cle}.`);
       continue;
     }
     if (valeur === null || valeur === undefined) continue;
     const r = validerFormat(valeur);
-    if (r.ok) formats[cle as PhaseFormat] = r.format;
-    else erreurs.push(...r.erreurs.map((e) => `${LIBELLES_PHASES[cle as PhaseFormat]} : ${e}`));
+    if (r.ok) formats[cle] = r.format;
+    else erreurs.push(...r.erreurs.map((e) => `${phases.find((p) => p.code === cle)!.libelle} : ${e}`));
   }
   return erreurs.length > 0 ? { ok: false, erreurs } : { ok: true, formats };
 }

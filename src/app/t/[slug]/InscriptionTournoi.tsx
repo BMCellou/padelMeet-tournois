@@ -85,14 +85,17 @@ export function InscriptionFormulaire({
   slug,
   placesLibelle,
   placesRestantes,
+  soloSeulement = false,
 }: {
   tournamentId: string;
   slug: string;
   placesLibelle: string | null;
   /** null = illimité */
   placesRestantes: number | null;
+  /** Format à partenaires tournants : l'unité est le joueur, pas d'inscription en paire. */
+  soloSeulement?: boolean;
 }) {
-  const [mode, setMode] = useState<"solo" | "paire">("paire");
+  const [mode, setMode] = useState<"solo" | "paire">(soloSeulement ? "solo" : "paire");
   const [stateSolo, actionSolo, pendingSolo] = useActionState(sInscrireSolo, null);
   const [statePaire, actionPaire, pendingPaire] = useActionState(sInscrireEnPaire, null);
 
@@ -131,12 +134,12 @@ export function InscriptionFormulaire({
             Ce tournoi est complet, les inscriptions sont fermées.
           </p>
         ) : null}
-        {uneSeulePlace ? (
+        {uneSeulePlace && !soloSeulement ? (
           <p className="text-sm text-muted-foreground">
             Il ne reste qu&apos;une place : seule l&apos;inscription en solo est possible.
           </p>
         ) : null}
-        <div className={complet || uneSeulePlace ? "hidden" : "space-y-2"}>
+        <div className={complet || uneSeulePlace || soloSeulement ? "hidden" : "space-y-2"}>
           <p className="text-sm font-medium">Comment veux-tu t&apos;inscrire ?</p>
           <div role="radiogroup" aria-label="Mode d'inscription" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
             {(
@@ -164,7 +167,7 @@ export function InscriptionFormulaire({
           </div>
         </div>
 
-        {complet ? null : mode === "paire" && !uneSeulePlace ? (
+        {complet ? null : mode === "paire" && !uneSeulePlace && !soloSeulement ? (
           <form action={actionPaire} className="space-y-3">
             <input type="hidden" name="tournamentId" value={tournamentId} />
             <input type="hidden" name="slug" value={slug} />
@@ -199,7 +202,9 @@ export function InscriptionFormulaire({
             <input type="hidden" name="tournamentId" value={tournamentId} />
             <input type="hidden" name="slug" value={slug} />
             <p className="text-sm text-muted-foreground">
-              Le club t&apos;associera à un autre joueur seul.
+              {soloSeulement
+                ? "Tu changeras de partenaire à chaque tour : inscris-toi seul(e)."
+                : "Le club t'associera à un autre joueur seul."}
             </p>
             {stateSolo && "error" in stateSolo ? (
               <p className="text-sm text-destructive">{stateSolo.error}</p>

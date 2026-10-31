@@ -18,13 +18,15 @@ export interface EquipePdf {
 export interface PoulePdf {
   id: string;
   nom: string;
+  /** Second tour d'un format par niveaux (« Niveau 1 ») ; absent pour une poule du premier tour. */
+  niveau?: number | null;
   /** Dans l'ordre du tirage. */
   equipeIds: string[];
 }
 
 export interface MatchPdf {
   id: string;
-  phase: "poule" | "tableau" | "classement" | "classement_5e";
+  phase: "poule" | "tableau" | "classement" | "classement_5e" | "manche";
   groupId: string | null;
   round: number;
   bracketSlot: number | null;
@@ -59,6 +61,8 @@ export interface ClassementPdf {
 }
 
 export interface DonneesTournoi {
+  /** Code du format d'animation (tournaments.format_animation) ; absent = valeur par défaut du registre. */
+  formatAnimation?: string;
   tournoi: {
     nom: string;
     /** AAAA-MM-JJ */

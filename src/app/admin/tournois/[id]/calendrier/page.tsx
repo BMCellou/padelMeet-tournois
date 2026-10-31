@@ -1,14 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { chargerFormat } from "@/lib/tournoi/formatAnimation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 import { GenerationForm } from "./GenerationForm";
 import { CalendrierGrid, type MatchAffiche } from "./CalendrierGrid";
 import { ExemptsList, type ExemptParPoule } from "./ExemptsList";
-import { genererTours } from "@/lib/engine/tours";
-import { alimentants, libellerTableau, type MatchTableauStructure } from "@/lib/engine/tableauLibelles";
+import { getFormat } from "@/lib/engine/formats";
+import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
 import { ReplanifierTableau } from "./ReplanifierTableau";
+import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
 
 export default async function CalendrierPage({
   params,
@@ -21,7 +23,7 @@ export default async function CalendrierPage({
   const { data: tournoi } = await supabase
     .from("tournaments")
     .select(
-      "id, nom, date, heure_debut, duree_match_min, pause_min, repos_min_min, club_id",
+      "id, nom, date, heure_debut, duree_match_min, pause_min, repos_min_min, club_id, format_animation",
     )
     .eq("id", tournamentId)
     .single();
@@ -29,6 +31,11 @@ export default async function CalendrierPage({
   if (!tournoi) {
     notFound();
   }
+
+  // Format à partenaires tournants : pas de poules ni de tableau, tout se joue sur l'écran de déroulé.
+  if ((await chargerFormat(supabase, tournamentId)).rotation) redirect(`/admin/tournois/${tournamentId}/deroule`);
+
+  const format = getFormat(tournoi.format_animation);
 
   const { data: terrainsLies } = await supabase
     .from("tournament_courts")
@@ -42,7 +49,7 @@ export default async function CalendrierPage({
 
   const { data: groupes } = await supabase
     .from("groups")
-    .select("id, nom, ordre, group_teams(team_id, position_tirage)")
+    .select("id, nom, ordre, niveau, group_teams(team_id, position_tirage)")
     .eq("tournament_id", tournamentId)
     .order("ordre");
 
@@ -60,7 +67,7 @@ export default async function CalendrierPage({
     .eq("tournament_id", tournamentId)
     .in("phase", ["poule", "tableau", "classement", "classement_5e"]);
 
-  const nomPoule = new Map((groupes ?? []).map((g) => [g.id, g.nom]));
+  const nomPoule = new Map((groupes ?? []).map((g) => [g.id, libelleGroupe(g)]));
 
   const finaux = (matchsBruts ?? []).filter((m) => m.phase !== "poule");
   const structure: MatchTableauStructure[] = finaux.map((m) => ({
@@ -73,8 +80,8 @@ export default async function CalendrierPage({
     loserNextMatchId: m.loser_next_match_id,
     loserNextSlot: m.loser_next_slot as "a" | "b" | null,
   }));
-  const libelles = libellerTableau(structure);
-  const alimentantsParMatch = alimentants(structure);
+  const libelles = format.phaseFinale?.etiqueterTableau(structure) ?? new Map();
+  const alimentantsParMatch = format.phaseFinale?.alimentants(structure) ?? new Map<string, string[]>();
   const tableauJoue = finaux.some((m) => m.statut === "valide" || m.statut === "forfait");
 
   const matches: MatchAffiche[] = (matchsBruts ?? []).map((m) => {
@@ -88,7 +95,7 @@ export default async function CalendrierPage({
       teamBId: m.team_b_id,
       teamANom: m.team_a_id ? (nomEquipe.get(m.team_a_id) ?? "?") : (libelle?.sourceA ?? "À déterminer"),
       teamBNom: m.team_b_id ? (nomEquipe.get(m.team_b_id) ?? "?") : (libelle?.sourceB ?? "À déterminer"),
-      etiquette: m.phase === "poule" ? `Poule ${nomPoule.get(m.group_id!) ?? "?"}` : (libelle?.etiquette ?? "Tableau"),
+      etiquette: m.phase === "poule" ? (nomPoule.get(m.group_id!) ?? "Poule ?") : (libelle?.etiquette ?? "Tableau"),
       round: m.round,
       alimentePar: alimentantsParMatch.get(m.id),
       verrouille: m.phase !== "poule" && tableauJoue,
@@ -99,9 +106,9 @@ export default async function CalendrierPage({
     const equipeIds = [...g.group_teams]
       .sort((a, b) => (a.position_tirage ?? 0) - (b.position_tirage ?? 0))
       .map((gt) => gt.team_id);
-    const tours = equipeIds.length >= 2 ? genererTours(equipeIds) : [];
+    const tours = equipeIds.length >= 2 ? (format.groupes?.toursDuGroupe(equipeIds) ?? []) : [];
     return {
-      pouleNom: g.nom,
+      pouleNom: libelleGroupe(g),
       exempts: tours
         .filter((t) => t.exempt !== null)
         .map((t) => ({

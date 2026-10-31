@@ -33,6 +33,11 @@ export function RealtimeRefresher({ tournamentId }: { tournamentId: string }) {
       )
       .on(
         "postgres_changes",
+        { event: "*", schema: "public", table: "standings_joueurs", filter: `tournament_id=eq.${tournamentId}` },
+        () => router.refresh(),
+      )
+      .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "teams", filter: `tournament_id=eq.${tournamentId}` },
         () => router.refresh(),
       )

@@ -3,8 +3,9 @@
 // A4, français, heures de Paris, noir et blanc.
 
 import { resumerFormat } from "@/lib/engine/formatMatch";
-import { LIBELLES_PHASES, PHASES_FORMAT } from "@/lib/engine/formatPhases";
+import { CODE_FORMAT_PAR_DEFAUT, getFormat } from "@/lib/engine/formats";
 import { formatHeureParis } from "@/lib/temps";
+import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
 import { dessinerArbre, dessinerBoite } from "./arbre-dessin";
 import {
   coteMatch,
@@ -88,9 +89,9 @@ function couverture(r: Rendu, d: DonneesTournoi, maintenant: Date): void {
   r.texte(MARGE, r.y - 11, "Format de match", { taille: 12, gras: true });
   r.y -= 20;
   const formats: [string, string][] = [["Format par défaut", resumerFormat(t.formatDefaut)]];
-  for (const phase of PHASES_FORMAT) {
-    const f = t.formatsParPhase[phase];
-    if (f) formats.push([LIBELLES_PHASES[phase], resumerFormat(f)]);
+  for (const { code, libelle } of getFormat(d.formatAnimation ?? CODE_FORMAT_PAR_DEFAUT).phases) {
+    const f = t.formatsParPhase[code];
+    if (f) formats.push([libelle, resumerFormat(f)]);
   }
   for (const [titre, texte] of formats) {
     r.texte(MARGE, r.y - 10, titre, { taille: 10, gras: true });
@@ -124,7 +125,7 @@ function poules(r: Rendu, d: DonneesTournoi): void {
 
   for (const p of d.poules) {
     r.assurerPlace(70, "Composition des poules (suite)");
-    r.texte(MARGE, r.y - 13, `Poule ${p.nom}`, { taille: 13, gras: true });
+    r.texte(MARGE, r.y - 13, libelleGroupe(p), { taille: 13, gras: true });
     r.texte(MARGE + 80, r.y - 13, `${p.equipeIds.length} équipes`, { taille: 9, gris: 0.4 });
     r.y -= 20;
     r.cellule(MARGE, r.y, colN, 16, "N°", { gras: true, fond: FOND_ENTETE, align: "centre" });
@@ -132,7 +133,7 @@ function poules(r: Rendu, d: DonneesTournoi): void {
     r.cellule(MARGE + colN + colJ, r.y, colJ, 16, "Joueur 2", { gras: true, fond: FOND_ENTETE });
     r.y -= 16;
     p.equipeIds.forEach((id, i) => {
-      r.assurerPlace(22, `Poule ${p.nom} (suite)`);
+      r.assurerPlace(22, `${libelleGroupe(p)} (suite)`);
       const e = d.equipes.find((x) => x.id === id);
       const [j1, j2] = e && e.joueurs.length >= 2 ? e.joueurs : [e?.nom ?? "?", ""];
       r.cellule(MARGE, r.y, colN, 20, `${i + 1}`, { align: "centre", taille: 9 });
@@ -308,7 +309,7 @@ function grillesClassement(r: Rendu, d: DonneesTournoi): void {
 
   for (const p of d.poules) {
     r.assurerPlace(40 + (p.equipeIds.length + 1) * hLigne, "Grilles de classement (suite)");
-    r.texte(MARGE, r.y - 13, `Poule ${p.nom}`, { taille: 13, gras: true });
+    r.texte(MARGE, r.y - 13, libelleGroupe(p), { taille: 13, gras: true });
     r.y -= 20;
     let x = MARGE;
     r.cellule(x, r.y, colEquipe, 20, "Équipe", { gras: true, fond: FOND_ENTETE });

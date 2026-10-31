@@ -3,12 +3,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { determinerVainqueurMatch, expliquerScoreIndetermine, type SetSaisi } from "@/lib/engine/score";
+import {
+  arbitrerMatch,
+  determinerVainqueurMatch,
+  verifierSaisiePoints,
+  type SetSaisi,
+} from "@/lib/engine/score";
 import type { CritereDepartage } from "@/lib/engine/classement";
 import { recalculerClassementPoule } from "@/lib/tournoi/classementPoule";
 import type { MatchFormat } from "@/lib/engine/types";
 import type { Json } from "@/lib/supabase/database.types";
+import { createServiceClient } from "@/lib/supabase/service";
+import { recalculerClassementJoueurs } from "@/lib/tournoi/classementJoueurs";
+import { calculerPropagationTableau } from "@/lib/tournoi/propagationTableau";
 import { regenererTableauAuto, tenterGenerationAutomatique } from "@/lib/tournoi/tableauFinal";
+import { chargerFormat } from "@/lib/tournoi/formatAnimation";
+import { etatDuSecondTour, regenererNiveaux, supprimerSecondTour } from "@/lib/tournoi/niveaux";
 import { evaluerCorrectionPoule, type ResultatEvaluation } from "@/lib/tournoi/correctionPoule";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -85,17 +95,19 @@ async function apresValidation(
     return;
   }
 
-  if (match.phase !== "tableau") return;
-
-  if (match.next_match_id) {
-    const champ = match.next_slot === "a" ? { team_a_id: winnerId } : { team_b_id: winnerId };
-    await supabase.from("matches").update(champ).eq("id", match.next_match_id);
+  if (match.phase === "manche") {
+    // Format à manches : le classement individuel (standings_joueurs) est mis à jour à chaque
+    // validation, correction ou forfait, pour que la page publique le lise sans recalcul. Le
+    // client service_role est sûr ici : l'appelant a déjà été autorisé en lisant le match.
+    await recalculerClassementJoueurs(createServiceClient(), tournamentId);
+    return;
   }
 
-  if (match.loser_next_match_id) {
-    const loserId = winnerId === match.team_a_id ? match.team_b_id! : match.team_a_id!;
-    const champ = match.loser_next_slot === "a" ? { team_a_id: loserId } : { team_b_id: loserId };
-    await supabase.from("matches").update(champ).eq("id", match.loser_next_match_id);
+  if (match.phase !== "tableau") return;
+
+  // Lève si le match n'a pas de vainqueur : un nul ne se propage jamais.
+  for (const { matchId, champ } of calculerPropagationTableau(match, winnerId)) {
+    await supabase.from("matches").update(champ).eq("id", matchId);
   }
 }
 
@@ -111,6 +123,22 @@ async function regenererApresCorrection(
   garde: ResultatEvaluation | null,
   origine: "correction" | "forfait",
 ): Promise<ActionResult> {
+  // Format à second tour par niveaux : pas de liste de qualifiés, on recompose les niveaux.
+  if (garde?.decision === "appliquer_et_regenerer" && !garde.impact) {
+    const niveaux = await regenererNiveaux(supabase, tournamentId);
+    if (!niveaux.ok) {
+      return {
+        error: `Correction appliquée, mais le second tour n'a pas pu être recomposé (${niveaux.error}).`,
+      };
+    }
+    await supabase.from("audit_log").insert({
+      tournament_id: tournamentId,
+      acteur: await enregistrerActeur(supabase),
+      action: "regeneration_niveaux_correction",
+      payload: { matchId, origine } as unknown as Json,
+    });
+    return { success: true, info: "Le second tour a été recomposé suite à la correction : les classements des poules ont changé." };
+  }
   if (!garde || garde.decision !== "appliquer_et_regenerer" || !garde.impact) return { success: true };
 
   const resultat = await regenererTableauAuto(supabase, tournamentId);
@@ -177,6 +205,10 @@ export async function enregistrerScore(
   const contexte = await chargerMatchEtFormat(supabase, matchId, tournamentId);
   if (!contexte) return { error: "Match introuvable." };
 
+  // Mode points : total exact (les deux scores font la cible) ; sans objet en jeux/sets.
+  const erreurPoints = verifierSaisiePoints(parsed.data, contexte.format);
+  if (erreurPoints) return { error: erreurPoints };
+
   const resultat = determinerVainqueurMatch(parsed.data, contexte.format);
   const winnerId =
     resultat.vainqueur === "a"
@@ -213,13 +245,18 @@ export async function validerScore(tournamentId: string, matchId: string): Promi
     tiebreakB: s.tiebreak_b,
   }));
 
-  const resultat = determinerVainqueurMatch(sets, contexte.format);
-  if (!resultat.vainqueur) {
-    return { error: expliquerScoreIndetermine(sets, contexte.format) ?? "Le score ne désigne pas encore de vainqueur clair." };
-  }
+  const erreurPoints = verifierSaisiePoints(sets, contexte.format);
+  if (erreurPoints) return { error: erreurPoints };
 
-  const winnerId =
-    resultat.vainqueur === "a" ? contexte.match.team_a_id : contexte.match.team_b_id;
+  // Un nul n'est accepté que sur une manche : partout ailleurs, un vainqueur est obligatoire.
+  const arbitrage = arbitrerMatch(sets, contexte.format, contexte.match.phase);
+  if (arbitrage.erreur) return { error: arbitrage.erreur };
+
+  const winnerId = arbitrage.nul
+    ? null
+    : arbitrage.vainqueur === "a"
+      ? contexte.match.team_a_id
+      : contexte.match.team_b_id;
 
   await supabase.from("matches").update({ statut: "valide", winner_id: winnerId }).eq("id", matchId);
 
@@ -230,7 +267,7 @@ export async function validerScore(tournamentId: string, matchId: string): Promi
     payload: { matchId, sets } as unknown as Json,
   });
 
-  await apresValidation(supabase, tournamentId, contexte.match, winnerId!, contexte.tiebreakRules);
+  await apresValidation(supabase, tournamentId, contexte.match, winnerId ?? "", contexte.tiebreakRules);
   if (contexte.match.phase === "poule") {
     await tenterGenerationAutomatique(supabase, tournamentId);
   }
@@ -258,16 +295,17 @@ export async function corrigerScore(
     return { error: "Seul un match déjà validé peut être corrigé." };
   }
 
-  const resultat = determinerVainqueurMatch(parsed.data, contexte.format);
-  if (!resultat.vainqueur) {
-    return {
-      error:
-        expliquerScoreIndetermine(parsed.data, contexte.format) ?? "Le score corrigé ne désigne pas de vainqueur clair.",
-    };
-  }
+  const erreurPoints = verifierSaisiePoints(parsed.data, contexte.format);
+  if (erreurPoints) return { error: erreurPoints };
 
-  const winnerId =
-    resultat.vainqueur === "a" ? contexte.match.team_a_id : contexte.match.team_b_id;
+  const arbitrage = arbitrerMatch(parsed.data, contexte.format, contexte.match.phase);
+  if (arbitrage.erreur) return { error: arbitrage.erreur };
+
+  const winnerId = arbitrage.nul
+    ? null
+    : arbitrage.vainqueur === "a"
+      ? contexte.match.team_a_id
+      : contexte.match.team_b_id;
 
   // Une correction de poule peut changer les qualifiés alors que le tableau
   // existe déjà : on mesure l'impact avant d'écrire quoi que ce soit.
@@ -310,7 +348,7 @@ export async function corrigerScore(
     } as unknown as Json,
   });
 
-  await apresValidation(supabase, tournamentId, contexte.match, winnerId!, contexte.tiebreakRules);
+  await apresValidation(supabase, tournamentId, contexte.match, winnerId ?? "", contexte.tiebreakRules);
   const suite = await regenererApresCorrection(supabase, tournamentId, matchId, garde, "correction");
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);
@@ -386,7 +424,13 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
     return { error: "Ce match n'a pas encore de score à réinitialiser." };
   }
 
-  if (match.phase === "poule") {
+  // Un match de niveau (second tour d'un format « poules de niveau ») se rouvre indépendamment du tableau.
+  const { data: groupeDuMatch } = match.group_id
+    ? await supabase.from("groups").select("niveau").eq("id", match.group_id).single()
+    : { data: null };
+  const matchDeNiveau = groupeDuMatch?.niveau != null;
+
+  if (match.phase === "poule" && !matchDeNiveau) {
     // Le tableau final a pu être généré automatiquement dès la fin des
     // poules (voir tenterGenerationAutomatique) : rouvrir un score de
     // poule après coup rendrait les qualifiés obsolètes. On l'autorise
@@ -404,6 +448,22 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
         error:
           "Le tableau final a déjà commencé : impossible de réinitialiser ce score de poule.",
       };
+    }
+  }
+
+  if (match.phase === "poule" && match.group_id) {
+    // Format à second tour par niveaux : rouvrir un score du premier tour change les classements, donc
+    // les niveaux. Possible tant qu'aucun match de niveau n'a commencé (le second tour est retiré, il
+    // se recompose quand le premier tour est de nouveau terminé) ; refusé ensuite.
+    if (groupeDuMatch && groupeDuMatch.niveau === null && (await chargerFormat(supabase, tournamentId)).niveaux) {
+      const secondTour = await etatDuSecondTour(supabase, tournamentId);
+      if (secondTour.commence) {
+        return { error: "Le second tour a déjà commencé : impossible de réinitialiser ce score du premier tour." };
+      }
+      if (secondTour.existe) {
+        const suppression = await supprimerSecondTour(supabase, tournamentId);
+        if (!suppression.ok) return { error: suppression.error };
+      }
     }
   }
 
@@ -447,6 +507,9 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
 
   if (match.phase === "poule") {
     await recalculerClassementPoule(supabase, tournamentId, match.group_id!, contexte.tiebreakRules);
+  }
+  if (match.phase === "manche") {
+    await recalculerClassementJoueurs(createServiceClient(), tournamentId);
   }
 
   revalidatePath(`/admin/tournois/${tournamentId}/scores`);

@@ -1,11 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { chargerFormat } from "@/lib/tournoi/formatAnimation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminHeader } from "../../../AdminHeader";
 import { AdminSidebar } from "../../../AdminSidebar";
 import { MatchScoreCard, type MatchAffiche } from "./MatchScoreCard";
 import { StandingsTable, type LigneClassement } from "@/components/tournoi/StandingsTable";
 import type { MatchFormat } from "@/lib/engine/types";
+import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
+import { chargerClassementFinalNiveaux } from "@/lib/tournoi/niveaux";
+import { ClassementFinalList } from "@/components/tournoi/ClassementFinalList";
 import { estAdmin, getTournoisScoreur } from "@/lib/staff/session";
 
 export default async function ScoresPage({
@@ -28,11 +32,18 @@ export default async function ScoresPage({
     notFound();
   }
 
+  // Format à partenaires tournants : pas de poules ni de tableau, tout se joue sur l'écran de déroulé.
+  if ((await chargerFormat(supabase, tournamentId)).rotation) redirect(`/admin/tournois/${tournamentId}/deroule`);
+
   const format = tournoi.format_config as unknown as MatchFormat;
+  // Format par niveaux : classement final de la 1re à la dernière place, quand tous les matchs sont joués.
+  const classementNiveaux = (await chargerFormat(supabase, tournamentId)).niveaux
+    ? await chargerClassementFinalNiveaux(supabase, tournamentId)
+    : null;
 
   const { data: groupes } = await supabase
     .from("groups")
-    .select("id, nom, ordre")
+    .select("id, nom, ordre, niveau")
     .eq("tournament_id", tournamentId)
     .order("ordre");
 
@@ -69,6 +80,8 @@ export default async function ScoresPage({
         />
         <div className="mx-auto w-full max-w-4xl space-y-6 p-4 sm:p-8">
           <h1 className="text-2xl font-semibold">Scores et classements — {tournoi.nom}</h1>
+
+          {classementNiveaux ? <ClassementFinalList lignes={classementNiveaux} /> : null}
 
           {!groupes || groupes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -113,7 +126,7 @@ export default async function ScoresPage({
               return (
                 <Card key={g.id}>
                   <CardHeader>
-                    <CardTitle className="text-base">Poule {g.nom}</CardTitle>
+                    <CardTitle className="text-base">{libelleGroupe(g)}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <StandingsTable lignes={lignesClassement} />

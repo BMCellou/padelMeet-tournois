@@ -6,10 +6,12 @@
 // qualifiés : toute la logique vit ici, une seule fois.
 
 import type { createClient } from "@/lib/supabase/server";
-import { selectionnerQualifies, type ClassementPoule } from "@/lib/engine/qualification";
-import { genererTableau, type Qualifie } from "@/lib/engine/tableau";
-import { calculerMatch5eDePoule, type Match5e } from "@/lib/engine/classement5e";
+import type { ClassementPoule } from "@/lib/engine/qualification";
+import type { Qualifie } from "@/lib/engine/tableau";
+import type { Match5e } from "@/lib/engine/classement5e";
+import { chargerFormat } from "./formatAnimation";
 import { appliquerFormatsParPhase } from "./formatParPhase";
+import { tenterGenerationNiveaux } from "./niveaux";
 import { planifierTableauFinal } from "./planificationTableau";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -52,7 +54,8 @@ export async function verifierPoulesTerminees(
     return { ok: false, error: "Nombre de qualifiés non défini pour ce tournoi." };
   }
 
-  const { data: groupes } = await supabase.from("groups").select("id").eq("tournament_id", tournamentId);
+  // Les niveaux du second tour (formats « poules de niveau ») ne sont pas des poules de qualification.
+  const { data: groupes } = await supabase.from("groups").select("id").eq("tournament_id", tournamentId).is("niveau", null);
 
   if (!groupes || groupes.length === 0) {
     return { ok: false, error: "Tire d'abord les poules." };
@@ -68,7 +71,8 @@ export async function verifierPoulesTerminees(
     .from("matches")
     .select("id, statut")
     .eq("tournament_id", tournamentId)
-    .eq("phase", "poule");
+    .eq("phase", "poule")
+    .in("group_id", groupes.map((g) => g.id));
 
   if (
     !matchsPoule ||
@@ -133,7 +137,8 @@ export async function calculerContexteQualification(
   const { data: groupes } = await supabase
     .from("groups")
     .select("id, nom")
-    .eq("tournament_id", tournamentId);
+    .eq("tournament_id", tournamentId)
+    .is("niveau", null);
 
   const { data: teams } = await supabase
     .from("teams")
@@ -151,7 +156,9 @@ export async function calculerContexteQualification(
     standingsBrutes ?? [],
   );
 
-  const qualification = selectionnerQualifies(classementsParPoule, pret.nbQualifies);
+  const format = await chargerFormat(supabase, tournamentId);
+  if (!format.phaseFinale) return { error: "Ce format d'animation n'a pas de tableau final." };
+  const qualification = format.phaseFinale.qualifier(classementsParPoule, pret.nbQualifies);
   const qualifiesIds = new Set(qualification.qualifies);
 
   const groupNomParId = new Map((groupes ?? []).map((g) => [g.id, g.nom]));
@@ -183,7 +190,8 @@ export async function calculerMatchClassement5e(
   equipes: EquipePoule[],
   qualifiesIds: ReadonlySet<string>,
 ): Promise<Match5e | null> {
-  const match = calculerMatch5eDePoule(equipes, qualifiesIds);
+  const format = await chargerFormat(supabase, tournamentId);
+  const match = format.phaseFinale?.matchDeClassementDesNonQualifies(equipes, qualifiesIds) ?? null;
   if (!match) return null;
 
   const { count } = await supabase
@@ -213,9 +221,12 @@ export async function genererTableauAvecQualifies(
     return { error: `Le nombre de qualifiés doit être une puissance de 2 (reçu ${qualifies.length}).` };
   }
 
+  const format = await chargerFormat(supabase, tournamentId);
+  if (!format.phaseFinale) return { error: "Ce format d'animation n'a pas de tableau final." };
+
   let bracket;
   try {
-    bracket = genererTableau(qualifies);
+    bracket = format.phaseFinale.construireTableau(qualifies);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Impossible de générer le tableau." };
   }
@@ -324,6 +335,12 @@ export async function tenterGenerationAutomatique(
   supabase: SupabaseServerClient,
   tournamentId: string,
 ): Promise<void> {
+  // Format à second tour par niveaux : pas de tableau, les niveaux prennent la suite du premier tour.
+  if ((await chargerFormat(supabase, tournamentId)).niveaux) {
+    await tenterGenerationNiveaux(supabase, tournamentId);
+    return;
+  }
+
   const { data: tableauExistant } = await supabase
     .from("matches")
     .select("id")

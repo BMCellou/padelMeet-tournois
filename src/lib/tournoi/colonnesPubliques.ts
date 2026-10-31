@@ -8,11 +8,15 @@ const SETS = "match_sets(numero, jeux_a, jeux_b, tiebreak_a, tiebreak_b)";
 export const COLONNES_PUBLIQUES = {
   accueilClubs: "id, nom, ville",
   accueilTournois: "id, nom, date, statut, genre, niveau, public_slug, club_id",
-  tournoi: "id, nom, date, heure_debut, statut, genre, niveau",
-  groupes: "id, nom, ordre",
+  tournoi: "id, nom, date, heure_debut, statut, genre, niveau, format_animation, config_animation",
+  groupes: "id, nom, ordre, niveau",
   equipes: "id, nom_affiche",
   terrains: "id, nom",
   classements: "group_id, team_id, joues, v, d, ratio_sets, ratio_jeux, rang",
+  // Classement individuel (formats à manches) : le nom est stocké avec la ligne, jamais d'identifiant de joueur.
+  classementJoueurs:
+    "nom_affiche, manches_jouees, victoires, points_marques, points_encaisses, difference, tours_exempt, points_par_manche, rang",
+  matchsManche: `id, round, statut, team_a_id, team_b_id, winner_id, court_id, scheduled_at, ${SETS}`,
   matchsPoule: `id, group_id, round, statut, team_a_id, team_b_id, winner_id, court_id, scheduled_at, ${SETS}`,
   matchsTableau: `id, round, bracket_slot, statut, team_a_id, team_b_id, winner_id, next_match_id, next_slot, loser_next_match_id, loser_next_slot, court_id, scheduled_at, ${SETS}`,
   matchClassement: `id, round, statut, team_a_id, team_b_id, winner_id, court_id, scheduled_at, ${SETS}`,

@@ -31,3 +31,13 @@ export function libellePlaces(places: Places): string | null {
   if (places.complet) return "Complet";
   return places.restantes === 1 ? "1 place restante" : `${places.restantes} places restantes`;
 }
+
+/**
+ * Compteur d'un format à partenaires tournants : « 10 inscrits — 2 joueurs exemptés par tour »
+ * quand l'effectif n'est pas un multiple de 4 (ou que les terrains manquent), sinon « 12 inscrits ».
+ */
+export function libelleCompteurJoueurs(inscrits: number, exemptesParTour: number): string {
+  const base = `${inscrits} inscrit${inscrits > 1 ? "s" : ""}`;
+  if (exemptesParTour <= 0) return base;
+  return `${base} — ${exemptesParTour} joueur${exemptesParTour > 1 ? "s exemptés" : " exempté"} par tour`;
+}

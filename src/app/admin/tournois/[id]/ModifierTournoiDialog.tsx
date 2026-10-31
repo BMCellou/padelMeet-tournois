@@ -46,6 +46,8 @@ export interface TournoiEditable {
   dureeMatchMin: number | null;
   pauseMin: number | null;
   maxParticipants: number | null;
+  /** Le format a un tableau final (donc des qualifiés) ; sinon le champ disparaît. */
+  avecQualifies: boolean;
 }
 
 interface Club {
@@ -156,18 +158,20 @@ export function ModifierTournoiDialog({
               <Input id="edit-niveau" name="niveau" defaultValue={tournoi.niveau ?? ""} />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="edit-nbQualifies">Qualifiés</Label>
-              <Input
-                id="edit-nbQualifies"
-                name="nbQualifies"
-                type="number"
-                min={2}
-                defaultValue={tournoi.nbQualifies ?? 8}
-                required
-              />
-            </div>
+          <div className={tournoi.avecQualifies ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 gap-3"}>
+            {tournoi.avecQualifies ? (
+              <div className="space-y-1">
+                <Label htmlFor="edit-nbQualifies">Qualifiés</Label>
+                <Input
+                  id="edit-nbQualifies"
+                  name="nbQualifies"
+                  type="number"
+                  min={2}
+                  defaultValue={tournoi.nbQualifies ?? 8}
+                  required
+                />
+              </div>
+            ) : null}
             <div className="space-y-1">
               <Label htmlFor="edit-dureeMatchMin">Créneau (min)</Label>
               <Input

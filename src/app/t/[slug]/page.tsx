@@ -9,7 +9,9 @@ import { ClassementFinalList } from "@/components/tournoi/ClassementFinalList";
 import { PublicMatchCard, type MatchPublicAffiche } from "@/components/tournoi/PublicMatchCard";
 import { calculerClassementFinalTableau } from "@/lib/tournoi/classementFinalAffichage";
 import { formatHeureParis } from "@/lib/temps";
-import { libellerTableau, type MatchTableauStructure } from "@/lib/engine/tableauLibelles";
+import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
+import { getFormat, type ConfigAnimation } from "@/lib/engine/formats";
+import { ClassementJoueursTable, type LigneClassementJoueur } from "@/components/tournoi/ClassementJoueursTable";
 import { getParticipantConnecte } from "@/lib/participant/session";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargerStatutInscription } from "./inscriptionStatus";
@@ -25,6 +27,8 @@ import {
 } from "./InscriptionTournoi";
 import { RealtimeRefresher } from "@/components/tournoi/RealtimeRefresher";
 import { BrandLogo } from "@/components/BrandLogo";
+import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
+import { chargerClassementFinalNiveaux } from "@/lib/tournoi/niveaux";
 
 export default async function PageTournoiPublic({
   params,
@@ -93,6 +97,26 @@ export default async function PageTournoiPublic({
     .eq("phase", "classement_5e")
     .maybeSingle();
 
+  // Format à manches (Americano) : classement individuel lu en UNE requête sur standings_joueurs,
+  // mis à jour à chaque validation de manche — aucun recalcul ici.
+  const parJoueur = !!getFormat(tournoi.format_animation).rotation;
+  const configAnimation = (tournoi.config_animation ?? {}) as ConfigAnimation;
+  const { data: classementJoueurs } = parJoueur
+    ? await supabase
+        .from("standings_joueurs")
+        .select(COLONNES_PUBLIQUES.classementJoueurs)
+        .eq("tournament_id", tournoi.id)
+        .order("rang")
+    : { data: null };
+  const { data: manchesBrutes } = parJoueur
+    ? await supabase
+        .from("matches")
+        .select(COLONNES_PUBLIQUES.matchsManche)
+        .eq("tournament_id", tournoi.id)
+        .eq("phase", "manche")
+        .order("round")
+    : { data: null };
+
   // Fail-closed : une donnée personnelle dans ces résultats ne doit jamais
   // atteindre la page (les colonnes sont explicites, ceci est la ceinture).
   garantirChargePublique({
@@ -105,6 +129,8 @@ export default async function PageTournoiPublic({
     matchsTableauBruts,
     matchPetiteFinaleBrut,
     matchClassement5eBrut,
+    classementJoueurs,
+    manchesBrutes,
   });
 
   // Étiquettes et sources (« Vainqueur du quart n°1 ») des cases du tableau
@@ -136,7 +162,7 @@ export default async function PageTournoiPublic({
         loserNextSlot: null,
       })),
   ];
-  const libellesTableau = libellerTableau(structureTableau);
+  const libellesTableau = getFormat(tournoi.format_animation).phaseFinale?.etiqueterTableau(structureTableau) ?? new Map();
 
   function versMatchPublic(m: {
     id: string;
@@ -206,8 +232,14 @@ export default async function PageTournoiPublic({
   );
   const dernierTourTableau = toursTableau[toursTableau.length - 1];
 
-  const classementFinalLignes =
-    groupes && groupes.length === 1
+  // Format par niveaux : pas de tableau, le classement final est celui des niveaux (une fois tous leurs matchs joués).
+  const classementNiveaux = getFormat(tournoi.format_animation).niveaux
+    ? await chargerClassementFinalNiveaux(supabase, tournoi.id)
+    : null;
+
+  const classementFinalLignes = getFormat(tournoi.format_animation).niveaux
+    ? classementNiveaux
+    : groupes && groupes.length === 1
       ? (standingsBrutes ?? [])
           .filter((s) => s.rang != null)
           .sort((a, b) => (a.rang ?? 0) - (b.rang ?? 0))
@@ -219,10 +251,16 @@ export default async function PageTournoiPublic({
           (teams ?? []).map((t) => t.id),
           standingsParEquipe,
           nomEquipe,
+          getFormat(tournoi.format_animation),
         );
 
   const petiteFinaleAffichee = matchPetiteFinaleBrut ? versMatchPublic(matchPetiteFinaleBrut) : null;
   const classement5eAffichee = matchClassement5eBrut ? versMatchPublic(matchClassement5eBrut) : null;
+
+  const manchesAffichees = (manchesBrutes ?? [])
+    .map(versMatchPublic)
+    .filter((m): m is MatchPublicAffiche => !!m);
+  const toursManches = [...new Set(manchesAffichees.map((m) => m.round))].sort((a, b) => a - b);
 
   let sectionInscription: ReactNode = null;
   if (tournoi.statut === "publie") {
@@ -239,6 +277,7 @@ export default async function PageTournoiPublic({
         service,
         tournoi.id,
         participant.playerId,
+        parJoueur,
       );
       sectionInscription = statutInscription.inscrit ? (
         <InscriptionDejaFaite
@@ -263,6 +302,7 @@ export default async function PageTournoiPublic({
           slug={slug}
           placesLibelle={placesLibelle}
           placesRestantes={places.restantes}
+          soloSeulement={parJoueur}
         />
       );
     }
@@ -296,12 +336,42 @@ export default async function PageTournoiPublic({
       <div className="mx-auto w-full max-w-xl space-y-6 p-4">
         {sectionInscription}
 
+        {parJoueur ? (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Classement individuel</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ClassementJoueursTable
+                  lignes={(classementJoueurs ?? []) as unknown as LigneClassementJoueur[]}
+                  parManche={configAnimation.modeClassement === "par_manche"}
+                />
+              </CardContent>
+            </Card>
+            {toursManches.map((tour) => (
+              <Card key={tour}>
+                <CardHeader>
+                  <CardTitle className="text-base">Tour {tour}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {manchesAffichees
+                    .filter((m) => m.round === tour)
+                    .map((m) => (
+                      <PublicMatchCard key={m.id} match={m} />
+                    ))}
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : null}
+
         {classementFinalLignes ? <ClassementFinalList lignes={classementFinalLignes} /> : null}
 
         {poulesAffichees.map(({ groupe, lignesClassement, matchs }) => (
           <Card key={groupe.id}>
             <CardHeader>
-              <CardTitle className="text-base">Poule {groupe.nom}</CardTitle>
+              <CardTitle className="text-base">{libelleGroupe(groupe)}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <StandingsTable lignes={lignesClassement} />

@@ -13,14 +13,18 @@ export async function chargerStatutInscription(
   service: ReturnType<typeof createServiceClient>,
   tournamentId: string,
   playerId: string,
+  /** Format à partenaires tournants : un joueur inscrit n'attend aucun binôme. */
+  parJoueur = false,
 ): Promise<StatutInscriptionParticipant> {
   // L'équipe prime : un joueur seul placé en équipe par le club y est inscrit,
-  // même si son inscription solo existe toujours.
+  // même si son inscription solo existe toujours. Les équipes éphémères (une par tour d'un format
+  // à partenaires tournants) ne sont pas une inscription.
   const { data: liens } = await service
     .from("team_players")
     .select("teams!inner(nom_affiche, statut, tournament_id)")
     .eq("player_id", playerId)
-    .eq("teams.tournament_id", tournamentId);
+    .eq("teams.tournament_id", tournamentId)
+    .eq("teams.ephemere", false);
 
   const equipe = liens?.[0]?.teams;
   if (equipe) {
@@ -42,10 +46,13 @@ export async function chargerStatutInscription(
     const enAttente = soloReg.statut === "en_attente";
     return {
       inscrit: true,
-      libelle: enAttente
-        ? "Inscrit(e) en solo, en attente d'un binôme"
-        : "Inscription validée, en attente d'un binôme",
-      enAttente,
+      libelle: parJoueur
+        ? "Inscrit(e) — tu changeras de partenaire à chaque tour"
+        : enAttente
+          ? "Inscrit(e) en solo, en attente d'un binôme"
+          : "Inscription validée, en attente d'un binôme",
+      // Dans un format à rotation, l'inscription solo est définitive : il n'y a pas de binôme à attendre.
+      enAttente: parJoueur ? false : enAttente,
     };
   }
 

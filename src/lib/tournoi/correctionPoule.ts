@@ -8,13 +8,14 @@ import type { CritereDepartage } from "@/lib/engine/classement";
 import type { SetSaisi } from "@/lib/engine/score";
 import {
   decisionCorrection,
-  impactSurQualifies,
   messageRefusCorrection,
   type DecisionCorrection,
   type ImpactQualifies,
 } from "@/lib/engine/impactQualifies";
 import { matchCommence } from "@/lib/engine/formatPhases";
 import { classementDuGroupe } from "./classementPoule";
+import { chargerFormat } from "./formatAnimation";
+import { etatDuSecondTour } from "./niveaux";
 import { classementsDepuisStandings } from "./tableauFinal";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -36,6 +37,32 @@ export interface CorrectionPoule {
 }
 
 /**
+ * Format à second tour par niveaux : corriger un match du premier tour peut changer le classement des
+ * poules, donc la composition des niveaux. Tant qu'aucun match de niveau n'a commencé, le second tour est
+ * recomposé ; ensuite la correction est refusée. Un match d'un niveau se corrige librement.
+ */
+async function evaluerCorrectionNiveaux(
+  supabase: SupabaseServerClient,
+  tournamentId: string,
+  groupId: string,
+): Promise<ResultatEvaluation> {
+  const { data: groupe } = await supabase.from("groups").select("niveau").eq("id", groupId).single();
+  if (!groupe || groupe.niveau !== null) return { decision: "appliquer", impact: null, message: null };
+
+  const secondTour = await etatDuSecondTour(supabase, tournamentId);
+  if (!secondTour.existe) return { decision: "appliquer", impact: null, message: null };
+  if (secondTour.commence) {
+    return {
+      decision: "refuser",
+      impact: null,
+      message:
+        "Le second tour a déjà commencé : corriger un match du premier tour pourrait changer la composition des niveaux. Remets d'abord à zéro les matchs de niveau joués.",
+    };
+  }
+  return { decision: "appliquer_et_regenerer", impact: null, message: null };
+}
+
+/**
  * Évalue, sans rien écrire, ce que ferait cette correction aux qualifiés :
  * classements stockés (avant) contre classement recalculé de la poule avec
  * le nouveau résultat (après).
@@ -46,6 +73,9 @@ export async function evaluerCorrectionPoule(
   correction: CorrectionPoule,
   tiebreakRules: CritereDepartage[],
 ): Promise<ResultatEvaluation> {
+  const formatAnimation = await chargerFormat(supabase, tournamentId);
+  if (formatAnimation.niveaux) return evaluerCorrectionNiveaux(supabase, tournamentId, correction.groupId);
+
   const [{ data: tournoi }, { data: matchsFinaux }] = await Promise.all([
     supabase.from("tournaments").select("nb_qualifies, selection_manuelle").eq("id", tournamentId).single(),
     supabase
@@ -55,6 +85,7 @@ export async function evaluerCorrectionPoule(
       .in("phase", ["tableau", "classement", "classement_5e"]),
   ]);
 
+  const format = formatAnimation;
   const tableauExiste = (matchsFinaux ?? []).some((m) => m.phase === "tableau");
   if (!tournoi || !tableauExiste || !tournoi.nb_qualifies) {
     return { decision: "appliquer", impact: null, message: null };
@@ -70,7 +101,7 @@ export async function evaluerCorrectionPoule(
   ]);
 
   const classementsAvant = classementsDepuisStandings((groupes ?? []).map((g) => g.id), standings ?? []);
-  const classementApres = await classementDuGroupe(supabase, correction.groupId, tiebreakRules, {
+  const classementApres = await classementDuGroupe(supabase, format, correction.groupId, tiebreakRules, {
     matchId: correction.matchId,
     vainqueurId: correction.vainqueurId,
     forfait: correction.forfait,
@@ -80,7 +111,7 @@ export async function evaluerCorrectionPoule(
     c.groupId === correction.groupId ? { ...c, equipes: classementApres } : c,
   );
 
-  const impact = impactSurQualifies(
+  const impact = format.phaseFinale!.impactSurQualifies(
     { classementsParPoule: classementsAvant, nbQualifies: tournoi.nb_qualifies },
     { classementsParPoule: classementsApres, nbQualifies: tournoi.nb_qualifies },
   );

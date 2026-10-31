@@ -37,7 +37,9 @@ Déroulé type : créer le tournoi → publier → recueillir les inscriptions �
 
 ### 4.1 Tournois
 
-Création (`/admin/tournois/nouveau`) et modification d'un tournoi : nom, club (facultatif au départ), date, genre (masculin / féminin / mixte), niveau (texte libre, ex. « P100-P250 »), statut, nombre de qualifiés pour le tableau, durée d'un créneau de match (min), pause entre matchs (min), **nombre maximum de joueurs** (voir §5.4).
+**Création (`/admin/tournois/nouveau`) en deux temps** : d'abord le **format d'animation** (liste issue du registre des formats, avec nom et description : Poules + tableau, Americano), puis le reste du formulaire, qui s'adapte. Poules + tableau demande un nombre de qualifiés et un nombre maximum de joueurs facultatif. **Americano** ne demande pas de qualifiés mais le nombre de joueurs, de terrains, de manches (tours), les points par manche, la durée d'une manche et la rotation entre tours ; une **estimation de durée** (tours × durée + pauses) se met à jour en direct, avec un **avertissement** quand l'effectif n'est pas un multiple de 4 (« 10 joueurs : … 2 joueurs seront exemptés à chaque tour »).
+
+Création et modification d'un tournoi : nom, club (facultatif au départ), date, genre (masculin / féminin / mixte), niveau (texte libre, ex. « P100-P250 »), statut, nombre de qualifiés pour le tableau, durée d'un créneau de match (min), pause entre matchs (min), **nombre maximum de joueurs** (voir §5.4).
 
 Chaque tournoi reçoit un **lien public non devinable** (identifiant aléatoire de 12 caractères). Un tournoi peut être supprimé : toutes ses données (équipes, poules, matchs, inscriptions) sont supprimées avec lui.
 
@@ -94,6 +96,10 @@ Trois sections, chacune avec son bouton d'enregistrement :
 2. **Format par phase** : pour Poules, Quarts de finale (et tours antérieurs), Demi-finales, Finale et Matchs de classement (3e et 5e place), chaque ligne est « identique au format par défaut » ou a **son propre format** (même formulaire). Le réglage est conservé au niveau du tournoi et recopié sur les matchs **pas encore commencés** — y compris ceux générés plus tard (calendrier, tableau final, régénération).
 3. **Ordre de départage des poules** : liste réordonnable par glisser-déposer (ou flèches), avec activation/désactivation de chaque critère. « Victoires » reste figé en premier. Des **avertissements** signalent les critères qui ne départageront rien avec le format choisi (différence / ratio de sets avec un seul set gagnant) ou qui seront faussés (critères de jeux avec un super tie-break, dont les points comptent comme des jeux).
 
+**Mode de score « Points »** : à la place des jeux et des sets, une manche se joue en un nombre de points fixé (`pointsCible`, par défaut 24) ; les réglages de jeux, sets, point décisif, jeu décisif et super tie-break disparaissent de l'écran. Case « Total exact » (par défaut) : le scoreur ne saisit que les points d'une équipe, l'autre est déduite (24 − x). Le vainqueur est l'équipe au score le plus élevé. Avec un total exact et une cible paire, une égalité (12-12) est refusée : le formulaire propose de désigner le gagnant d'un point en or. Sans total exact, les deux scores sont saisis et une égalité à la fin du temps est un match nul valide **uniquement sur une manche d'Americano**. Sur toute autre phase (poule, tableau, matchs de classement), un vainqueur est toujours obligatoire, quels que soient le mode de score et le total exact : l'égalité est refusée avec un message explicite (point en or à jouer). La règle est appliquée par le moteur (`arbitrerMatch`) et par une contrainte en base (`matches_nul_seulement_manche`).
+
+**Phases du format** : la liste des phases (et leurs étiquettes) est déclarée par le format d'animation, jamais écrite en dur. Poules + tableau : Poules, Quarts de finale, Demi-finales, Finale, Matchs de classement ; Americano : « Manches ». L'écran « Format par phase », le verrouillage et les étiquettes des documents lisent cette liste. L'ordre de départage des poules n'apparaît que si le format a des poules.
+
 Validation (identique à l'écran et au serveur) : le seuil du tie-break ne peut pas dépasser le nombre de jeux pour gagner ; l'écart requis ne peut pas dépasser ce nombre ; une limite de temps exige une règle de fin ; un super tie-break exige son nombre de points ; au moins un critère de départage, sans doublon.
 
 **Verrouillage** : un champ se verrouille avec la raison affichée dès que des matchs concernés ont commencé (score saisi, validé ou forfait). Une phase commencée ne peut plus changer de format ; le format par défaut se verrouille si une phase commencée l'utilise (on peut alors donner un format propre aux phases à venir) ; l'ordre de départage se verrouille dès le premier match de poule joué. Les phases pas encore commencées restent modifiables. Chaque modification est tracée dans le journal d'audit (avant / après).
@@ -122,6 +128,7 @@ Toute inscription en ligne est **« en attente de validation par le club »**. L
 - **Valider** une équipe en attente, **renommer**, **supprimer** une équipe, **modifier** la fiche d'un joueur, **remplacer** un joueur d'une équipe.
 - **Générer des équipes** à partir des joueurs seuls (à valider ou déjà validés, sans équipe), selon une stratégie : **Aléatoire**, **Équilibré (par classement)** (le classement FFT saisi en texte — « 15/1 », « 30/2 », « NC »… — est converti selon l'échelle officielle, de -30 jusqu'à NC ; un classement vide ou non reconnu est classé tout en bas sans bloquer), **Mixte forcé (H/F)**. Les équipes créées sont validées. Un joueur qui reste sans partenaire (nombre impair, ou contrainte non satisfiable) est **signalé, jamais supprimé**.
 - Seules les équipes **validées** participent au tirage.
+- **Format à partenaires tournants (Americano)** : l'unité est le joueur. L'inscription en paire, la génération d'équipes, les équipes en attente et la liste des équipes disparaissent ; seule l'inscription d'un joueur reste (admin et en ligne). Le compteur affiche « N inscrits — M joueurs exemptés par tour » quand l'effectif n'est pas un multiple de 4 (ou que les terrains manquent). Les équipes éphémères des manches ne sont jamais présentées comme des inscriptions (inscriptions, historique du compte, fiches joueurs).
 
 ### 5.3 Compte participant (`/compte`)
 
@@ -205,6 +212,26 @@ Statuts d'un match : à venir → prêt → en cours → saisi → validé / for
 - Chaque validation, correction et réinitialisation est tracée (qui, quoi, quand).
 - Admins **et** scoreurs saisissent et valident les scores. Les pages publiques se rafraîchissent en direct.
 
+### 8.3 Americano (format d'animation « americano »)
+
+Le classement est **individuel** : chaque joueur joue chaque manche avec un partenaire différent. Pas de poules ni de tableau final ; le calendrier (toutes les manches de la journée) est généré d'avance.
+
+- **Rotation** : appariement qui évite d'abord les partenariats répétés (poids fort), puis les adversaires répétés (poids faible). 8 joueurs sur 7 tours : chacun joue exactement une fois avec chacun des sept autres. 12 et 16 joueurs : aucun partenariat répété. Quand l'effectif n'est pas un multiple de 4, les exemptions sont réparties à ±1 près. La graine du tirage est mémorisée : même graine, même rotation. Au-delà de **40 joueurs**, un avertissement est affiché (aucun blocage).
+- **Manche** : deux équipes éphémères (`teams.ephemere`, `tour_origine`) et un match ordinaire de phase « manche » : saisie de score, audit et temps réel sont ceux des autres matchs.
+- **Classement individuel** : manches jouées, victoires, points marqués, points encaissés, différence, tours d'exemption. Départage par défaut : points marqués, différence, victoires, confrontation directe, moins d'exemptions (ordre configurable). Mode alternatif « points par manche » pour les effectifs non multiples de 4 (les exemptés ne sont pas pénalisés).
+
+**Écran de déroulé** (`/admin/tournois/<id>/deroule`, ouvert aux scoreurs du tournoi) : un seul écran pensé pour un téléphone tenu d'une main. Avant le début, il génère les manches (heure de début, avertissements d'effectif) ; on peut annuler la génération tant qu'aucune manche n'est jouée. Ensuite :
+
+- un en-tête **« Tour 4 sur 7 »** avec une barre de progression (un segment par tour) ;
+- **une carte par terrain** : les deux paires en gros, un **champ unique** pour les points d'un camp (l'autre se déduit du total exact, ex. 14 → 10 sur 24), un bouton **Valider** (la touche Entrée du clavier valide aussi) ; une égalité sur un total pair propose directement les deux boutons « point en or » ; « Saisir le score de l'autre camp » permet de partir de l'autre côté ;
+- les **joueurs exemptés** du tour ;
+- le **classement individuel en direct**, replié par défaut ;
+- le **tour suivant débloqué** quand toutes les manches du tour sont validées ; au dernier tour, « Terminer le tournoi ».
+
+**Saisir un score demande au plus trois gestes** : le curseur est déjà dans la première manche à saisir (et passe tout seul à la suivante, y compris au changement de tour). Deux chiffres + Valider (ou Entrée) = 3 gestes, un seul chiffre = 2. Corriger une manche validée coûte un geste de plus (« Corriger »).
+
+**Classement individuel stocké** : à chaque validation, correction, forfait ou réinitialisation d'une manche, la table `standings_joueurs` est recalculée (avec le nom affiché et les points par manche) ; la page publique la lit en **une seule requête**, sans recalcul ni accès à la table des joueurs. Les exemptions d'un tour ne sont comptées qu'une fois toutes ses manches terminées.
+
 ## 9. Classement de poule
 
 Une victoire fait gagner le match ; le classement trie d'abord par **nombre de victoires**, puis applique les critères de départage dans l'ordre configuré du tournoi. Ordre par défaut :
@@ -281,11 +308,33 @@ Un onglet **Messages** par tournoi permet d'envoyer un e-mail libre aux inscrits
 - **Essai** : « M'envoyer un essai » envoie le message (préfixe [ESSAI]) uniquement à l'adresse du compte administrateur connecté.
 - **Envoi** : confirmation en deux temps, puis un e-mail par destinataire (5 à la fois) ; le bilan liste les échecs. L'envoi est tracé dans le journal d'audit (sujet, nombre de destinataires, échecs, planning joint). Réservé aux administrateurs.
 
+### Format « poules de niveau »
+
+Format d'animation à binômes fixes, **sans tableau**, choisi à la création du tournoi (étape 1). Tout le monde joue au moins 3 matchs et le classement de la 1re à la dernière place est **joué**, pas calculé.
+
+- **Premier tour** : autant de poules que possible, **3 équipes minimum par poule** (9 équipes : 3 poules de 3 ; 10 : 4/3/3 ; 12 : 4 poules de 3). Les poules diffèrent d'au plus une équipe. L'organisateur peut imposer **moins** de poules (jamais de poule de moins de 3). Dès 4 équipes ; une seule poule (4 ou 5 équipes) n'a pas de second tour. Tirage et calendrier du premier tour comme pour les poules classiques.
+- **Second tour (niveaux)** : composé **automatiquement** dès que le dernier match du premier tour est validé. Le niveau 1 réunit les premiers de chaque poule, le niveau 2 les deuxièmes, etc. Un niveau de 3 équipes ou plus se joue en tournante, un niveau de **2 équipes** est un **match de classement**, un niveau d'**une équipe** ne joue pas. Comme les équipes d'un niveau viennent de poules différentes, **personne ne rejoue un adversaire déjà rencontré**. Les matchs sont placés à la suite du premier tour (rotation et repos du tournoi respectés).
+- **Classement final** : niveau 1, puis niveau 2, etc. ; à l'intérieur d'un niveau, le classement de sa tournante (mêmes critères de départage que les poules). Affiché (admin et public) quand tous les matchs des niveaux sont joués. Le vainqueur du tournoi est le premier du niveau 1. Une égalité parfaite entre deux équipes d'une même poule qui les placerait dans deux niveaux différents est tranchée par l'ordre du classement et **tracée dans le journal d'audit** (action « generation_niveaux »).
+- **Corrections** : un match d'un niveau se corrige librement. Corriger, déclarer forfait ou réinitialiser un match du **premier** tour recompose le second tour tant qu'**aucun match de niveau n'a commencé** ; ensuite c'est refusé, avec un message explicite.
+- **Aperçu** : l'écran « Poules et tirage » indique, avant le tirage, le nombre de poules et de niveaux, le nombre de matchs, les matchs par équipe et le nombre minimal de créneaux sur les terrains assignés.
+- **Deux variantes**, au choix à la création du tournoi (étape 1) : « **Poules de niveau** » (ci-dessus, sans tableau) et « **Poules de niveau + phase finale** ».
+
+#### Variante avec phase finale
+
+- Le **nombre de qualifiés** du tournoi (comme en « poules + tableau ») désigne les équipes du **tableau** : demi-finales, finale, match pour la 3e place (mêmes règles de qualification, de placement des têtes et de petite finale). Les qualifiés ne se choisissent pas à la main dans ce format.
+- Les **autres équipes** se classent dans des **niveaux** : les non-qualifiés de même rang de poule se retrouvent (tournante, ou un seul match de classement s'ils sont deux). Un qualifié ne rejoue donc pas dans un niveau, et personne ne rejoue un adversaire déjà rencontré.
+- Tableau et niveaux sont **générés ensemble** dès que le premier tour est terminé et **placés ensemble** : les matchs de niveau se jouent en même temps que les tours du tableau, le tableau restant prioritaire. Le bouton « Replanifier le tableau final » replace tableau et niveaux.
+- **Classement final** : le tableau d'abord (1re à 4e place pour un tableau de 4), puis les niveaux ; affiché quand le tableau et tous les niveaux sont joués.
+- **Corrections** : comme sans phase finale, un match du premier tour ne se corrige, ne passe en forfait et ne se réinitialise que tant qu'aucun match du second tour (tableau ou niveau) n'a commencé ; le second tour est alors recomposé en entier.
+- Exemple : 9 équipes, 4 qualifiés → 9 matchs de poule, puis 4 matchs de tableau et 4 matchs de classement (1 match pour les deux 2es non qualifiés, 3 matchs pour les trois 3es) : 17 matchs, chaque équipe joue au moins 3 matchs, fin environ 2 h 15 après le début avec 15 min de jeu, 5 min de rotation et 5 min de repos sur 3 terrains.
+- Exemple : 9 équipes, 3 terrains, 15 min de jeu + 5 min de rotation, repos 5 min → 18 matchs, 4 matchs par équipe, 6 créneaux, tournoi terminé en 2 h environ (début à 13 h : fin vers 15 h).
+
 ## 14. Pages publiques
 
 - **Accueil** : tournois publiés, en cours et terminés (en cours d'abord, puis à venir par date croissante, puis terminés du plus récent).
 - **Page d'un tournoi** (`/t/<lien>`) : en-tête (nom, date, niveau, statut), carte d'inscription avec places restantes, classement final si disponible, chaque poule (classement + matchs avec scores, terrain et heure), tableau final avec match pour la 3e place et pour la 5e place, chaque case affichant terrain et heure — et, tant qu'une équipe est inconnue, sa provenance (« Vainqueur du quart n°1 »). **Mise à jour en direct** (sans recharger) à chaque score validé.
 - Une poule unique affiche directement son classement comme classement final.
+- **Americano** : la page d'un tournoi affiche le **classement individuel** (points, différence, victoires, manches, repos) puis les manches de chaque tour avec terrain et heure ; l'inscription publique est réservée aux joueurs seuls (« Tu changeras de partenaire à chaque tour »), et le tournoi est mis à jour en direct à chaque manche validée.
 
 ## 15. Données et sécurité (résumé)
 
@@ -294,6 +343,7 @@ Un onglet **Messages** par tournoi permet d'envoyer un e-mail libre aux inscrits
 - Les pages publiques ne lisent que des **colonnes explicites** (jamais de `select *`) et ne reçoivent ni e-mail, ni téléphone, ni canal de rappel, ni identifiant de compte : un test échoue si l'une de ces clés apparaît, et la page plante plutôt que de servir une donnée privée.
 - Heures affichées et saisies en **heure de Paris**, quel que soit le fuseau de la machine.
 - Les tâches planifiées exigent un secret partagé ; les envois de rappels et les sauvegardes ne sont jamais déclenchables sans lui.
+- **Formats d'animation** : chaque tournoi a un format (`tournaments.format_animation`, « poules + tableau » par défaut), résolu par un registre ; les écrans et les routes ne connaissent jamais un format en particulier. Aujourd'hui un seul format existe, qui reproduit exactement le comportement historique. La base est prête pour le classement individuel et les équipes éphémères des futurs formats, sans effet sur les tournois existants.
 - Fonctionnement interne : toute la logique de tournoi (répartition, tirage, tours, planification, scores, classements, qualification, tableau) est un moteur de fonctions pures, couvert par une suite de tests dont un scénario de référence de **14 équipes** (poules 5/5/4, tableau de 8) rejoué de bout en bout.
 
 ## 16. Hors périmètre
@@ -318,6 +368,7 @@ Un onglet **Messages** par tournoi permet d'envoyer un e-mail libre aux inscrits
 | `groups`, `group_teams` | Poules et leur composition (position de tirage) |
 | `matches`, `match_sets` | Matchs (phase poule / tableau / classement 3e place / classement 5e place, terrain, horaire, vainqueur, propagation) et scores par set |
 | `standings` | Classements de poule |
+| `standings_joueurs` | Classement individuel des formats à manches (nom affiché, manches, victoires, points, différence, repos, rang) |
 | `memberships` | Rôles : admin (global) ou scoreur (rattaché à un tournoi) |
 | `audit_log` | Journal des validations, corrections, réinitialisations |
 | `rappels_envoyes`, `parametres_rappels` | Rappels déjà envoyés ; réglage du cron |

@@ -51,9 +51,57 @@ export interface ResultatMatch {
   vainqueur: "a" | "b" | null;
   setsGagnesA: number;
   setsGagnesB: number;
+  /** Mode points sans somme exacte : égalité acceptée comme match nul (aucun vainqueur, match valide). */
+  nul?: boolean;
+}
+
+export function estModePoints(format: MatchFormat): boolean {
+  return format.modeScore === "points";
+}
+
+/** Départage par point en or : un score (1-0) saisi dans les champs de tie-break d'un set à égalité. */
+function vainqueurDuDepartage(set: SetSaisi): "a" | "b" | null {
+  if (set.tiebreakA == null || set.tiebreakB == null || set.tiebreakA === set.tiebreakB) return null;
+  return set.tiebreakA > set.tiebreakB ? "a" : "b";
+}
+
+/**
+ * Mode points : une manche, le vainqueur est le camp au score le plus élevé.
+ * Une égalité suit `sommeExacte` :
+ *  - total exact : égalité refusée, sauf point en or saisi qui la départage ;
+ *  - total libre (manche limitée par le temps) : l'égalité est un match nul valide.
+ */
+function determinerVainqueurPoints(sets: SetSaisi[], format: MatchFormat): ResultatMatch {
+  const manche = sets[0];
+  if (!manche) return { vainqueur: null, setsGagnesA: 0, setsGagnesB: 0 };
+  const { jeuxA, jeuxB } = manche;
+  if (jeuxA !== jeuxB) {
+    const a = jeuxA > jeuxB;
+    return { vainqueur: a ? "a" : "b", setsGagnesA: a ? 1 : 0, setsGagnesB: a ? 0 : 1 };
+  }
+  const departage = vainqueurDuDepartage(manche);
+  if (departage) {
+    return { vainqueur: departage, setsGagnesA: departage === "a" ? 1 : 0, setsGagnesB: departage === "b" ? 1 : 0 };
+  }
+  if (format.sommeExacte === false) return { vainqueur: null, setsGagnesA: 0, setsGagnesB: 0, nul: true };
+  return { vainqueur: null, setsGagnesA: 0, setsGagnesB: 0 };
+}
+
+/**
+ * Seule phase où un match nul est possible (formats à manches, ex. Americano).
+ * Verrou STRUCTUREL : il ne dépend ni de `modeScore` ni de `sommeExacte`. Sur toute
+ * autre phase (poule, tableau, classement), un vainqueur est obligatoire, car le
+ * classement de poule, la propagation du tableau et le classement final en dépendent.
+ */
+export const PHASE_NUL_AUTORISE = "manche";
+
+export function nulAutorise(phase: string | null | undefined): boolean {
+  return phase === PHASE_NUL_AUTORISE;
 }
 
 export function determinerVainqueurMatch(sets: SetSaisi[], format: MatchFormat): ResultatMatch {
+  if (estModePoints(format)) return determinerVainqueurPoints(sets, format);
+
   let setsGagnesA = 0;
   let setsGagnesB = 0;
 
@@ -75,8 +123,26 @@ export function determinerVainqueurMatch(sets: SetSaisi[], format: MatchFormat):
  * suivre — pour que le scoreur ne reste jamais devant un match qu'il ne
  * comprend pas pourquoi il ne peut pas valider. Null si le vainqueur est clair.
  */
-export function expliquerScoreIndetermine(sets: SetSaisi[], format: MatchFormat): string | null {
-  if (determinerVainqueurMatch(sets, format).vainqueur) return null;
+export function expliquerScoreIndetermine(
+  sets: SetSaisi[],
+  format: MatchFormat,
+  phase?: string | null,
+): string | null {
+  const resultat = determinerVainqueurMatch(sets, format);
+  if (resultat.vainqueur) return null;
+  if (resultat.nul) {
+    if (nulAutorise(phase)) return null;
+    const manche = sets[0];
+    return `Égalité ${manche?.jeuxA}-${manche?.jeuxB} : un match nul n'est accepté que pour une manche d'Americano. Sur cette phase un vainqueur est obligatoire : jouez un point en or et saisissez son gagnant.`;
+  }
+
+  if (estModePoints(format)) {
+    const manche = sets[0];
+    if (!manche) return "Saisis le score de la manche.";
+    if (manche.jeuxA === manche.jeuxB) {
+      return `Égalité ${manche.jeuxA}-${manche.jeuxB} : avec un total exact de ${format.pointsCible} points, une égalité est refusée. Jouez un point en or et saisissez son gagnant.`;
+    }
+  }
 
   const regle = format.egaliteAuBuzzer ?? "point_en_or";
   for (const set of sets) {
@@ -102,4 +168,60 @@ export function libelleSet(s: SetSaisi): string {
   if (s.tiebreakA == null || s.tiebreakB == null) return `${s.jeuxA}-${s.jeuxB}`;
   if (s.jeuxA === s.jeuxB) return `${s.jeuxA}-${s.jeuxB} (${s.tiebreakA}-${s.tiebreakB})`;
   return `${s.jeuxA}-${s.jeuxB}(${Math.min(s.tiebreakA, s.tiebreakB)})`;
+}
+
+/**
+ * Mode points avec total exact : la saisie d'un camp déduit l'autre. Null quand le
+ * format n'est pas concerné ou que le score saisi est impossible (hors 0..total).
+ */
+export function deduireAutreCamp(pointsUnCamp: number, format: MatchFormat): number | null {
+  if (!estModePoints(format) || format.sommeExacte === false) return null;
+  if (!Number.isInteger(pointsUnCamp) || pointsUnCamp < 0 || pointsUnCamp > format.pointsCible) return null;
+  return format.pointsCible - pointsUnCamp;
+}
+
+/** Une égalité est-elle possible (donc à départager par un point en or) pour ce total exact ? */
+export function egalitePossibleEnPoints(format: MatchFormat): boolean {
+  return estModePoints(format) && format.sommeExacte !== false && format.pointsCible % 2 === 0;
+}
+
+/**
+ * Cohérence d'une saisie en points : entiers positifs et, en total exact, somme égale
+ * à `pointsCible`. Message d'erreur, ou null si la saisie est acceptable.
+ */
+export function verifierSaisiePoints(sets: SetSaisi[], format: MatchFormat): string | null {
+  if (!estModePoints(format)) return null;
+  const manche = sets[0];
+  if (!manche) return "Saisis le score de la manche.";
+  const { jeuxA, jeuxB } = manche;
+  if (![jeuxA, jeuxB].every((p) => Number.isInteger(p) && p >= 0)) return "Les points doivent être des entiers positifs.";
+  if (format.sommeExacte !== false && jeuxA + jeuxB !== format.pointsCible) {
+    return `Le total doit valoir exactement ${format.pointsCible} points (reçu ${jeuxA + jeuxB}).`;
+  }
+  return null;
+}
+
+export interface ArbitrageMatch {
+  /** Camp vainqueur ; null pour un nul ou un score indéterminé. */
+  vainqueur: "a" | "b" | null;
+  /** Match nul accepté (jamais hors phase manche). */
+  nul: boolean;
+  /** Raison du refus quand ni vainqueur ni nul accepté ; null si le match peut être validé. */
+  erreur: string | null;
+}
+
+/**
+ * Arbitrage d'un match à valider, sensible à la phase : l'unique endroit qui décide si
+ * un score est validable. Un nul n'est accepté que sur la phase manche.
+ */
+export function arbitrerMatch(sets: SetSaisi[], format: MatchFormat, phase: string): ArbitrageMatch {
+  const resultat = determinerVainqueurMatch(sets, format);
+  if (resultat.vainqueur) return { vainqueur: resultat.vainqueur, nul: false, erreur: null };
+  const nul = resultat.nul === true && nulAutorise(phase);
+  if (nul) return { vainqueur: null, nul: true, erreur: null };
+  return {
+    vainqueur: null,
+    nul: false,
+    erreur: expliquerScoreIndetermine(sets, format, phase) ?? "Le score ne désigne pas encore de vainqueur clair.",
+  };
 }

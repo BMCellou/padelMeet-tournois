@@ -1,6 +1,7 @@
 // « Résultats » : classements de poule remplis, tableau final rempli,
 // classement final. Document envoyé au club après le tournoi (A4, noir et blanc).
 
+import { CODE_FORMAT_PAR_DEFAUT, getFormat } from "@/lib/engine/formats";
 import { libelleSet } from "@/lib/engine/score";
 import { calculerClassementFinalTableau, type StandingRow } from "@/lib/tournoi/classementFinalAffichage";
 import { dessinerArbre, dessinerBoite, type ContenuBoite } from "./arbre-dessin";
@@ -15,6 +16,7 @@ import {
   tailleDuTableau,
 } from "./mise-en-page";
 import { MARGE, Rendu } from "./outils";
+import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
 import type { DonneesTournoi, MatchPdf } from "./types";
 
 const FOND_ENTETE = 0.88;
@@ -63,7 +65,7 @@ function classementsDePoule(r: Rendu, d: DonneesTournoi): void {
     );
     r.assurerPlace(40 + (lignes.length + 1) * 18 + matchs.length * 11, "Résultats : classements de poule (suite)");
 
-    r.texte(MARGE, r.y - 13, `Poule ${p.nom}`, { taille: 13, gras: true });
+    r.texte(MARGE, r.y - 13, libelleGroupe(p), { taille: 13, gras: true });
     r.y -= 20;
     let x = MARGE;
     for (const c of cols) {
@@ -186,6 +188,7 @@ function classementFinal(r: Rendu, d: DonneesTournoi): void {
       d.equipes.map((e) => e.id),
       standings,
       new Map(d.equipes.map((e) => [e.id, e.nom])),
+      getFormat(d.formatAnimation ?? CODE_FORMAT_PAR_DEFAUT),
     );
   }
 

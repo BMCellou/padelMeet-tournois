@@ -68,6 +68,23 @@ Les composants et les routes ne font qu'appeler le moteur et persister le résul
   horaire existent avant que les équipes soient connues.
 - Aucune combinaison de format ne doit produire un match impossible à valider.
 
+## Formats d'animation
+- Chaque format vit dans `lib/engine/formats/<code>.ts` et implémente `FormatAnimation`
+  (`lib/engine/formats/types.ts`, conçu dans `docs/formats-animation.md`). Aucun composant,
+  aucune route ne teste le code d'un format : tout passe par le registre
+  (`getFormat(code)`, `listerFormats()`) et par les propriétés déclarées (uniteClassement,
+  calendrier, partenaire, modeScore, aUnTableauFinal) ou les capacités optionnelles
+  (`groupes`, `phaseFinale`). Le code du tournoi est `tournaments.format_animation`
+  (`chargerFormat` dans `src/lib/tournoi/formatAnimation.ts`).
+- `poules_tableau` enveloppe le moteur historique sans le réécrire : ses opérations délèguent
+  aux fonctions existantes. `tests/formats-parite.test.ts` vérifie qu'il reproduit les fichiers
+  golden.
+- Les paires éphémères des formats à partenaire tournant seront des `teams` avec
+  `ephemere = true` ; la table `matches` et la saisie de score ne changent jamais selon le format.
+- Un format dynamique ne génère que le tour suivant, et seulement quand toutes les manches du
+  tour courant sont validées.
+- Écran de déroulé : saisir un score ne doit jamais demander plus de trois gestes.
+
 ## Scénarios de référence
 - `tests/fixtures/tournoi-25-juillet.test.ts` : 14 équipes, poules 5/5/4, tableau de 8,
   2 premiers de chaque poule + 2 meilleurs 3<sup>es</sup>, petite finale comprise.

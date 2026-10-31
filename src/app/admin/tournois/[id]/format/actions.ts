@@ -6,9 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { estAdmin } from "@/lib/staff/session";
 import { FORMAT_PAR_DEFAUT, type MatchFormat } from "@/lib/engine/types";
 import { memeFormat, validerDepartage, validerFormat } from "@/lib/engine/formatMatch";
+import { getFormat } from "@/lib/engine/formats";
 import {
-  PHASES_FORMAT,
-  LIBELLES_PHASES,
   calculerVerrous,
   validerFormatsParPhase,
   type FormatsParPhase,
@@ -27,7 +26,7 @@ async function charger(tournamentId: string) {
   const [{ data: tournoi }, { data: matchs }] = await Promise.all([
     supabase
       .from("tournaments")
-      .select("id, format_config, format_par_phase, tiebreak_rules")
+      .select("id, format_config, format_par_phase, tiebreak_rules, format_animation")
       .eq("id", tournamentId)
       .single(),
     supabase.from("matches").select("phase, round, statut").eq("tournament_id", tournamentId),
@@ -35,9 +34,10 @@ async function charger(tournamentId: string) {
   if (!tournoi) return null;
 
   const formatsActuels = (tournoi.format_par_phase ?? {}) as FormatsParPhase;
-  const verrous = calculerVerrous(matchs ?? [], new Set(Object.keys(formatsActuels) as PhaseFormat[]));
+  const format = getFormat(tournoi.format_animation);
+  const verrous = calculerVerrous(matchs ?? [], new Set(Object.keys(formatsActuels) as PhaseFormat[]), format);
   const formatDefautActuel: MatchFormat = { ...FORMAT_PAR_DEFAUT, ...(tournoi.format_config as object as Partial<MatchFormat>) };
-  return { supabase, tournoi, formatsActuels, formatDefautActuel, verrous };
+  return { supabase, tournoi, format, formatsActuels, formatDefautActuel, verrous };
 }
 
 async function tracer(
@@ -94,21 +94,22 @@ export async function enregistrerFormatsParPhase(tournamentId: string, brut: unk
   if (!(await estAdmin())) return { error: "Non autorisé." };
   if (!idSchema.safeParse(tournamentId).success) return { error: "Requête invalide." };
 
-  const valide = validerFormatsParPhase(brut);
-  if (!valide.ok) return { error: valide.erreurs.join(" ") };
-
   const ctx = await charger(tournamentId);
   if (!ctx) return { error: "Tournoi introuvable." };
 
+  // Les phases acceptées sont celles du format du tournoi, pas une liste figée.
+  const valide = validerFormatsParPhase(brut, ctx.format.phases);
+  if (!valide.ok) return { error: valide.erreurs.join(" ") };
+
   const modifiees: PhaseFormat[] = [];
-  for (const phase of PHASES_FORMAT) {
-    if (!memeFormat(valide.formats[phase], ctx.formatsActuels[phase])) modifiees.push(phase);
+  for (const { code } of ctx.format.phases) {
+    if (!memeFormat(valide.formats[code], ctx.formatsActuels[code])) modifiees.push(code);
   }
   if (modifiees.length === 0) return { success: true, inchange: true };
 
   for (const phase of modifiees) {
     if (ctx.verrous.phases[phase].verrouille) {
-      return { error: `${LIBELLES_PHASES[phase]} : ${ctx.verrous.phases[phase].raison}` };
+      return { error: `${ctx.format.phases.find((p) => p.code === phase)?.libelle ?? phase} : ${ctx.verrous.phases[phase].raison}` };
     }
   }
 

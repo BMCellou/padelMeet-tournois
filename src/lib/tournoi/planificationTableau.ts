@@ -5,7 +5,8 @@
 // « Replanifier le tableau final » du calendrier.
 
 import type { createClient } from "@/lib/supabase/server";
-import { planifierTableau, type OccupationExistante } from "@/lib/engine/planification";
+import type { OccupationExistante } from "@/lib/engine/planification";
+import { chargerFormat } from "./formatAnimation";
 import { heureLocaleVersISO } from "@/lib/temps";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -21,7 +22,7 @@ export async function planifierTableauFinal(
   supabase: SupabaseServerClient,
   tournamentId: string,
 ): Promise<ResultatPlanification> {
-  const [{ data: tournoi }, { data: liens }, { data: matchs }] = await Promise.all([
+  const [{ data: tournoi }, { data: liens }, { data: matchs }, { data: groupesNiveau }] = await Promise.all([
     supabase
       .from("tournaments")
       .select("date, heure_debut, duree_match_min, pause_min, repos_min_min")
@@ -30,8 +31,9 @@ export async function planifierTableauFinal(
     supabase.from("tournament_courts").select("courts(id, ordre)").eq("tournament_id", tournamentId),
     supabase
       .from("matches")
-      .select("id, phase, round, bracket_slot, team_a_id, team_b_id, court_id, scheduled_at, duree_estimee, statut")
+      .select("id, phase, round, group_id, bracket_slot, team_a_id, team_b_id, court_id, scheduled_at, duree_estimee, statut")
       .eq("tournament_id", tournamentId),
+    supabase.from("groups").select("id").eq("tournament_id", tournamentId).not("niveau", "is", null),
   ]);
 
   const courts = (liens ?? [])
@@ -42,10 +44,17 @@ export async function planifierTableauFinal(
   }
 
   const finaux = (matchs ?? []).filter((m) => (PHASES_FINALES as readonly string[]).includes(m.phase));
+  // Variante « poules de niveau + phase finale » : les matchs des niveaux se jouent en même temps que le
+  // tableau (le niveau de rang n pendant le tour n du tableau) ; ils sont donc placés avec lui.
+  const idsNiveaux = new Set((groupesNiveau ?? []).map((g) => g.id));
+  const dansUnNiveau = (m: { group_id: string | null }) => !!m.group_id && idsNiveaux.has(m.group_id);
+  const poulesPremierTour = (matchs ?? []).filter((m) => m.phase === "poule" && !dansUnNiveau(m));
+  const dernierTourPremier = poulesPremierTour.reduce((max, m) => Math.max(max, m.round), 0);
+  const matchsNiveaux = (matchs ?? []).filter((m) => m.phase === "poule" && dansUnNiveau(m));
   if (finaux.length === 0) {
     return { ok: false, raison: "aucun_match", message: "Le tableau final n'a pas encore été généré." };
   }
-  if (finaux.some((m) => m.statut === "valide" || m.statut === "forfait")) {
+  if ([...finaux, ...matchsNiveaux].some((m) => m.statut === "valide" || m.statut === "forfait")) {
     return {
       ok: false,
       raison: "tableau_joue",
@@ -54,8 +63,8 @@ export async function planifierTableauFinal(
   }
 
   const dureeJeuMin = tournoi.duree_match_min ?? 25;
-  const existants: OccupationExistante[] = (matchs ?? [])
-    .filter((m) => m.phase === "poule" && m.court_id && m.scheduled_at)
+  const existants: OccupationExistante[] = poulesPremierTour
+    .filter((m) => m.court_id && m.scheduled_at)
     .map((m) => ({
       courtId: m.court_id!,
       debut: m.scheduled_at!,
@@ -64,15 +73,29 @@ export async function planifierTableauFinal(
       teamBId: m.team_b_id,
     }));
 
-  const planning = planifierTableau(
-    finaux.map((m) => ({
-      id: m.id,
-      phase: m.phase as PhaseFinale,
-      round: m.round,
-      bracketSlot: m.bracket_slot,
-      teamAId: m.team_a_id,
-      teamBId: m.team_b_id,
-    })),
+  const format = await chargerFormat(supabase, tournamentId);
+  if (!format.phaseFinale) {
+    return { ok: false, raison: "aucun_match", message: "Ce format d'animation n'a pas de tableau final." };
+  }
+  const planning = format.phaseFinale.planifierTableau(
+    [
+      ...finaux.map((m) => ({
+        id: m.id,
+        phase: m.phase as PhaseFinale,
+        round: m.round,
+        bracketSlot: m.bracket_slot,
+        teamAId: m.team_a_id,
+        teamBId: m.team_b_id,
+      })),
+      ...matchsNiveaux.map((m) => ({
+        id: m.id,
+        phase: "classement_5e" as const,
+        round: m.round - dernierTourPremier,
+        bracketSlot: null,
+        teamAId: m.team_a_id,
+        teamBId: m.team_b_id,
+      })),
+    ],
     courts,
     {
       heureDebut: heureLocaleVersISO(tournoi.date, tournoi.heure_debut.slice(0, 5)),

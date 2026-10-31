@@ -17,7 +17,7 @@ export async function chargerDonneesTournoi(
   const { data: tournoi } = await supabase
     .from("tournaments")
     .select(
-      "nom, date, statut, genre, niveau, nb_qualifies, format_config, format_par_phase, tiebreak_rules, duree_match_min, club_id",
+      "nom, date, statut, genre, niveau, nb_qualifies, format_config, format_par_phase, tiebreak_rules, duree_match_min, club_id, format_animation",
     )
     .eq("id", tournamentId)
     .single();
@@ -33,10 +33,11 @@ export async function chargerDonneesTournoi(
       .select("id, nom_affiche, team_players(players(prenom, nom))")
       .eq("tournament_id", tournamentId)
       .eq("statut", "validee")
+      .eq("ephemere", false)
       .order("nom_affiche"),
     supabase
       .from("groups")
-      .select("id, nom, ordre, group_teams(team_id, position_tirage)")
+      .select("id, nom, ordre, niveau, group_teams(team_id, position_tirage)")
       .eq("tournament_id", tournamentId)
       .order("ordre"),
     supabase
@@ -80,6 +81,7 @@ export async function chargerDonneesTournoi(
   }));
 
   return {
+    formatAnimation: tournoi.format_animation,
     tournoi: {
       nom: tournoi.nom,
       date: tournoi.date,
@@ -105,6 +107,7 @@ export async function chargerDonneesTournoi(
     poules: (groupes.data ?? []).map((g) => ({
       id: g.id,
       nom: g.nom,
+      niveau: g.niveau,
       equipeIds: [...g.group_teams]
         .sort((a, b) => (a.position_tirage ?? 0) - (b.position_tirage ?? 0))
         .map((gt) => gt.team_id),

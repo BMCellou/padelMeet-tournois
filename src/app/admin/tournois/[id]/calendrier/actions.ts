@@ -1,8 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { genererTours } from "@/lib/engine/tours";
-import { planifier, type MatchAPlanifier } from "@/lib/engine/planification";
+import type { MatchAPlanifier } from "@/lib/engine/planification";
+import { chargerFormat } from "@/lib/tournoi/formatAnimation";
 import { heureLocaleVersISO } from "@/lib/temps";
 import { appliquerFormatsParPhase } from "@/lib/tournoi/formatParPhase";
 import { planifierTableauFinal } from "@/lib/tournoi/planificationTableau";
@@ -37,6 +37,9 @@ export async function genererCalendrier(
 
   const { tournamentId, heureDebut, dureeJeuMin, rotationMin, reposMinMin } = parsed.data;
   const supabase = await createClient();
+
+  const format = await chargerFormat(supabase, tournamentId);
+  if (!format.groupes) return { error: "Ce format d'animation n'a pas de calendrier par poules." };
 
   const { data: tournoi, error: tournoiError } = await supabase
     .from("tournaments")
@@ -107,7 +110,7 @@ export async function genererCalendrier(
 
     if (equipeIds.length < 2) continue;
 
-    const tours = genererTours(equipeIds);
+    const tours = format.groupes.toursDuGroupe(equipeIds);
     for (const tour of tours) {
       for (const [teamAId, teamBId] of tour.rencontres) {
         matchesAInserer.push({
@@ -146,7 +149,7 @@ export async function genererCalendrier(
     teamBId: m.team_b_id!,
   }));
 
-  const planning = planifier(
+  const planning = format.groupes.planifier(
     aPlanifier,
     courts.map((c) => ({ id: c.id, ordre: c.ordre })),
     {
