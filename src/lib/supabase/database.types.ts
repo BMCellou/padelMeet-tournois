@@ -157,18 +157,21 @@ export type Database = {
       groups: {
         Row: {
           id: string
+          niveau: number | null
           nom: string
           ordre: number
           tournament_id: string
         }
         Insert: {
           id?: string
+          niveau?: number | null
           nom: string
           ordre?: number
           tournament_id: string
         }
         Update: {
           id?: string
+          niveau?: number | null
           nom?: string
           ordre?: number
           tournament_id?: string

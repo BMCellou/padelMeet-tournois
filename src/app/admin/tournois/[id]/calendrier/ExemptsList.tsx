@@ -17,7 +17,7 @@ export function ExemptsList({ donnees }: { donnees: ExemptParPoule[] }) {
       <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {avecExempts.map((d) => (
           <div key={d.pouleNom}>
-            <p className="mb-1 text-sm font-medium">Poule {d.pouleNom}</p>
+            <p className="mb-1 text-sm font-medium">{d.pouleNom}</p>
             <ul className="space-y-0.5 text-sm text-muted-foreground">
               {d.exempts.map((e) => (
                 <li key={e.round}>

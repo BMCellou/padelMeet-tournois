@@ -308,6 +308,17 @@ Un onglet **Messages** par tournoi permet d'envoyer un e-mail libre aux inscrits
 - **Essai** : « M'envoyer un essai » envoie le message (préfixe [ESSAI]) uniquement à l'adresse du compte administrateur connecté.
 - **Envoi** : confirmation en deux temps, puis un e-mail par destinataire (5 à la fois) ; le bilan liste les échecs. L'envoi est tracé dans le journal d'audit (sujet, nombre de destinataires, échecs, planning joint). Réservé aux administrateurs.
 
+### Format « poules de niveau »
+
+Format d'animation à binômes fixes, **sans tableau**, choisi à la création du tournoi (étape 1). Tout le monde joue au moins 3 matchs et le classement de la 1re à la dernière place est **joué**, pas calculé.
+
+- **Premier tour** : autant de poules que possible, **3 équipes minimum par poule** (9 équipes : 3 poules de 3 ; 10 : 4/3/3 ; 12 : 4 poules de 3). Les poules diffèrent d'au plus une équipe. L'organisateur peut imposer **moins** de poules (jamais de poule de moins de 3). Dès 4 équipes ; une seule poule (4 ou 5 équipes) n'a pas de second tour. Tirage et calendrier du premier tour comme pour les poules classiques.
+- **Second tour (niveaux)** : composé **automatiquement** dès que le dernier match du premier tour est validé. Le niveau 1 réunit les premiers de chaque poule, le niveau 2 les deuxièmes, etc. Un niveau de 3 équipes ou plus se joue en tournante, un niveau de **2 équipes** est un **match de classement**, un niveau d'**une équipe** ne joue pas. Comme les équipes d'un niveau viennent de poules différentes, **personne ne rejoue un adversaire déjà rencontré**. Les matchs sont placés à la suite du premier tour (rotation et repos du tournoi respectés).
+- **Classement final** : niveau 1, puis niveau 2, etc. ; à l'intérieur d'un niveau, le classement de sa tournante (mêmes critères de départage que les poules). Affiché (admin et public) quand tous les matchs des niveaux sont joués. Le vainqueur du tournoi est le premier du niveau 1. Une égalité parfaite entre deux équipes d'une même poule qui les placerait dans deux niveaux différents est tranchée par l'ordre du classement et **tracée dans le journal d'audit** (action « generation_niveaux »).
+- **Corrections** : un match d'un niveau se corrige librement. Corriger, déclarer forfait ou réinitialiser un match du **premier** tour recompose le second tour tant qu'**aucun match de niveau n'a commencé** ; ensuite c'est refusé, avec un message explicite.
+- **Aperçu** : l'écran « Poules et tirage » indique, avant le tirage, le nombre de poules et de niveaux, le nombre de matchs, les matchs par équipe et le nombre minimal de créneaux sur les terrains assignés.
+- Exemple : 9 équipes, 3 terrains, 15 min de jeu + 5 min de rotation, repos 5 min → 18 matchs, 4 matchs par équipe, 6 créneaux, tournoi terminé en 2 h environ (début à 13 h : fin vers 15 h).
+
 ## 14. Pages publiques
 
 - **Accueil** : tournois publiés, en cours et terminés (en cours d'abord, puis à venir par date croissante, puis terminés du plus récent).

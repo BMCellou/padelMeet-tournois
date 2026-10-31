@@ -5,6 +5,7 @@
 import { resumerFormat } from "@/lib/engine/formatMatch";
 import { CODE_FORMAT_PAR_DEFAUT, getFormat } from "@/lib/engine/formats";
 import { formatHeureParis } from "@/lib/temps";
+import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
 import { dessinerArbre, dessinerBoite } from "./arbre-dessin";
 import {
   coteMatch,
@@ -124,7 +125,7 @@ function poules(r: Rendu, d: DonneesTournoi): void {
 
   for (const p of d.poules) {
     r.assurerPlace(70, "Composition des poules (suite)");
-    r.texte(MARGE, r.y - 13, `Poule ${p.nom}`, { taille: 13, gras: true });
+    r.texte(MARGE, r.y - 13, libelleGroupe(p), { taille: 13, gras: true });
     r.texte(MARGE + 80, r.y - 13, `${p.equipeIds.length} équipes`, { taille: 9, gris: 0.4 });
     r.y -= 20;
     r.cellule(MARGE, r.y, colN, 16, "N°", { gras: true, fond: FOND_ENTETE, align: "centre" });
@@ -132,7 +133,7 @@ function poules(r: Rendu, d: DonneesTournoi): void {
     r.cellule(MARGE + colN + colJ, r.y, colJ, 16, "Joueur 2", { gras: true, fond: FOND_ENTETE });
     r.y -= 16;
     p.equipeIds.forEach((id, i) => {
-      r.assurerPlace(22, `Poule ${p.nom} (suite)`);
+      r.assurerPlace(22, `${libelleGroupe(p)} (suite)`);
       const e = d.equipes.find((x) => x.id === id);
       const [j1, j2] = e && e.joueurs.length >= 2 ? e.joueurs : [e?.nom ?? "?", ""];
       r.cellule(MARGE, r.y, colN, 20, `${i + 1}`, { align: "centre", taille: 9 });
@@ -308,7 +309,7 @@ function grillesClassement(r: Rendu, d: DonneesTournoi): void {
 
   for (const p of d.poules) {
     r.assurerPlace(40 + (p.equipeIds.length + 1) * hLigne, "Grilles de classement (suite)");
-    r.texte(MARGE, r.y - 13, `Poule ${p.nom}`, { taille: 13, gras: true });
+    r.texte(MARGE, r.y - 13, libelleGroupe(p), { taille: 13, gras: true });
     r.y -= 20;
     let x = MARGE;
     r.cellule(x, r.y, colEquipe, 20, "Équipe", { gras: true, fond: FOND_ENTETE });

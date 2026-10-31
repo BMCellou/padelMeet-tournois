@@ -11,6 +11,7 @@ import type { Qualifie } from "@/lib/engine/tableau";
 import type { Match5e } from "@/lib/engine/classement5e";
 import { chargerFormat } from "./formatAnimation";
 import { appliquerFormatsParPhase } from "./formatParPhase";
+import { tenterGenerationNiveaux } from "./niveaux";
 import { planifierTableauFinal } from "./planificationTableau";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -331,6 +332,12 @@ export async function tenterGenerationAutomatique(
   supabase: SupabaseServerClient,
   tournamentId: string,
 ): Promise<void> {
+  // Format à second tour par niveaux : pas de tableau, les niveaux prennent la suite du premier tour.
+  if ((await chargerFormat(supabase, tournamentId)).niveaux) {
+    await tenterGenerationNiveaux(supabase, tournamentId);
+    return;
+  }
+
   const { data: tableauExistant } = await supabase
     .from("matches")
     .select("id")

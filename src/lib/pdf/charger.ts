@@ -37,7 +37,7 @@ export async function chargerDonneesTournoi(
       .order("nom_affiche"),
     supabase
       .from("groups")
-      .select("id, nom, ordre, group_teams(team_id, position_tirage)")
+      .select("id, nom, ordre, niveau, group_teams(team_id, position_tirage)")
       .eq("tournament_id", tournamentId)
       .order("ordre"),
     supabase
@@ -107,6 +107,7 @@ export async function chargerDonneesTournoi(
     poules: (groupes.data ?? []).map((g) => ({
       id: g.id,
       nom: g.nom,
+      niveau: g.niveau,
       equipeIds: [...g.group_teams]
         .sort((a, b) => (a.position_tirage ?? 0) - (b.position_tirage ?? 0))
         .map((gt) => gt.team_id),

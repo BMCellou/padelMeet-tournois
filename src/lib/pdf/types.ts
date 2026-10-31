@@ -18,6 +18,8 @@ export interface EquipePdf {
 export interface PoulePdf {
   id: string;
   nom: string;
+  /** Second tour d'un format par niveaux (« Niveau 1 ») ; absent pour une poule du premier tour. */
+  niveau?: number | null;
   /** Dans l'ordre du tirage. */
   equipeIds: string[];
 }

@@ -7,6 +7,7 @@ import type { PhaseFormat } from "@/lib/engine/formatPhases";
 import type { LibelleMatchTableau } from "@/lib/engine/tableauLibelles";
 import type { MatchFormat } from "@/lib/engine/types";
 import { formatHeureParis } from "@/lib/temps";
+import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
 import type { DonneesTournoi, MatchPdf } from "./types";
 
 const FUSEAU = "Europe/Paris";
@@ -60,7 +61,7 @@ export function libellesPhaseFinale(d: DonneesTournoi): Map<string, LibelleMatch
 export function etiquetteMatch(d: DonneesTournoi, m: MatchPdf, libelles = libellesPhaseFinale(d)): string {
   if (m.phase === "poule") {
     const poule = d.poules.find((p) => p.id === m.groupId);
-    return `Poule ${poule?.nom ?? "?"}`;
+    return poule ? libelleGroupe(poule) : "Poule ?";
   }
   if (m.phase === "manche") return `Tour ${m.round}`;
   return libelles.get(m.id)?.etiquette ?? "Phase finale";
@@ -128,7 +129,7 @@ export function construireCreneaux(d: DonneesTournoi): Creneau[] {
         dejaVus.add(cle);
         const exempt = exempts.get(m.groupId)?.get(m.round);
         const poule = d.poules.find((p) => p.id === m.groupId);
-        if (exempt) repos.push(`Poule ${poule?.nom ?? "?"} : ${exempt}`);
+        if (exempt) repos.push(`${poule ? libelleGroupe(poule) : "Poule ?"} : ${exempt}`);
       }
       return {
         debutISO,

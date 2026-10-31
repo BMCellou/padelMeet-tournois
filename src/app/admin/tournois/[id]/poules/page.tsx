@@ -44,9 +44,15 @@ export default async function PoulesPage({
     .eq("tournament_id", tournamentId)
     .eq("statut", "en_attente");
 
+  const { data: terrainsLies } = await supabase
+    .from("tournament_courts")
+    .select("courts(id)")
+    .eq("tournament_id", tournamentId);
+  const nbTerrains = Math.max(1, (terrainsLies ?? []).filter((t) => t.courts).length);
+
   const { data: groupesBruts } = await supabase
     .from("groups")
-    .select("id, nom, ordre, group_teams(team_id, position_tirage)")
+    .select("id, nom, ordre, niveau, group_teams(team_id, position_tirage)")
     .eq("tournament_id", tournamentId)
     .order("ordre");
 
@@ -60,9 +66,10 @@ export default async function PoulesPage({
   const scoresDejaSaisis = (matchsPoule ?? []).some((m) => m.statut !== "a_venir");
   const equipesParId = new Map((teams ?? []).map((t) => [t.id, t]));
 
-  const groupes = (groupesBruts ?? []).map((g) => ({
+  const tousLesGroupes = (groupesBruts ?? []).map((g) => ({
     id: g.id,
     nom: g.nom,
+    niveau: g.niveau,
     equipes: [...g.group_teams]
       .sort((a, b) => (a.position_tirage ?? 0) - (b.position_tirage ?? 0))
       .map((gt) => equipesParId.get(gt.team_id))
@@ -73,13 +80,21 @@ export default async function PoulesPage({
       .map((e) => ({ id: e.id, nomAffiche: e.nom_affiche })),
   }));
 
+  // Les poules du premier tour se tirent et se modifient ici ; les niveaux du second tour se composent seuls.
+  const groupes = tousLesGroupes.filter((g) => !g.niveau);
+  const niveaux = tousLesGroupes.filter((g) => g.niveau);
+  const formatAnimation = getFormat(tournoi.format_animation);
   const dejaTire = groupes.length > 0;
 
   let apercu: string | null = null;
   if (!dejaTire && teams && teams.length >= 4) {
     try {
-      const r = getFormat(tournoi.format_animation).groupes!.repartir(teams.length);
+      const r = formatAnimation.groupes!.repartir(teams.length);
       apercu = `${r.nombrePoules} poule(s) de ${[...r.tailles].sort((a, b) => b - a).join("/")}`;
+      if (formatAnimation.niveaux) {
+        const e = formatAnimation.niveaux.estimer(r.tailles, nbTerrains);
+        apercu += `, puis ${formatAnimation.niveaux.repartir(teams.length).niveaux.length} niveaux — ${e.nbMatchs} matchs, ${e.matchsMin === e.matchsMax ? e.matchsMin : `${e.matchsMin} à ${e.matchsMax}`} par équipe, ${e.creneauxMin} créneaux au minimum sur ${nbTerrains} terrain(s)`;
+      }
     } catch {
       apercu = null;
     }
@@ -104,6 +119,30 @@ export default async function PoulesPage({
                 <p className="text-xs text-muted-foreground">
                   Graine du tirage : {tournoi.tirage_seed}
                 </p>
+              ) : null}
+              {formatAnimation.niveaux ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Second tour : les niveaux</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    {niveaux.length === 0 ? (
+                      <p className="text-muted-foreground">
+                        Quand tous les matchs du premier tour sont validés, le second tour se compose seul : les premiers de
+                        chaque poule dans le niveau 1, les deuxièmes dans le niveau 2, etc. Chaque niveau se joue en
+                        tournante (ou en un seul match de classement s&apos;il compte deux équipes), et le classement final
+                        va de la 1re à la dernière place.
+                      </p>
+                    ) : (
+                      niveaux.map((n) => (
+                        <div key={n.id}>
+                          <p className="font-medium">{n.nom}</p>
+                          <p className="text-muted-foreground">{n.equipes.map((e) => e.nomAffiche).join(" · ")}</p>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
               ) : null}
               {scoresDejaSaisis ? (
                 <p className="text-sm text-muted-foreground">

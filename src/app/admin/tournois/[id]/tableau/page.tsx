@@ -34,7 +34,10 @@ export default async function TableauPage({
   }
 
   // Format à partenaires tournants : pas de poules ni de tableau, tout se joue sur l'écran de déroulé.
-  if ((await chargerFormat(supabase, tournamentId)).rotation) redirect(`/admin/tournois/${tournamentId}/deroule`);
+  const formatAnimation = await chargerFormat(supabase, tournamentId);
+  if (formatAnimation.rotation) redirect(`/admin/tournois/${tournamentId}/deroule`);
+  // Format par niveaux : pas de tableau, le classement final s'affiche avec les scores.
+  if (formatAnimation.niveaux) redirect(`/admin/tournois/${tournamentId}/scores`);
 
   const format = tournoi.format_config as unknown as MatchFormat;
 

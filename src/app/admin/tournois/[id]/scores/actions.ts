@@ -17,6 +17,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { recalculerClassementJoueurs } from "@/lib/tournoi/classementJoueurs";
 import { calculerPropagationTableau } from "@/lib/tournoi/propagationTableau";
 import { regenererTableauAuto, tenterGenerationAutomatique } from "@/lib/tournoi/tableauFinal";
+import { chargerFormat } from "@/lib/tournoi/formatAnimation";
+import { etatDuSecondTour, regenererNiveaux, supprimerSecondTour } from "@/lib/tournoi/niveaux";
 import { evaluerCorrectionPoule, type ResultatEvaluation } from "@/lib/tournoi/correctionPoule";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -121,6 +123,22 @@ async function regenererApresCorrection(
   garde: ResultatEvaluation | null,
   origine: "correction" | "forfait",
 ): Promise<ActionResult> {
+  // Format à second tour par niveaux : pas de liste de qualifiés, on recompose les niveaux.
+  if (garde?.decision === "appliquer_et_regenerer" && !garde.impact) {
+    const niveaux = await regenererNiveaux(supabase, tournamentId);
+    if (!niveaux.ok) {
+      return {
+        error: `Correction appliquée, mais le second tour n'a pas pu être recomposé (${niveaux.error}).`,
+      };
+    }
+    await supabase.from("audit_log").insert({
+      tournament_id: tournamentId,
+      acteur: await enregistrerActeur(supabase),
+      action: "regeneration_niveaux_correction",
+      payload: { matchId, origine } as unknown as Json,
+    });
+    return { success: true, info: "Le second tour a été recomposé suite à la correction : les classements des poules ont changé." };
+  }
   if (!garde || garde.decision !== "appliquer_et_regenerer" || !garde.impact) return { success: true };
 
   const resultat = await regenererTableauAuto(supabase, tournamentId);
@@ -424,6 +442,23 @@ export async function reinitialiserScore(tournamentId: string, matchId: string):
         error:
           "Le tableau final a déjà commencé : impossible de réinitialiser ce score de poule.",
       };
+    }
+  }
+
+  if (match.phase === "poule" && match.group_id) {
+    // Format à second tour par niveaux : rouvrir un score du premier tour change les classements, donc
+    // les niveaux. Possible tant qu'aucun match de niveau n'a commencé (le second tour est retiré, il
+    // se recompose quand le premier tour est de nouveau terminé) ; refusé ensuite.
+    const { data: groupe } = await supabase.from("groups").select("niveau").eq("id", match.group_id).single();
+    if (groupe && groupe.niveau === null && (await chargerFormat(supabase, tournamentId)).niveaux) {
+      const secondTour = await etatDuSecondTour(supabase, tournamentId);
+      if (secondTour.commence) {
+        return { error: "Le second tour a déjà commencé : impossible de réinitialiser ce score du premier tour." };
+      }
+      if (secondTour.existe) {
+        const suppression = await supprimerSecondTour(supabase, tournamentId);
+        if (!suppression.ok) return { error: suppression.error };
+      }
     }
   }
 

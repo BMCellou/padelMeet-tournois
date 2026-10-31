@@ -17,6 +17,14 @@ import type { MatchTableau, Qualifie } from "../tableau";
 import type { LibelleMatchTableau, MatchTableauStructure } from "../tableauLibelles";
 import type { EquipeAvecSeed, Poule } from "../tirage";
 import type { Tour as TourDeGroupe } from "../tours";
+import type {
+  ClassementDeNiveau,
+  ClassementDePoule,
+  EstimationNiveaux,
+  LigneClassementNiveaux,
+  Niveau,
+  RepartitionNiveaux,
+} from "../niveaux";
 import type { DefinitionPhases, PhaseDeFormat } from "../formatPhases";
 
 export type { PhaseDeFormat } from "../formatPhases";
@@ -24,7 +32,7 @@ export type { PhaseDeFormat } from "../formatPhases";
 // ── Identité et propriétés d'un format ──────────────────────────────────
 
 /** Code d'un format enregistré (valeur de tournaments.format_animation). */
-export type CodeFormat = "poules_tableau" | "americano";
+export type CodeFormat = "poules_tableau" | "americano" | "poules_niveaux";
 
 export interface Validation {
   ok: boolean;
@@ -47,6 +55,8 @@ export interface GroupeEtat {
   id: string;
   nom: string;
   participantIds: string[];
+  /** Formats à second tour par niveaux : rang des équipes réunies (1 = les premiers de poule) ; absent pour une poule du premier tour. */
+  niveau?: number | null;
 }
 
 export interface PlacementEtat {
@@ -141,6 +151,8 @@ export interface MatchPrevu {
 export interface Tour {
   numero: number;
   matchs: MatchPrevu[];
+  /** Groupes que ce tour crée (second tour par niveaux) : les matchs y renvoient par leur `groupeId`. */
+  groupes?: GroupeEtat[];
   /** Participants au repos ce tour-là (poule de taille impaire). */
   exempts: { groupeId: string | null; participantId: string }[];
 }
@@ -212,6 +224,21 @@ export interface OperationsPhaseFinale {
   alimentants(matchs: MatchTableauStructure[]): Map<string, string[]>;
 }
 
+// ── Capacité de second tour par niveaux ─────────────────────────────────
+// Un premier tour de poules, puis des poules réunissant les équipes de même rang. Les écrans
+// testent la présence de cette capacité, jamais le code du format.
+
+export interface OperationsNiveaux {
+  /** Autant de poules que possible (3 équipes minimum), ou le nombre imposé. Lève si impossible. */
+  repartir(effectif: number, options?: { nombreGroupesForce?: number }): RepartitionNiveaux;
+  /** Niveaux du second tour d'après les classements du premier. */
+  composer(classements: ClassementDePoule[]): Niveau[];
+  /** Classement de la 1re à la dernière place. */
+  classementFinal(niveaux: ClassementDeNiveau[]): LigneClassementNiveaux[];
+  /** Matchs, matchs par équipe et créneaux, pour une répartition donnée. */
+  estimer(tailles: number[], terrains: number): EstimationNiveaux;
+}
+
 // ── Capacité de rotation (partenaires tournants) ────────────────────────
 // Réglages et estimations d'un format où l'on change de partenaire à chaque tour. Les
 // écrans (création du tournoi, inscriptions) testent sa présence, jamais le code du format.
@@ -272,4 +299,6 @@ export interface FormatAnimation extends DefinitionPhases {
   phaseFinale?: OperationsPhaseFinale;
   /** Rotation des partenaires : présente ssi `partenaire === "tournant"`. */
   rotation?: OperationsRotation;
+  /** Second tour par niveaux : présente ssi le format classe par niveaux plutôt que par tableau. */
+  niveaux?: OperationsNiveaux;
 }

@@ -10,6 +10,7 @@ import { ExemptsList, type ExemptParPoule } from "./ExemptsList";
 import { getFormat } from "@/lib/engine/formats";
 import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
 import { ReplanifierTableau } from "./ReplanifierTableau";
+import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
 
 export default async function CalendrierPage({
   params,
@@ -48,7 +49,7 @@ export default async function CalendrierPage({
 
   const { data: groupes } = await supabase
     .from("groups")
-    .select("id, nom, ordre, group_teams(team_id, position_tirage)")
+    .select("id, nom, ordre, niveau, group_teams(team_id, position_tirage)")
     .eq("tournament_id", tournamentId)
     .order("ordre");
 
@@ -66,7 +67,7 @@ export default async function CalendrierPage({
     .eq("tournament_id", tournamentId)
     .in("phase", ["poule", "tableau", "classement", "classement_5e"]);
 
-  const nomPoule = new Map((groupes ?? []).map((g) => [g.id, g.nom]));
+  const nomPoule = new Map((groupes ?? []).map((g) => [g.id, libelleGroupe(g)]));
 
   const finaux = (matchsBruts ?? []).filter((m) => m.phase !== "poule");
   const structure: MatchTableauStructure[] = finaux.map((m) => ({
@@ -94,7 +95,7 @@ export default async function CalendrierPage({
       teamBId: m.team_b_id,
       teamANom: m.team_a_id ? (nomEquipe.get(m.team_a_id) ?? "?") : (libelle?.sourceA ?? "À déterminer"),
       teamBNom: m.team_b_id ? (nomEquipe.get(m.team_b_id) ?? "?") : (libelle?.sourceB ?? "À déterminer"),
-      etiquette: m.phase === "poule" ? `Poule ${nomPoule.get(m.group_id!) ?? "?"}` : (libelle?.etiquette ?? "Tableau"),
+      etiquette: m.phase === "poule" ? (nomPoule.get(m.group_id!) ?? "Poule ?") : (libelle?.etiquette ?? "Tableau"),
       round: m.round,
       alimentePar: alimentantsParMatch.get(m.id),
       verrouille: m.phase !== "poule" && tableauJoue,
@@ -107,7 +108,7 @@ export default async function CalendrierPage({
       .map((gt) => gt.team_id);
     const tours = equipeIds.length >= 2 ? (format.groupes?.toursDuGroupe(equipeIds) ?? []) : [];
     return {
-      pouleNom: g.nom,
+      pouleNom: libelleGroupe(g),
       exempts: tours
         .filter((t) => t.exempt !== null)
         .map((t) => ({

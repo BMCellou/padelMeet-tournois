@@ -9,7 +9,7 @@ export const COLONNES_PUBLIQUES = {
   accueilClubs: "id, nom, ville",
   accueilTournois: "id, nom, date, statut, genre, niveau, public_slug, club_id",
   tournoi: "id, nom, date, heure_debut, statut, genre, niveau, format_animation, config_animation",
-  groupes: "id, nom, ordre",
+  groupes: "id, nom, ordre, niveau",
   equipes: "id, nom_affiche",
   terrains: "id, nom",
   classements: "group_id, team_id, joues, v, d, ratio_sets, ratio_jeux, rang",

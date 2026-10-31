@@ -27,6 +27,8 @@ import {
 } from "./InscriptionTournoi";
 import { RealtimeRefresher } from "@/components/tournoi/RealtimeRefresher";
 import { BrandLogo } from "@/components/BrandLogo";
+import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
+import { chargerClassementFinalNiveaux } from "@/lib/tournoi/niveaux";
 
 export default async function PageTournoiPublic({
   params,
@@ -230,8 +232,14 @@ export default async function PageTournoiPublic({
   );
   const dernierTourTableau = toursTableau[toursTableau.length - 1];
 
-  const classementFinalLignes =
-    groupes && groupes.length === 1
+  // Format par niveaux : pas de tableau, le classement final est celui des niveaux (une fois tous leurs matchs joués).
+  const classementNiveaux = getFormat(tournoi.format_animation).niveaux
+    ? await chargerClassementFinalNiveaux(supabase, tournoi.id)
+    : null;
+
+  const classementFinalLignes = classementNiveaux
+    ? classementNiveaux
+    : groupes && groupes.length === 1
       ? (standingsBrutes ?? [])
           .filter((s) => s.rang != null)
           .sort((a, b) => (a.rang ?? 0) - (b.rang ?? 0))
@@ -363,7 +371,7 @@ export default async function PageTournoiPublic({
         {poulesAffichees.map(({ groupe, lignesClassement, matchs }) => (
           <Card key={groupe.id}>
             <CardHeader>
-              <CardTitle className="text-base">Poule {groupe.nom}</CardTitle>
+              <CardTitle className="text-base">{libelleGroupe(groupe)}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <StandingsTable lignes={lignesClassement} />
