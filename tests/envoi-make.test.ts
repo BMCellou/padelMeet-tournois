@@ -44,10 +44,10 @@ describe("envoi d'e-mail par Make", () => {
     expect(r).toEqual({ ok: false, error: expect.stringContaining("quota Gmail") });
   });
 
-  it("« Accepted » (scénario désactivé, message mis en file d'attente) est un échec, pas un envoi", async () => {
+  it("« Accepted » (scénario désactivé, ou aucune réponse de scénario) est un échec, pas un envoi confirmé", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => reponse("Accepted")));
     const r = await emailParMake("a@x.fr", "S", "T");
-    expect(r).toEqual({ ok: false, error: expect.stringContaining("file d'attente") });
+    expect(r).toEqual({ ok: false, error: expect.stringContaining("Webhook response") });
   });
 
   it("un statut HTTP d'erreur est un échec", async () => {

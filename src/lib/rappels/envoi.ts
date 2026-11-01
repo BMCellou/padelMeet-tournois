@@ -89,10 +89,15 @@ export async function emailParMake(
     });
     const corps = await res.text().catch(() => "");
     if (!res.ok) return { ok: false, error: `Make a répondu ${res.status} ${corps.slice(0, 200)}`.trim() };
-    // « Accepted » : réponse de Make à un scénario désactivé ou saturé, le message est seulement mis en file
-    // d'attente et ne partira que plus tard, voire jamais. Ce n'est pas un envoi.
+    // « Accepted » : Make n'a renvoyé aucune réponse de scénario. Soit le scénario est désactivé (le message est
+    // en file d'attente et ne partira que plus tard), soit il est actif mais aucun module « Webhook response »
+    // n'est atteint sur le trajet suivi (le message a pu partir). Rien ne confirme l'envoi : échec.
     if (corps.trim() === "Accepted") {
-      return { ok: false, error: "Le scénario Make est désactivé : le message est en file d'attente, il n'a pas été envoyé." };
+      return {
+        ok: false,
+        error:
+          "Make n'a pas confirmé l'envoi (réponse « Accepted »). Scénario désactivé, ou module « Webhook response » absent de la branche suivie : le message a peut-être été envoyé, vérifie l'historique du scénario avant de renvoyer.",
+      };
     }
     try {
       const reponse: unknown = JSON.parse(corps);
