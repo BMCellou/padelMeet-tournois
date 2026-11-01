@@ -74,7 +74,10 @@ export async function emailParMake(
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-padelmeet-secret": secret },
+      // Le secret est aussi dans le corps : Make présente les en-têtes comme une liste difficile à filtrer,
+      // alors qu'un champ du corps se choisit directement dans le filtre (« secret » = valeur attendue).
       body: JSON.stringify({
+        secret,
         destinataire: to,
         sujet,
         texte,

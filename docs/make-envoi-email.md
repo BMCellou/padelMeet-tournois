@@ -21,9 +21,12 @@ Crée un scénario avec trois modules, dans cet ordre :
      corps `{"ok": false, "error": "{{error.message}}"}`.
    - Sans ce module, Make répond « Accepted » avant l'envoi et un refus de Gmail n'est pas vu par l'app.
 
-**Filtre de sécurité** entre le webhook et Gmail : l'en-tête `x-padelmeet-secret` doit être égal à la
-valeur de `MAKE_WEBHOOK_SECRET` (sinon n'importe qui connaissant l'URL pourrait envoyer des mails
-depuis ton Gmail).
+**Filtre de sécurité** entre le webhook et Gmail : le champ `secret` du corps JSON (repris aussi dans
+l'en-tête `x-padelmeet-secret`) doit être égal à la valeur de `MAKE_WEBHOOK_SECRET` (sinon n'importe qui
+connaissant l'URL pourrait envoyer des mails depuis ton Gmail). Dans le filtre, choisis la pastille
+`1. secret` du webhook (elle apparaît après un envoi réel ou « Redetermine data structure »), opérateur
+« Text operators: Equal to », valeur du secret sans guillemets ni espace. Préfère ce champ à l'en-tête :
+Make présente les en-têtes comme une liste (`Headers[]` avec `Name` et `Value`), peu pratique à filtrer.
 
 ### Pièce jointe
 
@@ -47,6 +50,7 @@ télécharge-la avec **HTTP → Get a file** avant Gmail.
 
 ```json
 {
+  "secret": "valeur de MAKE_WEBHOOK_SECRET",
   "destinataire": "joueur@exemple.fr",
   "sujet": "Rappel — ton match à 14:00",
   "texte": "…",

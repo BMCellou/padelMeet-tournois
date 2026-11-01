@@ -22,6 +22,7 @@ describe("envoi d'e-mail par Make", () => {
     expect(url).toBe("https://hook.eu1.make.com/abc");
     expect((init.headers as Record<string, string>)["x-padelmeet-secret"]).toBe("s3cret");
     expect(JSON.parse(init.body as string)).toEqual({
+      secret: "s3cret",
       destinataire: "ana@x.fr",
       sujet: "Rappel",
       texte: "À 14h",
