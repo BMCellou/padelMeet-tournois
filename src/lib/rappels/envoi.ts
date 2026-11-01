@@ -86,6 +86,11 @@ export async function emailParMake(
     });
     const corps = await res.text().catch(() => "");
     if (!res.ok) return { ok: false, error: `Make a répondu ${res.status} ${corps.slice(0, 200)}`.trim() };
+    // « Accepted » : réponse de Make à un scénario désactivé ou saturé, le message est seulement mis en file
+    // d'attente et ne partira que plus tard, voire jamais. Ce n'est pas un envoi.
+    if (corps.trim() === "Accepted") {
+      return { ok: false, error: "Le scénario Make est désactivé : le message est en file d'attente, il n'a pas été envoyé." };
+    }
     try {
       const reponse: unknown = JSON.parse(corps);
       if (typeof reponse === "object" && reponse !== null && "ok" in reponse && reponse.ok === false) {
@@ -93,7 +98,7 @@ export async function emailParMake(
         return { ok: false, error: `Make n'a pas pu envoyer l'e-mail. ${detail}`.trim() };
       }
     } catch {
-      // Réponse non JSON (ex. « Accepted ») : le statut HTTP fait foi.
+      // Autre réponse non JSON : le statut HTTP fait foi.
     }
     return { ok: true };
   } catch (e) {

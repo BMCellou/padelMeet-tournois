@@ -72,6 +72,8 @@ Redéploie après avoir ajouté les variables. Pour revenir à Resend : supprime
 
 - Gmail personnel : environ 500 destinataires par jour ; les mails partent de ton adresse.
 - Chaque e-mail consomme au moins 3 opérations Make (webhook, Gmail, réponse) : vérifie ton quota.
-- L'application attend la réponse du scénario (25 s maximum). Un scénario désactivé ou lent est
-  signalé comme un échec d'envoi, jamais comme un envoi réussi.
+- L'application attend la réponse du scénario (25 s maximum). Un scénario désactivé (Make répond « Accepted » et met
+  le message en file d'attente) ou lent est signalé comme un échec d'envoi, jamais comme un envoi réussi.
+- **Le scénario doit être activé** (interrupteur « ON » en bas à gauche de l'éditeur, planification « Immediately
+  as data arrives »). Un scénario sur « Inactive » ne traite rien : les appels s'empilent dans « Show queue ».
 - Les notifications aux administrateurs et les rappels passent tous deux par ce canal.

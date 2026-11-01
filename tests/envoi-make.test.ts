@@ -30,7 +30,7 @@ describe("envoi d'e-mail par Make", () => {
   });
 
   it("sans pièce jointe, la liste est vide", async () => {
-    const fetchMock = vi.fn(async () => reponse("Accepted"));
+    const fetchMock = vi.fn(async () => reponse('{"ok":true}'));
     vi.stubGlobal("fetch", fetchMock);
     expect(await emailParMake("a@x.fr", "S", "T")).toEqual({ ok: true });
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
@@ -41,6 +41,12 @@ describe("envoi d'e-mail par Make", () => {
     vi.stubGlobal("fetch", vi.fn(async () => reponse('{"ok":false,"error":"quota Gmail"}')));
     const r = await emailParMake("a@x.fr", "S", "T");
     expect(r).toEqual({ ok: false, error: expect.stringContaining("quota Gmail") });
+  });
+
+  it("« Accepted » (scénario désactivé, message mis en file d'attente) est un échec, pas un envoi", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => reponse("Accepted")));
+    const r = await emailParMake("a@x.fr", "S", "T");
+    expect(r).toEqual({ ok: false, error: expect.stringContaining("file d'attente") });
   });
 
   it("un statut HTTP d'erreur est un échec", async () => {
@@ -76,7 +82,7 @@ describe("choix du fournisseur d'e-mail", () => {
     vi.stubEnv("MAKE_WEBHOOK_SECRET", "s");
     vi.stubEnv("RESEND_API_KEY", "re_x");
     vi.stubEnv("RESEND_FROM", "a@b.fr");
-    const fetchMock = vi.fn(async () => reponse("Accepted"));
+    const fetchMock = vi.fn(async () => reponse('{"ok":true}'));
     vi.stubGlobal("fetch", fetchMock);
     await envoyeursReels.email("a@x.fr", "S", "T");
     expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe("https://hook.eu1.make.com/abc");
