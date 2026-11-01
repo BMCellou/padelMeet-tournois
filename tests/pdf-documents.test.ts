@@ -1,9 +1,10 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PDFDocument, PageSizes } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 import { genererDossierOrganisation } from "@/lib/pdf/dossier";
 import { genererResultats } from "@/lib/pdf/resultats";
+import { HEX } from "@/lib/pdf/marque";
 import { colonnesScore, construireCreneaux, dateEnLettres, groupesFeuilles, tailleDuTableau } from "@/lib/pdf/mise-en-page";
 import { PREREGLAGES_FORMAT } from "@/lib/engine/formatMatch";
 import { FORMAT_PAR_DEFAUT } from "@/lib/engine/types";
@@ -115,29 +116,130 @@ describe("dossier d'organisation (14 équipes, 3 terrains)", async () => {
   it("tableau final : dimensionné selon le nombre de qualifiés (8), avec 3e place", () => {
     const tout = texte(doc.sections[5].pageDebut);
     expect(tout).toContain("8 équipes qualifiées");
-    expect(tout.filter((t) => t.startsWith("Quart n°")).length).toBe(4);
-    expect(tout.filter((t) => t.startsWith("Demi n°")).length).toBe(2);
+    expect(tout.filter((t) => t.startsWith("Quart de finale n°")).length).toBe(4);
+    expect(tout.filter((t) => t.startsWith("Demi-finale n°")).length).toBe(2);
     expect(tout).toContain("Finale");
     expect(tout).toContain("Match pour la 3e place");
   });
 
-  it("noir et blanc : aucune couleur dans le code de génération", () => {
-    const dossier = join(__dirname, "..", "src/lib/pdf");
-    for (const f of readdirSync(dossier).filter((x) => x.endsWith(".ts"))) {
-      const source = readFileSync(join(dossier, f), "utf-8");
-      expect(source, f).not.toMatch(/\b(rgb|cmyk)\s*\(/);
-    }
+  it("aux couleurs de la marque : la palette reprend celle de la feuille de style", () => {
+    const css = readFileSync(join(__dirname, "..", "src/app/globals.css"), "utf-8");
+    const racine = css.slice(css.indexOf("\n:root"), css.indexOf("\n.dark {"));
+    const jeton = (nom: string) => new RegExp(`--${nom}:\\s*(#[0-9a-fA-F]{6})`).exec(racine)?.[1].toLowerCase();
+    expect(HEX.marine).toBe(jeton("primary"));
+    expect(HEX.encre).toBe(jeton("foreground"));
+    expect(HEX.volt).toBe(jeton("volt"));
+    expect(HEX.papier).toBe(jeton("background"));
+    expect(HEX.brume).toBe(jeton("border"));
+    expect(HEX.texteDiscret).toBe(jeton("muted-foreground"));
+  });
+
+  it("chaque page porte le bandeau de marque, sauf la couverture qui a le sien", () => {
+    const pagesAvecBandeau = new Set(doc.journal.filter((l) => l.texte === "PadelMeet").map((l) => l.page));
+    expect(pagesAvecBandeau.has(1)).toBe(true); // le titre de couverture en porte aussi le nom
+    for (let p = 2; p <= doc.nbPages; p++) expect(pagesAvecBandeau.has(p), `page ${p}`).toBe(true);
+    expect(doc.journal.filter((l) => l.texte === "PadelMeet" && l.page === 1)).toHaveLength(1);
+  });
+
+  it("tournoi pas encore joué : feuilles de score vierges (seuls les numéros de ligne), aucun classement", () => {
+    const feuilles = doc.journal.filter((l) => l.page >= doc.sections[3].pageDebut && l.page < doc.sections[4].pageDebut).map((l) => l.texte);
+    expect(feuilles.filter((t) => /^\d+$/.test(t))).toHaveLength(d.matchs.length);
+    expect(texte().some((t) => t.startsWith("classement provisoire"))).toBe(false);
   });
 });
 
-describe("dossier avec calendrier ou poules absents : pas d'erreur", () => {
-  it("génère quand même les six sections", async () => {
+describe("dossier : seules les sections qui ont des données sont imprimées", () => {
+  const titres = async (d: ReturnType<typeof construireDonneesTournoi>) => (await genererDossierOrganisation(d, MAINTENANT)).sections.map((s) => s.titre);
+
+  it("tournoi sans poules ni matchs : la couverture seule, qui dit ce qui manque", async () => {
     const d = construireDonneesTournoi();
-    const vide = { ...d, poules: [], matchs: [], classements: [], equipes: [] };
-    const doc = await genererDossierOrganisation(vide, MAINTENANT);
-    expect(doc.sections).toHaveLength(6);
-    expect(doc.journal.some((l) => l.texte.includes("pas encore été tirées"))).toBe(true);
-    expect(doc.journal.some((l) => l.texte.includes("pas encore été généré"))).toBe(true);
+    const doc = await genererDossierOrganisation({ ...d, poules: [], matchs: [], classements: [], equipes: [] }, MAINTENANT);
+    expect(doc.sections.map((s) => s.titre)).toEqual(["Dossier d'organisation"]);
+    expect(doc.nbPages).toBe(1);
+    const tout = doc.journal.map((l) => l.texte).join("\n");
+    expect(tout).toContain("Pas encore dans ce dossier");
+    expect(tout).toContain("Composition des poules : le tirage au sort n'est pas fait");
+    expect(tout).toContain("Calendrier des matchs : le calendrier n'est pas généré");
+    expect(tout).toContain("Tableau final : il faut au moins 2 poules tirées");
+    expect(tout).not.toContain("pas encore tirées");
+  });
+
+  it("poules tirées, tableau pas encore créé : l'arbre vierge est imprimé pour le bord des terrains", async () => {
+    const d = construireDonneesTournoi();
+    const doc = await genererDossierOrganisation({ ...d, matchs: d.matchs.filter((m) => m.phase === "poule") }, MAINTENANT);
+    expect(doc.sections.map((s) => s.titre)).toEqual([
+      "Dossier d'organisation", "Composition des poules", "Calendrier des matchs", "Feuilles de score", "Grilles de classement des poules", "Tableau final",
+    ]);
+    const tableau = doc.journal.filter((l) => l.page === doc.sections[5].pageDebut).map((l) => l.texte);
+    expect(tableau).toContain("8 équipes qualifiées");
+    expect(tableau.filter((t) => t.startsWith("Quart n°"))).toHaveLength(4);
+    expect(tableau).toContain("Finale");
+    expect(tableau).toContain("Match pour la 3e place");
+    // vierge : aucun nom d'équipe ni score
+    expect(tableau.some((t) => /DUPONT|MARTIN|^\d-\d/.test(t))).toBe(false);
+  });
+
+  it("une seule poule : pas de page de tableau", async () => {
+    const d = construireDonneesTournoi();
+    const t = await titres({ ...d, poules: d.poules.slice(0, 1), matchs: d.matchs.filter((m) => m.phase === "poule" && m.groupId === d.poules[0].id) });
+    expect(t).not.toContain("Tableau final");
+  });
+
+  it("poules tirées mais calendrier non généré : tout sauf la page de calendrier", async () => {
+    const d = construireDonneesTournoi();
+    const sansHoraires = d.matchs.filter((m) => m.phase === "poule").map((m) => ({ ...m, debut: null, courtId: null }));
+    const t = await titres({ ...d, matchs: sansHoraires });
+    expect(t).toEqual(["Dossier d'organisation", "Composition des poules", "Feuilles de score", "Grilles de classement des poules", "Tableau final"]);
+  });
+
+  it("format sans poules ni tableau (Americano) : jamais de rubrique « poules » ou « tableau » manquante", async () => {
+    const d = construireDonneesTournoi();
+    const doc = await genererDossierOrganisation({ ...d, formatAnimation: "americano", poules: [], matchs: [], classements: [] }, MAINTENANT);
+    const tout = doc.journal.map((l) => l.texte).join("\n");
+    expect(tout).not.toContain("Composition des poules");
+    expect(tout).not.toContain("Tableau final");
+    expect(tout).toContain("Calendrier des matchs : le calendrier n'est pas généré");
+  });
+});
+
+describe("dossier d'un tournoi joué : les scores y figurent", async () => {
+  const d = construireDonneesTournoi({ joue: true });
+  const doc = await genererDossierOrganisation(d, MAINTENANT);
+  const page = (i: number) => doc.journal.filter((l) => l.page >= doc.sections[i].pageDebut && (i + 1 >= doc.sections.length || l.page < doc.sections[i + 1].pageDebut)).map((l) => l.texte);
+
+  it("feuilles de score : jeux de chaque set, vainqueur désigné et nom du vainqueur en gras", () => {
+    const feuilles = page(3);
+    expect(feuilles.filter((t) => /^\d+$/.test(t)).length).toBeGreaterThan(d.matchs.length * 2);
+    expect(feuilles.filter((t) => t === "7").length).toBeGreaterThan(20);
+    expect(feuilles.filter((t) => t === "3").length).toBeGreaterThan(20);
+    // chaque match joué désigne son vainqueur (en plus des deux en-têtes de colonne « Équipe A / B »)
+    expect(feuilles.filter((t) => t === "Équipe A" || t === "Équipe B").length).toBeGreaterThan(d.matchs.length);
+  });
+
+  it("calendrier : le score figure dans la case du match joué", () => {
+    expect(page(2).filter((t) => t === "7-3" || t === "3-7").length).toBeGreaterThan(20);
+  });
+
+  it("grilles de classement : victoires, jeux et rang remplis, classées de la 1re à la dernière", () => {
+    const grilles = page(4);
+    expect(grilles.filter((t) => t === "+4" || t === "-4").length).toBeGreaterThan(0);
+    expect(grilles.some((t) => t.startsWith("classement provisoire"))).toBe(false);
+    // dans chaque poule, le rang 1 précède le rang 2
+    const rangs = grilles.filter((t) => /^[1-5]$/.test(t));
+    expect(rangs.length).toBeGreaterThan(0);
+  });
+
+  it("tableau final : équipes qualifiées, scores et vainqueurs", () => {
+    const tableau = page(5);
+    expect(tableau.filter((t) => t === "7-3" || t === "3-7").length).toBeGreaterThanOrEqual(7);
+    expect(tableau).toContain("Match pour la 3e place");
+    expect(tableau.some((t) => t.includes("DUPONT") || t.includes("Éloïse"))).toBe(true);
+  });
+
+  it("classement provisoire signalé tant qu'il reste des matchs de poule à jouer", async () => {
+    const partiel = { ...d, matchs: d.matchs.map((m, i) => (m.phase === "poule" && i % 4 === 0 ? { ...m, statut: "a_venir", sets: [], winnerId: null } : m)) };
+    const doc2 = await genererDossierOrganisation(partiel, MAINTENANT);
+    expect(doc2.journal.some((l) => l.texte.startsWith("classement provisoire"))).toBe(true);
   });
 });
 

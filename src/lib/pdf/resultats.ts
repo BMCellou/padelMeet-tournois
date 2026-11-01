@@ -2,29 +2,21 @@
 // classement final. Document envoyé au club après le tournoi (A4, noir et blanc).
 
 import { CODE_FORMAT_PAR_DEFAUT, getFormat } from "@/lib/engine/formats";
-import { libelleSet } from "@/lib/engine/score";
 import { calculerClassementFinalTableau, type StandingRow } from "@/lib/tournoi/classementFinalAffichage";
-import { dessinerArbre, dessinerBoite, type ContenuBoite } from "./arbre-dessin";
+import { contenuBoiteMatch, dessinerArbre, dessinerBoite } from "./arbre-dessin";
+import { COULEURS } from "./marque";
 import type { DocumentPdf } from "./dossier";
 import {
-  coteMatch,
   dateEnLettres,
-  etiquetteMatch,
   libellesPhaseFinale,
   majuscule,
   nomEquipe,
+  resumeScore,
   tailleDuTableau,
 } from "./mise-en-page";
 import { MARGE, Rendu } from "./outils";
 import { libelleGroupe } from "@/lib/tournoi/libelleGroupe";
 import type { DonneesTournoi, MatchPdf } from "./types";
-
-const FOND_ENTETE = 0.88;
-
-function resumeScore(m: MatchPdf): string {
-  if (m.statut === "forfait") return "Forfait";
-  return m.sets.length === 0 ? "" : m.sets.map(libelleSet).join(", ");
-}
 
 function entete(r: Rendu, d: DonneesTournoi): void {
   const club = d.club ? `${d.club.nom}${d.club.ville ? ` - ${d.club.ville}` : ""}` : "";
@@ -69,7 +61,7 @@ function classementsDePoule(r: Rendu, d: DonneesTournoi): void {
     r.y -= 20;
     let x = MARGE;
     for (const c of cols) {
-      r.cellule(x, r.y, c.l, 17, c.titre, { gras: true, fond: FOND_ENTETE, taille: 8, align: c.titre === "Équipe" ? "gauche" : "centre" });
+      r.cellule(x, r.y, c.l, 17, c.titre, { entete: true, taille: 8, align: c.titre === "Équipe" ? "gauche" : "centre" });
       x += c.l;
     }
     r.y -= 17;
@@ -87,7 +79,12 @@ function classementsDePoule(r: Rendu, d: DonneesTournoi): void {
         `${l.jeuxG - l.jeuxP > 0 ? "+" : ""}${l.jeuxG - l.jeuxP}`,
       ];
       cols.forEach((c, i) => {
-        r.cellule(x, r.y, c.l, 18, valeurs[i], { taille: 8.5, gras: i === 0 || (i === 1 && l.rang === 1), align: i === 1 ? "gauche" : "centre" });
+        r.cellule(x, r.y, c.l, 18, valeurs[i], {
+          taille: 8.5,
+          gras: i === 0 || (i === 1 && l.rang === 1),
+          align: i === 1 ? "gauche" : "centre",
+          fond: l.rang === 1 ? COULEURS.voltPale : undefined,
+        });
         x += c.l;
       });
       r.y -= 18;
@@ -127,30 +124,17 @@ function tableauRempli(r: Rendu, d: DonneesTournoi): void {
   }
   const libelles = libellesPhaseFinale(d);
 
-  const contenuDe = (m: MatchPdf): ContenuBoite => {
-    const gagnantA = m.winnerId !== null && m.winnerId === m.teamAId;
-    const gagnantB = m.winnerId !== null && m.winnerId === m.teamBId;
-    return {
-      titre: etiquetteMatch(d, m, libelles),
-      lignes: [
-        { texte: coteMatch(d, m, "a", libelles), gras: gagnantA, gris: m.teamAId ? 0 : 0.45 },
-        { texte: coteMatch(d, m, "b", libelles), gras: gagnantB, gris: m.teamBId ? 0 : 0.45 },
-      ],
-      score: resumeScore(m),
-    };
-  };
-
   const reserve = taille >= 4 ? 66 : 0;
   dessinerArbre(r, taille, { x: MARGE, haut: r.y, largeur: r.largeurUtile, hauteur: r.y - r.bas - reserve }, (tour, index) => {
     const m = tableau.find((x) => x.round === tour + 1 && x.bracketSlot === index);
-    return m ? contenuDe(m) : undefined;
+    return m ? contenuBoiteMatch(d, m, libelles) : undefined;
   });
 
   const annexes = d.matchs.filter((m) => m.phase === "classement" || m.phase === "classement_5e");
   annexes
     .sort((a, b) => (a.phase === "classement" ? -1 : 1) - (b.phase === "classement" ? -1 : 1))
     .forEach((m, i) => {
-      dessinerBoite(r, { x: MARGE + i * 250, haut: r.bas + 56, largeur: 220, hauteur: 52 }, contenuDe(m));
+      dessinerBoite(r, { x: MARGE + i * 250, haut: r.bas + 56, largeur: 220, hauteur: 52 }, contenuBoiteMatch(d, m, libelles));
     });
 }
 
@@ -198,14 +182,15 @@ function classementFinal(r: Rendu, d: DonneesTournoi): void {
   }
 
   const colRang = 60;
-  r.cellule(MARGE, r.y, colRang, 20, "Rang", { gras: true, fond: FOND_ENTETE, align: "centre" });
-  r.cellule(MARGE + colRang, r.y, r.largeurUtile - colRang, 20, "Équipe", { gras: true, fond: FOND_ENTETE });
+  r.cellule(MARGE, r.y, colRang, 20, "Rang", { entete: true, align: "centre" });
+  r.cellule(MARGE + colRang, r.y, r.largeurUtile - colRang, 20, "Équipe", { entete: true });
   r.y -= 20;
   for (const l of lignes) {
     r.assurerPlace(26, "Résultats : classement final (suite)");
     const exAequo = lignes.filter((x) => x.rang === l.rang).length > 1;
-    r.cellule(MARGE, r.y, colRang, 24, exAequo ? `${l.rang} (ex æquo)` : `${l.rang}`, { gras: l.rang <= 3, align: "centre", taille: l.rang <= 3 ? 12 : 10 });
-    r.cellule(MARGE + colRang, r.y, r.largeurUtile - colRang, 24, l.equipeNom, { gras: l.rang <= 3, taille: l.rang <= 3 ? 11 : 10 });
+    const fond = l.rang === 1 ? COULEURS.voltPale : l.rang <= 3 ? COULEURS.papier : undefined;
+    r.cellule(MARGE, r.y, colRang, 24, exAequo ? `${l.rang} (ex æquo)` : `${l.rang}`, { gras: l.rang <= 3, align: "centre", taille: l.rang <= 3 ? 12 : 10, fond });
+    r.cellule(MARGE + colRang, r.y, r.largeurUtile - colRang, 24, l.equipeNom, { gras: l.rang <= 3, taille: l.rang <= 3 ? 11 : 10, fond });
     r.y -= 24;
   }
 }

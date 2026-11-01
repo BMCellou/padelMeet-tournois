@@ -204,9 +204,10 @@ export default async function FicheTournoiPage({
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Le dossier (couverture, poules, calendrier, feuilles de score, grilles de classement, tableau
-                vierge) se génère à tout moment. Les résultats sont disponibles une fois le statut du tournoi
-                passé à « Terminé ».
+                Le dossier se génère à tout moment : il ne contient que ce qui existe déjà (poules, calendrier,
+                feuilles de score, grilles de classement, tableau final) et y inscrit les scores des matchs
+                joués. Régénère-le pour l&apos;avoir à jour. Les résultats sont disponibles une fois le statut du
+                tournoi passé à « Terminé ».
               </p>
             </CardContent>
           </Card>

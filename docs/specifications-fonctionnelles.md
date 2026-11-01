@@ -74,17 +74,17 @@ Vue de **tous les joueurs du système**, tous tournois confondus, avec leurs aff
 
 ### 4.5 bis Documents PDF à imprimer
 
-Sur la vue d'ensemble d'un tournoi, deux boutons génèrent un PDF **A4, en français, heures de Paris, lisible en noir et blanc**, produit côté serveur sans service externe. Réservés aux admins.
+Sur la vue d'ensemble d'un tournoi, deux boutons génèrent un PDF **A4, en français, heures de Paris**, produit côté serveur sans service externe. Réservés aux admins. Les documents sont **aux couleurs du site** : bandeau marine avec la puce « P » volt en haut de chaque page, titres soulignés, en-têtes de tableau marine, volt en simple accent (jamais en grand aplat) ; les contrastes restent lisibles imprimés en noir et blanc. Les valeurs de la palette (`src/lib/pdf/marque.ts`) reprennent celles de la feuille de style, un test vérifie la parité.
 
-- **Dossier d'organisation (PDF)**, disponible à tout moment, une section par page :
-  1. **Couverture** : nom du tournoi, club, date en lettres, format de match en toutes lettres (par défaut et par phase), nombre d'équipes, poules, qualifiés, terrains utilisés, ordre de départage.
-  2. **Composition des poules**, avec les noms complets des deux joueurs de chaque équipe.
-  3. **Calendrier complet** : un tableau par créneau horaire, une colonne par terrain, plus une colonne **Repos** qui indique l'équipe exempte de chaque tour de poule ; la phase finale y figure aussi, avec la provenance des équipes inconnues.
-  4. **Feuilles de score vierges** (paysage) : une ligne par match, avec des cases set par set selon le format de la phase (tie-break, super tie-break), un rappel du départage et de la règle d'égalité au buzzer en bas de page.
-  5. **Grilles de classement vierges**, une par poule : Équipe, Victoires, Jeux gagnés, Jeux perdus, Différence, Rang.
-  6. **Arbre du tableau final vierge** (paysage), dimensionné selon le nombre de qualifiés, avec les cases pour la 3e place (et la 5e place quand elle existe).
-  Si les poules ou le calendrier n'existent pas encore, la section concernée l'indique au lieu de bloquer la génération.
-- **Résultats (PDF)**, **disponible une fois le tournoi « Terminé »** (bouton inactif avant ; le serveur refuse aussi) : classements de poule remplis avec les scores des matchs, tableau final rempli, classement final. C'est le document à envoyer au club après le tournoi.
+- **Dossier d'organisation (PDF)**, disponible à tout moment. **Il n'imprime que les sections qui ont de la matière** et y inscrit **les scores des matchs déjà joués** ; il peut donc être régénéré en cours de journée. La couverture, elle, est toujours là et liste, sous « Pas encore dans ce dossier », les pages absentes et la raison (tirage non fait, calendrier non généré) ; une rubrique n'est évoquée que si le format du tournoi la comporte (pas de « poules » pour un Americano).
+  1. **Couverture** : nom du tournoi, club, date en lettres, format de match en toutes lettres (par défaut et par phase), nombre d'équipes, poules, qualifiés, terrains utilisés, ordre de départage. Les lignes sans donnée sont omises.
+  2. **Composition des poules** (si elles sont tirées), avec les noms complets des deux joueurs de chaque équipe.
+  3. **Calendrier complet** (si généré) : un tableau par créneau horaire, une colonne par terrain, plus une colonne **Repos** qui indique l'équipe exempte de chaque tour de poule ; la phase finale y figure aussi, avec la provenance des équipes inconnues. Un match joué affiche son score, vainqueur en gras.
+  4. **Feuilles de score** (paysage, si des matchs existent) : une ligne par match, avec des cases set par set selon le format de la phase (tie-break, super tie-break), un rappel du départage et de la règle d'égalité au buzzer en bas de page. Les cases d'un match joué sont remplies (jeux, tie-break, vainqueur ou forfait) ; les autres restent à remplir à la main.
+  5. **Grilles de classement**, une par poule tirée : Équipe, Victoires, Jeux gagnés, Jeux perdus, Différence, Rang. Vierges tant qu'aucun match de la poule n'est joué ; ensuite remplies d'après les classements, équipes dans l'ordre du classement, premier surligné, avec la mention « classement provisoire : N matchs à jouer » tant que la poule n'est pas terminée.
+  6. **Arbre du tableau final** (paysage), dès que les poules sont tirées (au moins 2) : **vierge** tant que le tableau n'est pas créé (à afficher au bord des terrains, les joueurs y notent les scores), puis rempli avec les équipes, scores et vainqueurs ; match pour la 3e place (et 5e quand elle existe) à côté. Pas de page pour une poule unique.
+- **Planning pour les participants** (pièce jointe des messages) : même charte, uniquement titre, poules et calendrier.
+- **Résultats (PDF)**, **disponible une fois le tournoi « Terminé »** (bouton inactif avant ; le serveur refuse aussi) : classements de poule remplis avec les scores des matchs, tableau final rempli, classement final, vainqueurs surlignés. C'est le document à envoyer au club après le tournoi.
 
 Aucune donnée de contact (e-mail, téléphone) n'entre dans ces documents : seuls les noms des joueurs y figurent.
 

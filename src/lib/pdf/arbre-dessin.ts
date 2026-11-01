@@ -1,8 +1,11 @@
 // Dessin d'un tableau final (vierge ou rempli) à partir de la disposition de arbre.ts.
 
+import type { LibelleMatchTableau } from "@/lib/engine/tableauLibelles";
 import { disposerArbre, type Zone } from "./arbre";
-import { titreTour } from "./mise-en-page";
+import { COULEURS } from "./marque";
+import { coteMatch, estJoue, etiquetteMatch, resumeScore, titreTour } from "./mise-en-page";
 import type { Rendu } from "./outils";
+import type { DonneesTournoi, MatchPdf } from "./types";
 
 export interface LigneBoite {
   texte: string;
@@ -24,9 +27,24 @@ export interface BoiteLibre {
   hauteur: number;
 }
 
+/** Contenu d'une case pour un match donné : équipes (ou leur provenance), vainqueur en gras, score. */
+export function contenuBoiteMatch(d: DonneesTournoi, m: MatchPdf, libelles: Map<string, LibelleMatchTableau>): ContenuBoite {
+  const joue = estJoue(m);
+  const gagnantA = joue && m.winnerId !== null && m.winnerId === m.teamAId;
+  const gagnantB = joue && m.winnerId !== null && m.winnerId === m.teamBId;
+  return {
+    titre: etiquetteMatch(d, m, libelles),
+    lignes: [
+      { texte: coteMatch(d, m, "a", libelles), gras: gagnantA, gris: m.teamAId ? 0 : 0.45 },
+      { texte: coteMatch(d, m, "b", libelles), gras: gagnantB, gris: m.teamBId ? 0 : 0.45 },
+    ],
+    score: resumeScore(m),
+  };
+}
+
 /** Une case de match : cadre, titre minuscule, deux lignes d'équipe séparées, score éventuel. */
 export function dessinerBoite(rendu: Rendu, b: BoiteLibre, c: ContenuBoite): void {
-  rendu.rectangle(b.x, b.haut, b.largeur, b.hauteur, 0.9);
+  rendu.rectangle(b.x, b.haut, b.largeur, b.hauteur, 0.9, COULEURS.blanc);
   const avecTitre = !!c.titre && b.hauteur >= 40;
   const avecScore = !!c.score && b.hauteur >= 44;
   const zoneTitre = avecTitre ? 9 : 0;
@@ -38,7 +56,7 @@ export function dessinerBoite(rendu: Rendu, b: BoiteLibre, c: ContenuBoite): voi
 
   c.lignes.forEach((ligne, i) => {
     const haut = b.haut - zoneTitre - i * hLigne;
-    if (i === 1) rendu.trait(b.x, haut, b.x + b.largeur, haut, 0.5, 0.3);
+    if (i === 1) rendu.trait(b.x, haut, b.x + b.largeur, haut, 0.5, COULEURS.trait);
     if (ligne.texte) {
       let t = ligne.texte;
       const max = b.largeur - 6;

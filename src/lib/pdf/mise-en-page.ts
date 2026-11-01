@@ -4,6 +4,7 @@
 import { CODE_FORMAT_PAR_DEFAUT, getFormat } from "@/lib/engine/formats";
 import { CRITERES_DEPARTAGE, normaliserFormat, resumerFormat } from "@/lib/engine/formatMatch";
 import type { PhaseFormat } from "@/lib/engine/formatPhases";
+import { libelleSet } from "@/lib/engine/score";
 import type { LibelleMatchTableau } from "@/lib/engine/tableauLibelles";
 import type { MatchFormat } from "@/lib/engine/types";
 import { formatHeureParis } from "@/lib/temps";
@@ -34,6 +35,18 @@ export function nomEquipe(d: DonneesTournoi, id: string | null): string | null {
 
 function formatDe(d: DonneesTournoi) {
   return getFormat(d.formatAnimation ?? CODE_FORMAT_PAR_DEFAUT);
+}
+
+/** Un match dont le résultat est acquis (score validé ou forfait) : seul celui-là se remplit dans les documents. */
+export function estJoue(m: MatchPdf): boolean {
+  return m.statut === "valide" || m.statut === "forfait";
+}
+
+/** « 6-3, 7-6 (7-4) », « Forfait », ou vide tant que le match n'est pas joué. */
+export function resumeScore(m: MatchPdf): string {
+  if (m.statut === "forfait") return "Forfait";
+  if (m.statut !== "valide") return "";
+  return m.sets.map(libelleSet).join(", ");
 }
 
 export function matchsFinaux(d: DonneesTournoi): MatchPdf[] {
@@ -83,6 +96,9 @@ export interface CelluleCreneau {
   etiquette: string;
   equipeA: string;
   equipeB: string;
+  /** Score du match joué, vide sinon. */
+  score: string;
+  vainqueur: "a" | "b" | null;
 }
 
 export interface Creneau {
@@ -139,6 +155,8 @@ export function construireCreneaux(d: DonneesTournoi): Creneau[] {
           etiquette: etiquetteMatch(d, m, libelles),
           equipeA: coteMatch(d, m, "a", libelles),
           equipeB: coteMatch(d, m, "b", libelles),
+          score: resumeScore(m),
+          vainqueur: m.winnerId && estJoue(m) ? (m.winnerId === m.teamAId ? "a" : m.winnerId === m.teamBId ? "b" : null) : null,
         })),
         repos,
       };
@@ -169,6 +187,28 @@ export function colonnesScore(brut: MatchFormat): ColonneScore[] {
     if (f.jeuDecisif?.actif) colonnes.push({ titre: "TB", cases: 2 });
   }
   return colonnes;
+}
+
+/**
+ * Valeurs à inscrire dans les cases d'une feuille de score (deux par colonne, A puis B),
+ * dans l'ordre de `colonnesScore`. Un set n'est écrit que s'il a été joué.
+ */
+export function valeursCasesScore(colonnes: ColonneScore[], m: MatchPdf): string[] {
+  if (m.statut !== "valide") return colonnes.flatMap(() => ["", ""]);
+  const valeurs: string[] = [];
+  let prochain = 0;
+  let dernierSet = -1;
+  for (const c of colonnes) {
+    if (c.titre === "TB") {
+      const s = m.sets[dernierSet];
+      valeurs.push(s?.tiebreakA != null ? `${s.tiebreakA}` : "", s?.tiebreakB != null ? `${s.tiebreakB}` : "");
+      continue;
+    }
+    dernierSet = prochain++;
+    const s = m.sets[dernierSet];
+    valeurs.push(s ? `${s.jeuxA}` : "", s ? `${s.jeuxB}` : "");
+  }
+  return valeurs;
 }
 
 export function formatDuMatch(d: DonneesTournoi, m: MatchPdf): MatchFormat {

@@ -1,9 +1,10 @@
 // Primitives de dessin pour les documents PDF A4 (pdf-lib, 100 % local).
-// Noir et nuances de gris uniquement : le document doit rester lisible
-// imprimé en noir et blanc. Polices standard (Helvetica) : aucune
+// Aux couleurs de la marque (marque.ts), avec des contrastes qui restent lisibles
+// imprimés en noir et blanc. Polices standard (Helvetica) : aucune
 // ressource externe, accents français compris (encodage WinAnsi).
 
-import { PDFDocument, StandardFonts, grayscale, PageSizes, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, StandardFonts, PageSizes, type PDFFont, type PDFPage } from "pdf-lib";
+import { COULEURS, teinte, type Couleur } from "./marque";
 
 export type Orientation = "portrait" | "paysage";
 
@@ -24,16 +25,25 @@ const REMPLACEMENTS: Record<string, string> = {
 export interface OptionsTexte {
   taille?: number;
   gras?: boolean;
-  /** 0 = noir, 1 = blanc. */
+  /** 0 = encre, 1 = blanc (teinte entre les deux). Ignoré si `couleur` est donnée. */
   gris?: number;
+  couleur?: Couleur;
   align?: "gauche" | "centre" | "droite";
 }
 
 export interface OptionsCellule extends OptionsTexte {
   bordure?: boolean;
-  /** Fond en niveau de gris (0 noir … 1 blanc). */
-  fond?: number;
+  /** Fond : une couleur, ou une teinte entre l'encre (0) et le blanc (1). */
+  fond?: number | Couleur;
+  /** En-tête de tableau : fond marine, texte blanc en gras. */
+  entete?: boolean;
   epaisseur?: number;
+}
+
+const BANDEAU = 24;
+
+function couleurDe(valeur: number | Couleur): Couleur {
+  return typeof valeur === "number" ? teinte(valeur) : valeur;
 }
 
 export interface SectionRendue {
@@ -48,6 +58,8 @@ export class Rendu {
   page!: PDFPage;
   /** Curseur vertical : bord haut de la zone encore libre. */
   y = 0;
+  /** Pages qui dessinent leur propre en-tête de marque (la couverture) : pas de bandeau. */
+  readonly pagesSansBandeau = new Set<number>();
   private orientation: Orientation = "portrait";
   private lesEncodables: Set<number>;
 
@@ -152,12 +164,17 @@ export class Rendu {
     return this.page;
   }
 
-  /** Commence une section sur une nouvelle page, avec son titre. */
-  debutSection(titre: string, orientation: Orientation = "portrait"): void {
-    this.nouvellePage(orientation);
+  /**
+   * Commence une section sur une nouvelle page, avec son titre. `surPageCourante` la place à la suite
+   * de la page en cours quand il reste assez de place (documents courts).
+   */
+  debutSection(titre: string, orientation: Orientation = "portrait", surPageCourante = false): void {
+    if (surPageCourante && this.page && this.orientation === orientation && this.espaceRestant >= 160) this.y -= 10;
+    else this.nouvellePage(orientation);
     this.sections.push({ titre, pageDebut: this.numeroPage });
     this.texte(MARGE, this.y - 18, titre, { taille: 18, gras: true });
-    this.trait(MARGE, this.y - 24, this.largeur - MARGE, this.y - 24, 1.2);
+    this.trait(MARGE, this.y - 24, this.largeur - MARGE, this.y - 24, 1.2, COULEURS.marine);
+    this.aplat(MARGE, this.y - 22, 44, 4, COULEURS.volt);
     this.y -= 40;
   }
 
@@ -181,23 +198,28 @@ export class Rendu {
     const w = f.widthOfTextAtSize(t, taille);
     this.journal.push({ page: this.doc.getPages().indexOf(this.page) + 1, texte: t });
     const xx = o.align === "centre" ? x - w / 2 : o.align === "droite" ? x - w : x;
-    this.page.drawText(t, { x: xx, y, size: taille, font: f, color: grayscale(o.gris ?? 0) });
+    this.page.drawText(t, { x: xx, y, size: taille, font: f, color: o.couleur ?? teinte(o.gris ?? 0) });
     return w;
   }
 
-  trait(x1: number, y1: number, x2: number, y2: number, epaisseur = 0.8, gris = 0): void {
-    this.page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness: epaisseur, color: grayscale(gris) });
+  trait(x1: number, y1: number, x2: number, y2: number, epaisseur = 0.8, couleur: number | Couleur = COULEURS.marine): void {
+    this.page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness: epaisseur, color: couleurDe(couleur) });
   }
 
-  rectangle(x: number, haut: number, largeur: number, hauteur: number, epaisseur = 0.8, fond?: number): void {
+  /** Rectangle plein sans bordure ; `haut` est le bord haut. */
+  aplat(x: number, haut: number, largeur: number, hauteur: number, couleur: Couleur): void {
+    this.page.drawRectangle({ x, y: haut - hauteur, width: largeur, height: hauteur, color: couleur });
+  }
+
+  rectangle(x: number, haut: number, largeur: number, hauteur: number, epaisseur = 0.8, fond?: number | Couleur): void {
     this.page.drawRectangle({
       x,
       y: haut - hauteur,
       width: largeur,
       height: hauteur,
       borderWidth: epaisseur,
-      borderColor: grayscale(0),
-      color: fond === undefined ? undefined : grayscale(fond),
+      borderColor: COULEURS.marine,
+      color: fond === undefined ? undefined : couleurDe(fond),
     });
   }
 
@@ -207,15 +229,16 @@ export class Rendu {
    */
   cellule(x: number, haut: number, largeur: number, hauteur: number, texte: string, o: OptionsCellule = {}): void {
     const taille = o.taille ?? 8;
-    if (o.bordure !== false || o.fond !== undefined) {
+    const fond = o.entete ? COULEURS.marine : o.fond === undefined ? undefined : couleurDe(o.fond);
+    if (o.bordure !== false || fond !== undefined) {
       this.page.drawRectangle({
         x,
         y: haut - hauteur,
         width: largeur,
         height: hauteur,
         borderWidth: o.bordure === false ? 0 : (o.epaisseur ?? 0.6),
-        borderColor: grayscale(0),
-        color: o.fond === undefined ? undefined : grayscale(o.fond),
+        borderColor: o.entete ? COULEURS.marine : COULEURS.trait,
+        color: fond,
       });
     }
     if (!texte) return;
@@ -226,18 +249,32 @@ export class Rendu {
     if (lignes.length > maxLignes) visibles[maxLignes - 1] = `${visibles[maxLignes - 1].slice(0, -1)}…`;
     visibles.forEach((l, i) => {
       const xx = o.align === "centre" ? x + largeur / 2 : o.align === "droite" ? x + largeur - 3 : x + 3;
-      this.texte(xx, haut - 2 - taille - i * pas, l, { ...o, taille });
+      const style = o.entete ? { ...o, gras: true, couleur: COULEURS.blanc } : o;
+      this.texte(xx, haut - 2 - taille - i * pas, l, { ...style, taille });
     });
   }
 
   // ── Fin ──────────────────────────────────────────────────────────────
 
+  /** Bandeau de marque en haut de page : puce « P » volt, nom du site, titre du document. */
+  private dessinerBandeau(): void {
+    const l = this.largeur;
+    const haut = this.hauteur;
+    this.aplat(0, haut, l, BANDEAU, COULEURS.marine);
+    this.aplat(MARGE, haut - 6, 12, 12, COULEURS.volt);
+    this.texte(MARGE + 6, haut - 15.3, "P", { taille: 9, gras: true, couleur: COULEURS.marine, align: "centre" });
+    const w = this.texte(MARGE + 19, haut - 15.5, "PadelMeet", { taille: 9, gras: true, couleur: COULEURS.blanc });
+    this.texte(MARGE + 19 + w + 3, haut - 15.5, "Tournois", { taille: 9, couleur: COULEURS.brume });
+    this.texte(l - MARGE, haut - 15.3, this.pied, { taille: 8, couleur: COULEURS.brume, align: "droite" });
+  }
+
   async finaliser(): Promise<Uint8Array> {
     const pages = this.doc.getPages();
     pages.forEach((p, i) => {
       this.page = p;
-      const t = `${this.pied}  -  page ${i + 1} / ${pages.length}`;
-      this.texte(p.getWidth() / 2, 18, t, { taille: 7.5, gris: 0.4, align: "centre" });
+      if (!this.pagesSansBandeau.has(i + 1)) this.dessinerBandeau();
+      this.trait(MARGE, 28, p.getWidth() - MARGE, 28, 0.5, COULEURS.traitClair);
+      this.texte(p.getWidth() / 2, 16, `page ${i + 1} / ${pages.length}`, { taille: 7.5, gris: 0.4, align: "centre" });
     });
     return this.doc.save();
   }
