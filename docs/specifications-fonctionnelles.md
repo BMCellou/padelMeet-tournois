@@ -88,6 +88,15 @@ Sur la vue d'ensemble d'un tournoi, deux boutons génèrent un PDF **A4, en fran
 
 Aucune donnée de contact (e-mail, téléphone) n'entre dans ces documents : seuls les noms des joueurs y figurent.
 
+### 4.5 ter Changer le format d'un tournoi (admin)
+
+Dans « Modifier » (vue d'ensemble du tournoi), un sélecteur **Format d'animation** permet de changer de format **tant que le tournoi n'a pas commencé** : statut Brouillon ou Publié et aucun match entamé (le serveur relit l'état en base, ce n'est pas le formulaire qui décide).
+
+- **Entre formats à équipes** (poules + tableau, poules de niveau, poules de niveau + phase finale) : les inscriptions et les équipes ne changent pas. Le nombre de qualifiés se règle dans le même formulaire quand le nouveau format a un tableau final (valeur conservée, 8 par défaut) et est effacé sinon.
+- **L'Americano** (inscriptions par joueur, équipes recomposées à chaque manche) ne s'échange ni contre un autre format ni l'inverse : le sélecteur n'apparaît pas.
+- **Si le tirage ou le calendrier existent déjà**, ils sont **supprimés** (poules, matchs) pour être refaits avec le nouveau format ; l'admin doit cocher une confirmation explicite, et le serveur la réclame aussi. Dès qu'un match est entamé, ou que le tournoi est En cours ou Terminé, le format est verrouillé.
+- Le changement est tracé dans le journal d'audit (`changement_format`, ancien format, nouveau format, tirage supprimé ou non). Les réglages de format par phase déjà saisis sont conservés ; ceux d'une phase que le nouveau format n'a pas sont simplement ignorés.
+
 ### 4.6 Format & règles (onglet du tournoi, admin)
 
 Trois sections, chacune avec son bouton d'enregistrement :

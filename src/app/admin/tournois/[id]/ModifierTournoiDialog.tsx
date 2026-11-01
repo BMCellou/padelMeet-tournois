@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { modifierTournoi } from "../actions";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,13 @@ export interface TournoiEditable {
   maxParticipants: number | null;
   /** Le format a un tableau final (donc des qualifiés) ; sinon le champ disparaît. */
   avecQualifies: boolean;
+  formatAnimation: string;
+  /** Formats vers lesquels on peut basculer (le format actuel compris). */
+  formatsChoix: { code: string; nom: string; description: string; aUnTableauFinal: boolean }[];
+  /** Le tournoi n'a pas commencé : le format peut encore changer. */
+  formatModifiable: boolean;
+  /** Des poules ou des matchs existent : changer de format les supprime. */
+  aUnTirage: boolean;
 }
 
 interface Club {
@@ -65,6 +73,11 @@ export function ModifierTournoiDialog({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [codeFormat, setCodeFormat] = useState(tournoi.formatAnimation);
+  const formatChoisi = tournoi.formatsChoix.find((f) => f.code === codeFormat);
+  const avecQualifies = formatChoisi?.aUnTableauFinal ?? tournoi.avecQualifies;
+  const formatChange = codeFormat !== tournoi.formatAnimation;
+  const choixPossible = tournoi.formatModifiable && tournoi.formatsChoix.length > 1;
 
   function envoyer(formData: FormData) {
     startTransition(async () => {
@@ -79,16 +92,68 @@ export function ModifierTournoiDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(ouvert) => {
+        setOpen(ouvert);
+        if (!ouvert) {
+          setCodeFormat(tournoi.formatAnimation);
+          setError(null);
+        }
+      }}
+    >
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         Modifier
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Modifier le tournoi</DialogTitle>
         </DialogHeader>
         <form action={envoyer} className="space-y-4">
           <input type="hidden" name="tournamentId" value={tournoi.id} />
+          {choixPossible ? (
+            <fieldset className="space-y-2">
+              <legend className="mb-1 text-sm font-medium">Format d&apos;animation</legend>
+              {tournoi.formatsChoix.map((f) => (
+                <label
+                  key={f.code}
+                  className={cn(
+                    "flex cursor-pointer gap-3 rounded-lg border p-3",
+                    codeFormat === f.code ? "border-primary bg-primary/5" : "hover:bg-accent/50",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="formatAnimation"
+                    value={f.code}
+                    checked={codeFormat === f.code}
+                    onChange={() => setCodeFormat(f.code)}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium">{f.nom}</span>
+                    <span className="block text-xs text-muted-foreground">{f.description}</span>
+                  </span>
+                </label>
+              ))}
+              {formatChange && tournoi.aUnTirage ? (
+                <label className="flex gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
+                  <input type="checkbox" name="reinitialiserTirage" className="mt-1" required />
+                  <span>
+                    Le tirage des poules et le calendrier déjà générés seront <strong>supprimés</strong> : il faudra
+                    les refaire avec le nouveau format. Les inscriptions et les équipes ne changent pas.
+                  </span>
+                </label>
+              ) : null}
+            </fieldset>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {tournoi.formatsChoix.find((f) => f.code === tournoi.formatAnimation)?.nom ?? "Format"} :{" "}
+              {tournoi.formatModifiable
+                ? "ce format ne peut pas être échangé contre un autre (inscriptions par joueur)."
+                : "le format est verrouillé, le tournoi a commencé."}
+            </p>
+          )}
           <div className="space-y-1">
             <Label htmlFor="edit-nom">Nom du tournoi</Label>
             <Input id="edit-nom" name="nom" defaultValue={tournoi.nom} required />
@@ -158,8 +223,8 @@ export function ModifierTournoiDialog({
               <Input id="edit-niveau" name="niveau" defaultValue={tournoi.niveau ?? ""} />
             </div>
           </div>
-          <div className={tournoi.avecQualifies ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 gap-3"}>
-            {tournoi.avecQualifies ? (
+          <div className={avecQualifies ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 gap-3"}>
+            {avecQualifies ? (
               <div className="space-y-1">
                 <Label htmlFor="edit-nbQualifies">Qualifiés</Label>
                 <Input

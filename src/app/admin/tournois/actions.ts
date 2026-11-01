@@ -5,6 +5,7 @@ import { FORMAT_PAR_DEFAUT, type MatchFormat } from "@/lib/engine/types";
 import { CODE_FORMAT_PAR_DEFAUT, estCodeFormat, getFormat } from "@/lib/engine/formats";
 import { normaliserFormat, validerFormat } from "@/lib/engine/formatMatch";
 import type { Json } from "@/lib/supabase/database.types";
+import { verifierChangementFormat } from "@/lib/tournoi/changementFormat";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
@@ -141,6 +142,9 @@ const modifierTournoiSchema = z.object({
   dureeMatchMin: z.coerce.number().int().positive(),
   pauseMin: z.coerce.number().int().nonnegative(),
   maxParticipants: maxParticipantsSchema,
+  // Absent = format inchangé.
+  formatAnimation: z.string().refine(estCodeFormat, "Format d'animation inconnu.").optional(),
+  reinitialiserTirage: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
 });
 
 type ActionResult = { error: string } | { success: true };
@@ -162,6 +166,8 @@ export async function modifierTournoi(
     dureeMatchMin: formData.get("dureeMatchMin"),
     pauseMin: formData.get("pauseMin"),
     maxParticipants: formData.get("maxParticipants"),
+    formatAnimation: formData.get("formatAnimation") || undefined,
+    reinitialiserTirage: formData.get("reinitialiserTirage"),
   });
 
   if (!parsed.success) {
@@ -170,6 +176,52 @@ export async function modifierTournoi(
 
   const supabase = await createClient();
   const { tournamentId, ...d } = parsed.data;
+
+  // Changement de format : seulement tant que le tournoi n'a pas commencé (relu en base, jamais déduit du formulaire).
+  let changementFormat: { code: string; nbQualifies: number | null } | null = null;
+  if (d.formatAnimation !== undefined) {
+    const [{ data: actuel }, { data: matchs }, { count: nbGroupes }] = await Promise.all([
+      supabase.from("tournaments").select("format_animation, statut, nb_qualifies").eq("id", tournamentId).single(),
+      supabase.from("matches").select("statut").eq("tournament_id", tournamentId),
+      supabase.from("groups").select("id", { count: "exact", head: true }).eq("tournament_id", tournamentId),
+    ]);
+    if (!actuel || !matchs) return { error: "Impossible de lire le tournoi." };
+
+    if (d.formatAnimation !== actuel.format_animation) {
+      const etat = { statut: actuel.statut, statutsMatchs: matchs.map((m) => m.statut), nbGroupes: nbGroupes ?? 0 };
+      const verdict = verifierChangementFormat({
+        codeActuel: actuel.format_animation,
+        codeCible: d.formatAnimation,
+        statutDemande: d.statut,
+        etat,
+        tirageSupprimeConfirme: d.reinitialiserTirage,
+        nbQualifiesSaisi: d.nbQualifies ?? null,
+        nbQualifiesEnregistre: actuel.nb_qualifies,
+      });
+      if (!verdict.ok) return { error: verdict.error };
+
+      if (verdict.supprimerTirage) {
+        // Même ordre que le tirage : les matchs d'abord (ils référencent les poules), puis les poules.
+        const { error: erreurMatchs } = await supabase.from("matches").delete().eq("tournament_id", tournamentId);
+        const { error: erreurGroupes } = await supabase.from("groups").delete().eq("tournament_id", tournamentId);
+        if (erreurMatchs || erreurGroupes) return { error: "Impossible de supprimer le tirage existant." };
+        await supabase.from("tournaments").update({ tirage_seed: null }).eq("id", tournamentId);
+      }
+      changementFormat = { code: d.formatAnimation, nbQualifies: verdict.nbQualifies };
+
+      const { data: auth } = await supabase.auth.getUser();
+      await supabase.from("audit_log").insert({
+        tournament_id: tournamentId,
+        acteur: auth.user?.email ?? "admin",
+        action: "changement_format",
+        payload: {
+          de: actuel.format_animation,
+          vers: d.formatAnimation,
+          tirageSupprime: verdict.supprimerTirage,
+        } as Json,
+      });
+    }
+  }
 
   const { error } = await supabase
     .from("tournaments")
@@ -180,7 +232,11 @@ export async function modifierTournoi(
       genre: d.genre,
       niveau: d.niveau,
       statut: d.statut,
-      ...(d.nbQualifies !== undefined ? { nb_qualifies: d.nbQualifies } : {}),
+      ...(changementFormat
+        ? { format_animation: changementFormat.code, nb_qualifies: changementFormat.nbQualifies }
+        : d.nbQualifies !== undefined
+          ? { nb_qualifies: d.nbQualifies }
+          : {}),
       duree_match_min: d.dureeMatchMin,
       pause_min: d.pauseMin,
       max_participants: d.maxParticipants,
@@ -191,7 +247,8 @@ export async function modifierTournoi(
     return { error: "Impossible de modifier le tournoi." };
   }
 
-  revalidatePath(`/admin/tournois/${tournamentId}`);
+  // La barre latérale et les écrans dépendent du format : on rafraîchit tout le tournoi.
+  revalidatePath(`/admin/tournois/${tournamentId}`, "layout");
   return { success: true };
 }
 

@@ -12,6 +12,7 @@ import { ArbitresForm, type ScoreurAffiche } from "./ArbitresForm";
 import { AdminHeader } from "../../AdminHeader";
 import { AdminSidebar } from "../../AdminSidebar";
 import { getFormat } from "@/lib/engine/formats";
+import { aUnTirage, formatsCompatibles, tournoiNonCommence } from "@/lib/tournoi/changementFormat";
 import type { ConfigAnimation } from "@/lib/engine/formats";
 import { chargerPlaces } from "@/lib/inscriptions/occupation";
 import type { MatchFormat } from "@/lib/engine/types";
@@ -58,6 +59,22 @@ export default async function FicheTournoiPage({
     .select("id", { count: "exact", head: true })
     .eq("tournament_id", tournoi.id)
     .eq("ephemere", false);
+  // Le format peut changer tant que rien n'a commencé ; un tirage existant devra être refait.
+  const [{ data: matchsDuTournoi }, { count: nbGroupes }] = await Promise.all([
+    supabase.from("matches").select("statut").eq("tournament_id", tournoi.id),
+    supabase.from("groups").select("id", { count: "exact", head: true }).eq("tournament_id", tournoi.id),
+  ]);
+  const etatFormat = {
+    statut: tournoi.statut,
+    statutsMatchs: (matchsDuTournoi ?? []).map((m) => m.statut),
+    nbGroupes: nbGroupes ?? 0,
+  };
+  const formatsChoix = formatsCompatibles(tournoi.format_animation).map((f) => ({
+    code: f.code,
+    nom: f.nom,
+    description: f.description,
+    aUnTableauFinal: f.aUnTableauFinal,
+  }));
   const nbJoueurs = format.rotation ? (await chargerPlaces(createServiceClient(), tournoi.id)).occupees : null;
 
   const { data: membershipsScoreurs } = await supabase
@@ -110,6 +127,10 @@ export default async function FicheTournoiPage({
                     pauseMin: tournoi.pause_min,
                     maxParticipants: tournoi.max_participants,
                     avecQualifies: format.aUnTableauFinal,
+                    formatAnimation: tournoi.format_animation,
+                    formatsChoix,
+                    formatModifiable: tournoiNonCommence(etatFormat),
+                    aUnTirage: aUnTirage(etatFormat),
                   }}
                   clubs={clubs ?? []}
                 />
