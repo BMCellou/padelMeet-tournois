@@ -203,23 +203,66 @@ describe("mentions légales", () => {
     expect(lignesEditeur({ ...EDITEUR, siegeSocial: "   " }).map(([l]) => l)).not.toContain("Siège social");
   });
 
-  it("publie l'éditeur, l'hébergeur, les données personnelles, les cookies, la propriété intellectuelle et le droit applicable", () => {
+  it("publie l'éditeur, l'hébergeur, l'objet, les données, la propriété intellectuelle, la responsabilité et le droit applicable", () => {
     const page = lire("src/app/mentions-legales/page.tsx");
-    for (const titre of ["Éditeur du site", "Hébergeur", "Données personnelles", "Cookies", "Propriété intellectuelle", "Responsabilité", "Droit applicable"]) {
+    for (const titre of ["Éditeur du site", "Hébergeur", "Objet du site", "Données personnelles et cookies", "Propriété intellectuelle", "Responsabilité", "Droit applicable"]) {
       expect(page, titre).toContain(`titre="${titre}"`);
     }
     expect(page).toContain("HEBERGEUR");
     expect(page).toContain("lignesEditeur(EDITEUR)");
-    expect(page).toContain("CNIL");
+    expect(page).toContain('href="/confidentialite"');
     expect(page).not.toContain("[à compléter]");
     expect(HEBERGEUR.nom).toBe("Vercel Inc.");
   });
 
-  it("les pages publiques renvoient aux mentions légales", () => {
-    for (const f of ["src/app/liste-attente/page.tsx", "src/app/t/[slug]/page.tsx", "src/app/TournoisTabs.tsx"]) {
-      expect(lire(f), f).toContain("<LiensLegaux />");
+  it("la politique de confidentialité couvre les traitements, la visibilité publique, les durées, les cookies, les droits et la CNIL", () => {
+    const page = lire("src/app/confidentialite/page.tsx");
+    for (const titre of ["Qui est responsable", "Les données que nous collectons, et pourquoi", "Ce qui est visible publiquement", "Qui a accès à tes données", "Combien de temps", "Cookies", "Tes droits", "Sécurité"]) {
+      expect(page, titre).toContain(`titre="${titre}"`);
     }
-    expect(lire("src/components/LiensLegaux.tsx")).toContain('href="/mentions-legales"');
+    for (const traitement of ["Compte joueur", "Inscription à un tournoi", "Messages et rappels", "Liste d&apos;attente"]) {
+      expect(page, traitement).toContain(traitement);
+    }
+    expect(page).toContain("DUREE_CONSERVATION_MOIS");
+    expect(page).toContain("CNIL");
+    expect(page).not.toMatch(/supabase|vercel|make\.com|gmail|resend|google|amazon|aws/i);
+    expect(page).not.toContain("[à compléter]");
+  });
+
+  it("les conditions d'utilisation reprennent la règle réelle d'annulation (48 h, avant le tirage)", () => {
+    const page = lire("src/app/conditions/page.tsx");
+    expect(page).toContain("jusqu&apos;à 48 heures avant son début");
+    expect(page).toContain("tant que le tirage n&apos;a pas");
+    for (const titre of ["Compte joueur", "Inscription à un tournoi", "Annulation", "Aptitude et responsabilité", "Modification et droit applicable"]) {
+      expect(page, titre).toContain(`titre="${titre}"`);
+    }
+    // la règle affichée est celle du code
+    expect(lire("src/lib/inscriptions/annulation.ts")).toContain("DELAI_ANNULATION_HEURES = 48");
+  });
+
+  it("le pied de page porte les trois liens légaux et le contact, sur toutes les pages publiques", () => {
+    const pied = lire("src/components/SiteFooter.tsx");
+    for (const lien of ['href: "/mentions-legales"', 'href: "/confidentialite"', 'href: "/conditions"', "mailto:${CONTACT_GLOBOPADEL}"]) {
+      expect(pied, lien).toContain(lien);
+    }
+    expect(pied).toContain("Globopadel. Tous droits réservés");
+    for (const f of [
+      "src/app/TournoisTabs.tsx",
+      "src/app/t/[slug]/page.tsx",
+      "src/app/liste-attente/page.tsx",
+      "src/app/liste-attente/desinscription/[token]/page.tsx",
+      "src/app/compte/page.tsx",
+      "src/app/compte/historique/page.tsx",
+      "src/components/PageLegale.tsx",
+    ]) {
+      expect(lire(f), f).toContain("<SiteFooter />");
+    }
+  });
+
+  it("la création de compte renvoie aux conditions et à la politique de confidentialité", () => {
+    const page = lire("src/app/compte/inscription/page.tsx");
+    expect(page).toContain('href="/conditions"');
+    expect(page).toContain('href="/confidentialite"');
   });
 
   it("ne déclare aucun cookie de mesure : le site n'embarque aucun outil d'audience", () => {

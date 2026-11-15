@@ -177,6 +177,17 @@ function FormulaireInscription() {
                   autoComplete="new-password"
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                En créant ton compte, tu acceptes les{" "}
+                <Link href="/conditions" className="underline" target="_blank">
+                  conditions d&apos;utilisation
+                </Link>{" "}
+                et tu reconnais avoir pris connaissance de la{" "}
+                <Link href="/confidentialite" className="underline" target="_blank">
+                  politique de confidentialité
+                </Link>
+                .
+              </p>
               {state && "error" in state ? (
                 <p className="text-sm text-destructive">{state.error}</p>
               ) : null}

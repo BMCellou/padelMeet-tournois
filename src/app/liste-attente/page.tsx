@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sectionsRgpd } from "@/lib/liste-attente/rgpd";
-import { LiensLegaux } from "@/components/LiensLegaux";
+import { SiteFooter } from "@/components/SiteFooter";
 import { ListeAttenteForm } from "./ListeAttenteForm";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function ListeAttentePage() {
   return (
-    <div className="min-h-screen bg-background pb-12">
+    <div className="flex min-h-screen flex-col bg-background">
       <div className="bg-primary p-3 text-primary-foreground">
         <div className="mx-auto w-fit">
           <BrandLogo />
@@ -20,7 +20,7 @@ export default function ListeAttentePage() {
       <div className="mx-auto w-full max-w-md p-4">
         <ListeAttenteForm rgpd={sectionsRgpd()} />
       </div>
-      <LiensLegaux />
+      <SiteFooter />
     </div>
   );
 }

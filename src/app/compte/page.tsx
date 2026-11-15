@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ProfilForm } from "./ProfilForm";
 import { deconnexion } from "./actions";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export default async function CompteParticipantPage() {
   const participant = await getParticipantConnecte();
@@ -27,7 +28,7 @@ export default async function CompteParticipantPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <header className="bg-primary p-4 text-primary-foreground">
         <div className="mx-auto w-fit">
           <BrandLogo />
@@ -79,6 +80,7 @@ export default async function CompteParticipantPage() {
           </CardContent>
         </Card>
       </div>
+      <SiteFooter />
     </div>
   );
 }

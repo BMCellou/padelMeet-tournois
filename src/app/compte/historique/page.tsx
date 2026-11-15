@@ -9,6 +9,7 @@ import { getFormat } from "@/lib/engine/formats";
 import { heureLocaleVersISO } from "@/lib/temps";
 import { verdictAnnulation, formaterLimite } from "@/lib/inscriptions/annulation";
 import { AnnulerInscription } from "@/app/t/[slug]/AnnulerInscription";
+import { SiteFooter } from "@/components/SiteFooter";
 
 const LIBELLES_STATUT_TOURNOI: Record<string, string> = {
   brouillon: "À venir",
@@ -97,7 +98,7 @@ export default async function HistoriqueParticipantPage() {
   lignes.sort((a, b) => b.date.localeCompare(a.date));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <header className="bg-primary p-4 text-primary-foreground">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
           <BrandLogo />
@@ -164,6 +165,7 @@ export default async function HistoriqueParticipantPage() {
           </ul>
         )}
       </div>
+      <SiteFooter />
     </div>
   );
 }

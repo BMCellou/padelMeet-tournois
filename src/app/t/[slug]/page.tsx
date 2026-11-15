@@ -13,7 +13,7 @@ import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
 import { getFormat, type ConfigAnimation } from "@/lib/engine/formats";
 import { ClassementJoueursTable, type LigneClassementJoueur } from "@/components/tournoi/ClassementJoueursTable";
 import { getParticipantConnecte } from "@/lib/participant/session";
-import { LiensLegaux } from "@/components/LiensLegaux";
+import { SiteFooter } from "@/components/SiteFooter";
 import { aUnTelephoneValide } from "@/lib/inscriptions/telephone";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargerStatutInscription } from "./inscriptionStatus";
@@ -312,7 +312,7 @@ export default async function PageTournoiPublic({
   }
 
   return (
-    <div className="min-h-screen bg-background pb-12">
+    <div className="flex min-h-screen flex-col bg-background">
       <RealtimeRefresher tournamentId={tournoi.id} />
 
       <div className="bg-primary p-3 text-primary-foreground">
@@ -441,7 +441,7 @@ export default async function PageTournoiPublic({
           </Card>
         ) : null}
       </div>
-      <LiensLegaux />
+      <SiteFooter />
     </div>
   );
 }

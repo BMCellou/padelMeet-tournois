@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { LiensLegaux } from "@/components/LiensLegaux";
+import { SiteFooter } from "@/components/SiteFooter";
 import { BrandLogo } from "@/components/BrandLogo";
 import { cn } from "@/lib/utils";
 
@@ -74,7 +74,7 @@ export function TournoisTabs({ tournois }: { tournois: TournoiAffiche[] }) {
   const inscriptibles = tournois.filter((t) => t.statut === "publie");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <header className="w-full bg-primary text-primary-foreground">
         <div className="mx-auto w-full max-w-2xl px-4 pt-4 sm:px-6">
           <div className="flex items-center justify-between gap-2">
@@ -144,7 +144,7 @@ export function TournoisTabs({ tournois }: { tournois: TournoiAffiche[] }) {
           </ul>
         )}
       </div>
-      <LiensLegaux />
+      <SiteFooter />
     </div>
   );
 }
