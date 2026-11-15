@@ -3,6 +3,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 export interface ParticipantConnecte {
   userId: string;
+  /** Adresse du compte (e-mail de connexion). */
+  email: string | null;
   playerId: string;
   nom: string;
   prenom: string;
@@ -32,5 +34,5 @@ export async function getParticipantConnecte(): Promise<ParticipantConnecte | nu
 
   if (!joueur) return null;
 
-  return { userId: user.id, playerId: joueur.id, nom: joueur.nom, prenom: joueur.prenom, telephone: joueur.telephone };
+  return { userId: user.id, email: user.email ?? null, playerId: joueur.id, nom: joueur.nom, prenom: joueur.prenom, telephone: joueur.telephone };
 }

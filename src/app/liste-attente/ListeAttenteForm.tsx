@@ -2,9 +2,10 @@
 
 import { useActionState } from "react";
 import { sInscrireListeAttente } from "./actions";
-import { NIVEAUX_LISTE_ATTENTE } from "@/lib/liste-attente/niveaux";
-import { LIBELLE_CONSENTEMENT, type SectionRgpd } from "@/lib/liste-attente/rgpd";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import type { SectionRgpd } from "@/lib/liste-attente/rgpd";
+import { BlocConsentement, ChampNiveau, ChampVille } from "./ChampsCommuns";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,104 +23,87 @@ export function ListeAttenteForm({ rgpd }: { rgpd: SectionRgpd[] }) {
             tournoi sont connus.
           </CardDescription>
         </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm font-medium">Gagne du temps le jour de l&apos;annonce</p>
+          <p className="text-sm text-muted-foreground">
+            Pour t&apos;inscrire à un tournoi, il faut un compte. Crée-le dès maintenant : le jour J, tu n&apos;auras
+            plus qu&apos;à cliquer sur le lien.
+          </p>
+          <Link href="/compte/inscription?next=/liste-attente" className={`${buttonVariants({ variant: "volt" })} w-full`}>
+            Créer mon compte
+          </Link>
+          <p className="text-center text-xs text-muted-foreground">
+            Déjà un compte ?{" "}
+            <Link href="/compte/connexion?next=/liste-attente" className="underline">
+              Connecte-toi
+            </Link>
+          </p>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Liste d&apos;attente du prochain tournoi</CardTitle>
-        <CardDescription>
-          Laisse tes coordonnées : on te prévient dès que la date et le lieu sont fixés, avant l&apos;ouverture des
-          inscriptions.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form action={formAction} className="space-y-4">
-          {/* Champ piège pour les robots : invisible, jamais rempli par une personne. */}
-          <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-            <label htmlFor="site">Ne pas remplir</label>
-            <input id="site" name="site" type="text" tabIndex={-1} autoComplete="off" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="prenom">Prénom</Label>
-              <Input id="prenom" name="prenom" required autoComplete="given-name" maxLength={60} />
+    <div className="space-y-3">
+      <p className="text-center text-sm text-muted-foreground">
+        Tu as déjà un compte ?{" "}
+        <Link href="/compte/connexion?next=/liste-attente" className="underline">
+          Connecte-toi
+        </Link>{" "}
+        pour t&apos;inscrire en un clic.
+      </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Liste d&apos;attente du prochain tournoi</CardTitle>
+          <CardDescription>
+            Laisse tes coordonnées : on te prévient dès que la date et le lieu sont fixés, avant l&apos;ouverture des
+            inscriptions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={formAction} className="space-y-4">
+            {/* Champ piège pour les robots : invisible, jamais rempli par une personne. */}
+            <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+              <label htmlFor="site">Ne pas remplir</label>
+              <input id="site" name="site" type="text" tabIndex={-1} autoComplete="off" />
+            </div>
+  
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="prenom">Prénom</Label>
+                <Input id="prenom" name="prenom" required autoComplete="given-name" maxLength={60} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="nom">Nom</Label>
+                <Input id="nom" name="nom" required autoComplete="family-name" maxLength={60} />
+              </div>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="nom">Nom</Label>
-              <Input id="nom" name="nom" required autoComplete="family-name" maxLength={60} />
+              <Label htmlFor="email">E-mail</Label>
+              <Input id="email" name="email" type="email" required autoComplete="email" maxLength={160} />
             </div>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="email">E-mail</Label>
-            <Input id="email" name="email" type="email" required autoComplete="email" maxLength={160} />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="telephone">Téléphone</Label>
-            <Input
-              id="telephone"
-              name="telephone"
-              type="tel"
-              required
-              autoComplete="tel"
-              placeholder="06 12 34 56 78"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="niveau">Ton niveau (de 1 à 8)</Label>
-            <select
-              id="niveau"
-              name="niveau"
-              required
-              defaultValue=""
-              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-            >
-              <option value="" disabled>
-                Choisir…
-              </option>
-              {NIVEAUX_LISTE_ATTENTE.map((n) => (
-                <option key={n.niveau} value={n.niveau}>
-                  {n.niveau} – {n.libelle} : {n.aide}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="ville">
-              Ville <span className="font-normal text-muted-foreground">(facultatif)</span>
-            </Label>
-            <Input id="ville" name="ville" autoComplete="address-level2" maxLength={80} />
-            <p className="text-xs text-muted-foreground">
-              Pour te prévenir en priorité si le tournoi a lieu près de chez toi. Tu peux la laisser vide.
-            </p>
-          </div>
-
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name="consentement" className="mt-1" required />
-            <span>{LIBELLE_CONSENTEMENT}</span>
-          </label>
-
-          <details className="rounded-lg border bg-muted/30 p-3 text-sm">
-            <summary className="cursor-pointer font-medium">Comment tes données sont utilisées</summary>
-            <dl className="mt-3 space-y-2">
-              {rgpd.map((s) => (
-                <div key={s.titre}>
-                  <dt className="font-medium">{s.titre}</dt>
-                  <dd className="text-muted-foreground">{s.texte}</dd>
-                </div>
-              ))}
-            </dl>
-          </details>
-
-          {state && "error" in state ? <p className="text-sm text-destructive">{state.error}</p> : null}
-          <Button type="submit" variant="volt" className="w-full" disabled={isPending}>
-            {isPending ? "Inscription…" : "Rejoindre la liste d'attente"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <div className="space-y-1">
+              <Label htmlFor="telephone">Téléphone</Label>
+              <Input
+                id="telephone"
+                name="telephone"
+                type="tel"
+                required
+                autoComplete="tel"
+                placeholder="06 12 34 56 78"
+              />
+            </div>
+            <ChampNiveau />
+            <ChampVille />
+            <BlocConsentement rgpd={rgpd} />
+  
+            {state && "error" in state ? <p className="text-sm text-destructive">{state.error}</p> : null}
+            <Button type="submit" variant="volt" className="w-full" disabled={isPending}>
+              {isPending ? "Inscription…" : "Rejoindre la liste d'attente"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

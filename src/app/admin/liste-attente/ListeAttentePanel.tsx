@@ -19,6 +19,8 @@ export interface Inscrit {
   ville: string | null;
   inscritLe: string;
   notifieLe: string | null;
+  /** Une fiche joueur rattachée à un compte porte déjà cette adresse. */
+  aUnCompte: boolean;
 }
 
 type Bilan = { ok: boolean; texte: string; erreurs: string[] };
@@ -48,6 +50,7 @@ export function ListeAttentePanel({
   const [info, setInfo] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
 
+  const nbAvecCompte = inscrits.filter((i) => i.aUnCompte).length;
   const parNiveau = NIVEAUX_LISTE_ATTENTE.map((n) => ({ ...n, nb: inscrits.filter((i) => i.niveau === n.niveau).length }));
 
   function choisir(ids: string[]) {
@@ -119,6 +122,10 @@ export function ListeAttentePanel({
               </Badge>
             ))}
           </div>
+          <p className="text-sm text-muted-foreground">
+            {nbAvecCompte} sur {inscrits.length} ont déjà un compte : ils pourront s&apos;inscrire en un clic le jour de
+            l&apos;annonce.
+          </p>
           {nbAnciens > 0 ? (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm">
               <span className="flex-1">
@@ -176,6 +183,12 @@ export function ListeAttentePanel({
                 <Button size="sm" variant="outline" onClick={() => choisir(inscrits.filter((i) => !i.notifieLe).map((i) => i.id))}>
                   Pas encore prévenus
                 </Button>
+                <Button size="sm" variant="outline" onClick={() => choisir(inscrits.filter((i) => i.aUnCompte).map((i) => i.id))}>
+                  Avec un compte
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => choisir(inscrits.filter((i) => !i.aUnCompte).map((i) => i.id))}>
+                  Sans compte
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => choisir([])}>
                   Tout désélectionner
                 </Button>
@@ -188,6 +201,11 @@ export function ListeAttentePanel({
                       <span className="font-medium">
                         {i.prenom} {i.nom}
                       </span>
+                      {i.aUnCompte ? (
+                        <Badge variant="secondary" className="ml-2 align-middle">
+                          Compte créé
+                        </Badge>
+                      ) : null}
                       <span className="block truncate text-xs text-muted-foreground">
                         {i.email} · {i.telephone}
                       </span>

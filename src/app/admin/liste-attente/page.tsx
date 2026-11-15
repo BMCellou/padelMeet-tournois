@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { AdminHeader } from "../AdminHeader";
 import { AdminSidebar } from "../AdminSidebar";
+import { aUnCompte, emailsAvecCompte } from "@/lib/liste-attente/compte";
 import { MODELE_ANNONCE } from "@/lib/liste-attente/message";
 import { DUREE_CONSERVATION_MOIS } from "@/lib/liste-attente/rgpd";
 import { ListeAttentePanel, type Inscrit } from "./ListeAttentePanel";
@@ -12,6 +13,20 @@ export default async function ListeAttentePage() {
     .select("id, prenom, nom, email, telephone, niveau, ville, created_at, notifie_at")
     .order("created_at", { ascending: false });
 
+  // Inscrits qui ont déjà créé leur compte : leur fiche joueur est rattachée à un compte avec la même adresse.
+  // Requêtes par paquets pour que l'adresse de la requête reste courte.
+  const adresses = (data ?? []).map((r) => r.email.toLowerCase());
+  const joueurs: { email: string | null; user_id: string | null }[] = [];
+  for (let i = 0; i < adresses.length; i += 100) {
+    const { data: lot } = await supabase
+      .from("players")
+      .select("email, user_id")
+      .not("user_id", "is", null)
+      .in("email", adresses.slice(i, i + 100));
+    joueurs.push(...(lot ?? []));
+  }
+  const avecCompte = emailsAvecCompte(joueurs);
+
   const inscrits: Inscrit[] = (data ?? []).map((r) => ({
     id: r.id,
     prenom: r.prenom,
@@ -22,6 +37,7 @@ export default async function ListeAttentePage() {
     ville: r.ville,
     inscritLe: r.created_at,
     notifieLe: r.notifie_at,
+    aUnCompte: aUnCompte(r.email, avecCompte),
   }));
 
   const limite = new Date();
