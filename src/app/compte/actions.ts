@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getParticipantConnecte } from "@/lib/participant/session";
+import { telephoneObligatoire } from "@/lib/inscriptions/telephone";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -25,7 +26,7 @@ const inscriptionSchema = z.object({
   nom: z.string().trim().min(1, "Le nom est requis."),
   prenom: z.string().trim().min(1, "Le prénom est requis."),
   sexe: z.enum(["H", "F"]).optional(),
-  telephone: z.string().trim().optional(),
+  telephone: telephoneObligatoire,
   classementFft: z.string().trim().optional(),
   // Renvoyés par le formulaire lors de la resoumission qui suit l'écran
   // de confirmation (voir plus bas) — absents au premier passage.
@@ -43,7 +44,7 @@ export async function inscription(
     nom: formData.get("nom"),
     prenom: formData.get("prenom"),
     sexe: formData.get("sexe") || undefined,
-    telephone: formData.get("telephone") || undefined,
+    telephone: formData.get("telephone"),
     classementFft: formData.get("classementFft") || undefined,
     ficheFantomeChoisie: formData.get("ficheFantomeChoisie") || undefined,
     ignorerFantome: formData.get("ignorerFantome") || undefined,
@@ -264,7 +265,7 @@ const profilSchema = z.object({
   nom: z.string().trim().min(1, "Le nom est requis."),
   prenom: z.string().trim().min(1, "Le prénom est requis."),
   sexe: z.enum(["H", "F"]).optional(),
-  telephone: z.string().trim().optional(),
+  telephone: telephoneObligatoire,
   classementFft: z.string().trim().optional(),
   canalRappel: z.enum(["email", "whatsapp"]).default("email"),
 });
@@ -282,7 +283,7 @@ export async function modifierMonProfil(
     nom: formData.get("nom"),
     prenom: formData.get("prenom"),
     sexe: formData.get("sexe") || undefined,
-    telephone: formData.get("telephone") || undefined,
+    telephone: formData.get("telephone"),
     classementFft: formData.get("classementFft") || undefined,
     canalRappel: formData.get("canalRappel") || undefined,
   });

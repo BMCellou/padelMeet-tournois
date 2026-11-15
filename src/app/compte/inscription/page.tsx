@@ -140,9 +140,16 @@ function FormulaireInscription() {
                   <Input
                     id="telephone"
                     name="telephone"
+                    type="tel"
+                    autoComplete="tel"
+                    placeholder="06 12 34 56 78"
                     value={telephone}
                     onChange={(e) => setTelephone(e.target.value)}
+                    required={!confirmation}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Obligatoire : l&apos;organisateur t&apos;y contacte le jour du tournoi.
+                  </p>
                 </div>
               </div>
               <div className="space-y-2">

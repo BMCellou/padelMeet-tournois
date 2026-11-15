@@ -13,6 +13,7 @@ import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
 import { getFormat, type ConfigAnimation } from "@/lib/engine/formats";
 import { ClassementJoueursTable, type LigneClassementJoueur } from "@/components/tournoi/ClassementJoueursTable";
 import { getParticipantConnecte } from "@/lib/participant/session";
+import { aUnTelephoneValide } from "@/lib/inscriptions/telephone";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargerStatutInscription } from "./inscriptionStatus";
 import { chargerPlaces } from "@/lib/inscriptions/occupation";
@@ -303,6 +304,7 @@ export default async function PageTournoiPublic({
           placesLibelle={placesLibelle}
           placesRestantes={places.restantes}
           soloSeulement={parJoueur}
+          telephoneManquant={!aUnTelephoneValide(participant.telephone)}
         />
       );
     }

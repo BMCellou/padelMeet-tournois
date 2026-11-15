@@ -86,6 +86,7 @@ export function InscriptionFormulaire({
   placesLibelle,
   placesRestantes,
   soloSeulement = false,
+  telephoneManquant = false,
 }: {
   tournamentId: string;
   slug: string;
@@ -94,6 +95,8 @@ export function InscriptionFormulaire({
   placesRestantes: number | null;
   /** Format à partenaires tournants : l'unité est le joueur, pas d'inscription en paire. */
   soloSeulement?: boolean;
+  /** Le profil n'a pas de numéro de téléphone exploitable : il faut le renseigner avant de s'inscrire. */
+  telephoneManquant?: boolean;
 }) {
   const [mode, setMode] = useState<"solo" | "paire">(soloSeulement ? "solo" : "paire");
   const [stateSolo, actionSolo, pendingSolo] = useActionState(sInscrireSolo, null);
@@ -119,6 +122,31 @@ export function InscriptionFormulaire({
 
   const complet = placesRestantes === 0;
   const uneSeulePlace = placesRestantes === 1;
+
+  if (telephoneManquant && !complet) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between gap-2 text-base">
+            S&apos;inscrire à ce tournoi
+            <BadgePlaces libelle={placesLibelle} complet={complet} />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm">
+            Ajoute d&apos;abord ton numéro de téléphone à ton profil : l&apos;organisateur en a besoin pour te
+            joindre le jour du tournoi.
+          </p>
+          <Link href="/compte">
+            <Button variant="volt" className="w-full">
+              Compléter mon profil
+            </Button>
+          </Link>
+          <p className="text-xs text-muted-foreground">Reviens ensuite sur cette page pour t&apos;inscrire.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -179,6 +207,17 @@ export function InscriptionFormulaire({
               <div className="space-y-1">
                 <Label htmlFor="nomPartenaire">Nom du/de la partenaire</Label>
                 <Input id="nomPartenaire" name="nomPartenaire" required />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label htmlFor="telephonePartenaire">Téléphone du/de la partenaire</Label>
+                <Input
+                  id="telephonePartenaire"
+                  name="telephonePartenaire"
+                  type="tel"
+                  autoComplete="off"
+                  placeholder="06 12 34 56 78"
+                  required
+                />
               </div>
               <div className="col-span-2 space-y-1">
                 <Label htmlFor="emailPartenaire">E-mail du/de la partenaire</Label>

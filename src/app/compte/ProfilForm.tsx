@@ -36,7 +36,18 @@ export function ProfilForm({ profil }: { profil: MonProfil }) {
         </div>
         <div className="col-span-2 space-y-1">
           <Label htmlFor="telephone">Téléphone</Label>
-          <Input id="telephone" name="telephone" defaultValue={profil.telephone ?? ""} />
+          <Input
+            id="telephone"
+            name="telephone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="06 12 34 56 78"
+            defaultValue={profil.telephone ?? ""}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Obligatoire : l&apos;organisateur t&apos;y contacte le jour du tournoi.
+          </p>
         </div>
       </div>
       <div className="space-y-1">

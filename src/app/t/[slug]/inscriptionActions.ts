@@ -6,6 +6,7 @@ import { chargerStatutInscription } from "./inscriptionStatus";
 import { chargerPlaces } from "@/lib/inscriptions/occupation";
 import { refusInscription } from "@/lib/inscriptions/places";
 import { notifierNouvelleInscription } from "@/lib/inscriptions/notifier";
+import { aUnTelephoneValide, MESSAGE_TELEPHONE_PROFIL, schemaTelephone } from "@/lib/inscriptions/telephone";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
@@ -45,6 +46,7 @@ export async function sInscrireSolo(
 
   const participant = await getParticipantConnecte();
   if (!participant) return { error: "Connecte-toi d'abord pour t'inscrire." };
+  if (!aUnTelephoneValide(participant.telephone)) return { error: MESSAGE_TELEPHONE_PROFIL };
 
   const service = createServiceClient();
 
@@ -103,6 +105,8 @@ const paireSchema = z.object({
   // pas dire que le compte doit déjà exister (voir trouverPartenaireExistant) :
   // juste que l'e-mail doit être fourni pour tenter le rapprochement.
   emailPartenaire: z.string().trim().toLowerCase().email("L'e-mail du/de la partenaire est requis."),
+  // Les deux joueurs d'une paire doivent être joignables, pas seulement celui qui s'inscrit.
+  telephonePartenaire: schemaTelephone("du/de la partenaire"),
 });
 
 /**
@@ -122,10 +126,10 @@ async function trouverPartenaireExistant(
   email: string,
   nom: string,
   prenom: string,
-): Promise<{ id: string; nom: string; prenom: string } | null> {
+): Promise<{ id: string; nom: string; prenom: string; telephone: string | null } | null> {
   const { data } = await service
     .from("players")
-    .select("id, nom, prenom")
+    .select("id, nom, prenom, telephone")
     .eq("email", email)
     .ilike("nom", nom)
     .ilike("prenom", prenom)
@@ -145,11 +149,13 @@ export async function sInscrireEnPaire(
     nomPartenaire: formData.get("nomPartenaire"),
     prenomPartenaire: formData.get("prenomPartenaire"),
     emailPartenaire: formData.get("emailPartenaire"),
+    telephonePartenaire: formData.get("telephonePartenaire"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const participant = await getParticipantConnecte();
   if (!participant) return { error: "Connecte-toi d'abord pour t'inscrire." };
+  if (!aUnTelephoneValide(participant.telephone)) return { error: MESSAGE_TELEPHONE_PROFIL };
 
   const service = createServiceClient();
 
@@ -189,6 +195,11 @@ export async function sInscrireEnPaire(
       return { error: "Ton/ta partenaire est déjà inscrit(e) à ce tournoi." };
     }
     partenaireId = partenaireExistant.id;
+    // Un partenaire qui n'a pas encore de numéro reçoit celui qui vient d'être donné ; on n'écrase jamais
+    // un numéro déjà renseigné par la personne elle-même.
+    if (!aUnTelephoneValide(partenaireExistant.telephone)) {
+      await service.from("players").update({ telephone: parsed.data.telephonePartenaire }).eq("id", partenaireExistant.id);
+    }
     // Reprend la casse réelle de son profil (la recherche est
     // insensible à la casse) pour un affichage cohérent avec son compte.
     nomAffichePartenaire = `${partenaireExistant.prenom} ${partenaireExistant.nom}`;
@@ -199,6 +210,7 @@ export async function sInscrireEnPaire(
         nom: parsed.data.nomPartenaire,
         prenom: parsed.data.prenomPartenaire,
         email: parsed.data.emailPartenaire,
+        telephone: parsed.data.telephonePartenaire,
       })
       .select("id")
       .single();

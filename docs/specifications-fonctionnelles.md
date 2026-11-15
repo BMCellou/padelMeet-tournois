@@ -88,6 +88,14 @@ Sur la vue d'ensemble d'un tournoi, deux boutons génèrent un PDF **A4, en fran
 
 Aucune donnée de contact (e-mail, téléphone) n'entre dans ces documents : seuls les noms des joueurs y figurent.
 
+### 4.5 quater Téléphone obligatoire des joueurs
+
+Le **numéro de téléphone est obligatoire** pour tout joueur : l'e-mail seul est trop lent pour joindre quelqu'un le jour du tournoi (l'e-mail l'est déjà, il identifie le compte).
+- **Création de compte** et **modification du profil** : numéro requis et exploitable (français local `06…` ou international `+33…`), sinon message d'erreur ; il reste enregistré tel que saisi.
+- **Inscription à un tournoi** (solo ou en paire) : refusée si le profil n'a pas de numéro valide (profils créés avant l'obligation). La page du tournoi remplace alors le formulaire par un bouton « Compléter mon profil ».
+- **Inscription en paire** : le **numéro du/de la partenaire** est requis au même titre que son e-mail ; il est enregistré sur sa fiche (s'il en a déjà un, on ne l'écrase jamais).
+- Côté organisateur (ajout d'un joueur depuis l'admin), le numéro reste facultatif.
+
 ### 4.5 ter Changer le format d'un tournoi (admin)
 
 Dans « Modifier » (vue d'ensemble du tournoi), un sélecteur **Format d'animation** permet de changer de format **tant que le tournoi n'a pas commencé** : statut Brouillon ou Publié et aucun match entamé (le serveur relit l'état en base, ce n'est pas le formulaire qui décide).
