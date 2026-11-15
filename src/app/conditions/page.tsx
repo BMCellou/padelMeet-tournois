@@ -4,7 +4,7 @@ import { PageLegale, SectionLegale } from "@/components/PageLegale";
 import { CONTACT_GLOBOPADEL } from "@/lib/liste-attente/rgpd";
 
 export const metadata: Metadata = {
-  title: "Conditions d'utilisation — Globopadel",
+  title: "Conditions d'utilisation — GloboPadel",
   description: "Les règles d'utilisation du site app.globopadel.fr : compte, inscriptions, annulations, responsabilités.",
 };
 
@@ -13,7 +13,7 @@ export default function ConditionsPage() {
     <PageLegale titre="Conditions d'utilisation" misAJour="novembre 2026">
       <SectionLegale titre="Objet">
         <p>
-          Les présentes conditions encadrent l&apos;utilisation du site app.globopadel.fr, édité par Globopadel (voir les{" "}
+          Les présentes conditions encadrent l&apos;utilisation du site app.globopadel.fr, édité par GloboPadel (voir les{" "}
           <Link href="/mentions-legales" className="underline">
             mentions légales
           </Link>
@@ -66,7 +66,7 @@ export default function ConditionsPage() {
       <SectionLegale titre="Aptitude et responsabilité">
         <p>
           Le padel est une activité sportive. En t&apos;inscrivant, tu déclares être apte à la pratiquer et être couvert(e) par une
-          assurance de responsabilité civile. Globopadel n&apos;est pas responsable des dommages résultant de la pratique du sport ni de
+          assurance de responsabilité civile. GloboPadel n&apos;est pas responsable des dommages résultant de la pratique du sport ni de
           l&apos;indisponibilité temporaire du site.
         </p>
       </SectionLegale>

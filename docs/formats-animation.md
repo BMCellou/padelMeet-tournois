@@ -1,6 +1,6 @@
 # Formats d'animation — architecture et feuille de route
 
-Ajouter Americano, Mexicano, montée-descente et TMC à Globopadel.
+Ajouter Americano, Mexicano, montée-descente et TMC à GloboPadel.
 
 ---
 

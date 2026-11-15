@@ -1,4 +1,4 @@
-# Brief de design — Globopadel
+# Brief de design — GloboPadel
 
 > À donner tel quel à Claude Design. Il décrit ce que le site fait **aujourd'hui**, la **cible** à
 > quelques mois, les **contraintes d'intégration** et les **livrables attendus**. Le design proposé doit
@@ -6,7 +6,7 @@
 
 ## Prompt à coller en tête de conversation
 
-« Je construis **Globopadel**, une plateforme d'organisation de tournois de padel (inscriptions, poules,
+« Je construis **GloboPadel**, une plateforme d'organisation de tournois de padel (inscriptions, poules,
 tableaux, scores et classements en direct). Le site fonctionne déjà, avec un design sobre mais sans identité
 forte. Je veux une **vraie direction visuelle** et des **maquettes page par page** (mobile d'abord) que je
 puisse ensuite intégrer dans le code existant (Next.js + Tailwind v4 + composants shadcn). Lis le brief
@@ -17,12 +17,12 @@ de commencer si quelque chose manque. »
 
 ## 1. Le produit en deux phrases
 
-Globopadel permet à un organisateur de tournois de padel (club ou événement d'entreprise) de **publier un
+GloboPadel permet à un organisateur de tournois de padel (club ou événement d'entreprise) de **publier un
 tournoi**, de **recevoir les inscriptions** des joueurs, de **faire le tirage et le calendrier**, de
 **saisir les scores** pendant la journée et de **publier les classements en direct**. Les joueurs
 s'inscrivent depuis leur téléphone, suivent leurs matchs et retrouvent leur historique.
 
-- **Nom et marque :** Globopadel (entité en cours de création). Site : `app.globopadel.fr`. Contact : `contact@globopadel.fr`.
+- **Nom et marque :** GloboPadel (entité en cours de création). Site : `app.globopadel.fr`. Contact : `contact@globopadel.fr`.
 - **Langue :** français uniquement. Ton : direct, sportif, chaleureux, tutoiement des joueurs (« Tu es sur la liste »).
 - **Lieu d'activité :** Lyon aujourd'hui, mais le site ne doit pas fermer la porte aux autres villes.
 
@@ -58,7 +58,7 @@ Palette en variables CSS (fichier `src/app/globals.css`), logique « 60/30/10 »
 | Arrondi de base | `--radius` | `0.625rem` |
 
 - **Polices :** titres en **Bebas Neue** (capitales, `tracking-wide`), texte en **Montserrat**, chiffres techniques en **Geist Mono**.
-- **Logo actuel :** une puce carrée volt portant un « G » marine, suivie du mot « Globopadel ». C'est un placeholder : un vrai logo est bienvenu.
+- **Logo actuel :** une puce carrée volt portant un « G » marine, suivie du mot « GloboPadel ». C'est un placeholder : un vrai logo est bienvenu.
 - **Mode sombre :** des variables existent mais ne sont pas utilisées ni testées. **Pas prioritaire.**
 - **Composants** (dossier `src/components/ui/`, basés sur `@base-ui/react` à la manière de shadcn) : Button (variantes dont `volt`), Badge (`default`, `outline`, `volt`), Card, Input, Label, Select, Checkbox, Dialog, Table. Icônes : `lucide-react`.
 - **Le volt** sert aux appels à l'action principaux, aux soulignés d'onglets actifs et aux pastilles de statut. Pas de grands fonds volt : lisibilité faible sur blanc.
@@ -123,11 +123,11 @@ Palette en variables CSS (fichier `src/app/globals.css`), logique « 60/30/10 »
 - Rappels de match, messages d'infos du tournoi (avec planning PDF en pièce jointe), annonce du prochain tournoi à la liste d'attente. Aujourd'hui en **texte brut** : un modèle d'e-mail simple et robuste à la marque est un plus.
 
 ### 5.8 Pied de page (nouveau, déjà en place)
-- Fond marine, trois colonnes : marque et phrase d'accroche ; « Le site » (Tournois, Liste d'attente, Mon compte) ; « Informations » (Mentions légales, Politique de confidentialité, Conditions d'utilisation, Contact) ; ligne « © année Globopadel. Tous droits réservés. »
+- Fond marine, trois colonnes : marque et phrase d'accroche ; « Le site » (Tournois, Liste d'attente, Mon compte) ; « Informations » (Mentions légales, Politique de confidentialité, Conditions d'utilisation, Contact) ; ligne « © année GloboPadel. Tous droits réservés. »
 
 ## 6. La cible : trois ensembles sur un même site
 
-1. **Vitrine (marque Globopadel).** Une page d'accueil qui présente Globopadel, ce qu'on y fait, les prochains tournois, la possibilité de rejoindre la liste d'attente, et l'offre entreprise. Elle remplace l'accueil actuel, qui est aujourd'hui une simple liste de tournois (hypothèse : la vitrine sur `globopadel.fr` et l'application sur `app.globopadel.fr` ; **à confirmer**).
+1. **Vitrine (marque GloboPadel).** Une page d'accueil qui présente GloboPadel, ce qu'on y fait, les prochains tournois, la possibilité de rejoindre la liste d'attente, et l'offre entreprise. Elle remplace l'accueil actuel, qui est aujourd'hui une simple liste de tournois (hypothèse : la vitrine sur `globopadel.fr` et l'application sur `app.globopadel.fr` ; **à confirmer**).
 2. **Application tournois (existant).** Liste des tournois, page d'un tournoi avec inscription et suivi en direct, espace joueur, historique.
 3. **Prestation pour les entreprises (nouveau).** Une entreprise choisit parmi **3 formules** de prestation padel. Le site **génère un lien d'inscription** à partager aux participants. Selon la formule choisie, l'événement se déroule en **tournoi classique** (poules + tableau) ou en **Americano**. L'application gère ensuite tout le déroulé : inscriptions, tirage, scores, classements.
    - **À préciser avec toi (inconnues) :** le contenu exact des 3 formules, s'il y a un paiement en ligne ou un devis, ce que le client voit pendant et après l'événement, si les participants créent un compte ou s'inscrivent en version allégée.

@@ -11,7 +11,7 @@ export function BrandLogo({ href = "/" }: { href?: string }) {
       <span className="flex size-7 items-center justify-center rounded-md bg-volt text-sm text-volt-foreground">
         G
       </span>
-      <span>Globopadel</span>
+      <span>GloboPadel</span>
     </Link>
   );
 }

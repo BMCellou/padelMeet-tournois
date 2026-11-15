@@ -4,7 +4,7 @@ import { PageLegale, SectionLegale } from "@/components/PageLegale";
 import { CONCEPTEUR, EDITEUR, HEBERGEUR, URL_SITE, lignesEditeur } from "@/lib/legal/editeur";
 
 export const metadata: Metadata = {
-  title: "Mentions légales — Globopadel",
+  title: "Mentions légales — GloboPadel",
   description: "Éditeur, hébergeur et propriété intellectuelle du site app.globopadel.fr.",
 };
 
@@ -46,8 +46,6 @@ export default function MentionsLegalesPage() {
         <p>
           <strong>{CONCEPTEUR.nom}</strong>
           <br />
-          {CONCEPTEUR.responsable} – {CONCEPTEUR.statut}
-          <br />
           SIREN : {CONCEPTEUR.siren}
         </p>
         <p>Prestataire indépendant chargé de la conception et du développement technique du site.</p>
@@ -55,16 +53,13 @@ export default function MentionsLegalesPage() {
 
       <SectionLegale titre="Hébergeur">
         <p>
-          Le site est hébergé par {HEBERGEUR.nom} ({HEBERGEUR.site.replace("https://", "")}).
-          {HEBERGEUR.adresse
-            ? ` Adresse : ${HEBERGEUR.adresse}.`
-            : " Les coordonnées juridiques complètes de l'entité Vercel assurant l'hébergement seront indiquées dans cette rubrique."}
+          Le site est hébergé par {HEBERGEUR.nom}, {HEBERGEUR.adresse} ({HEBERGEUR.site.replace("https://", "")}).
         </p>
       </SectionLegale>
 
       <SectionLegale titre="Objet du site">
         <p>
-          Le site permet de s&apos;inscrire à des tournois de padel organisés par Globopadel, de suivre leur déroulement (poules,
+          Le site permet de s&apos;inscrire à des tournois de padel organisés par GloboPadel, de suivre leur déroulement (poules,
           calendrier, scores, classements) et de rejoindre la liste d&apos;attente du prochain tournoi.
         </p>
       </SectionLegale>
@@ -86,7 +81,7 @@ export default function MentionsLegalesPage() {
 
       <SectionLegale titre="Propriété intellectuelle">
         <p>
-          La marque, le nom, les logos, les textes, les mises en page et le code du site sont la propriété de Globopadel ou de ses
+          La marque, le nom, les logos, les textes, les mises en page et le code du site sont la propriété de GloboPadel ou de ses
           concédants. Toute reproduction ou réutilisation, totale ou partielle, sans autorisation écrite préalable est interdite.
         </p>
       </SectionLegale>
@@ -94,7 +89,7 @@ export default function MentionsLegalesPage() {
       <SectionLegale titre="Responsabilité">
         <p>
           Les informations publiées (horaires, poules, scores, classements) sont données à titre indicatif et peuvent évoluer
-          jusqu&apos;au jour du tournoi ; en cas de doute, l&apos;organisateur sur place fait foi. Globopadel s&apos;efforce
+          jusqu&apos;au jour du tournoi ; en cas de doute, l&apos;organisateur sur place fait foi. GloboPadel s&apos;efforce
           d&apos;assurer la disponibilité du site mais ne peut garantir un accès ininterrompu, ni être tenue responsable des contenus
           de sites tiers vers lesquels il pourrait renvoyer.
         </p>

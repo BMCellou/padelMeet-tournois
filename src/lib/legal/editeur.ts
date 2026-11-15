@@ -35,30 +35,25 @@ export const EDITEUR: Editeur = {
 
 export interface Hebergeur {
   nom: string;
-  /** null tant que les coordonnées juridiques complètes ne sont pas publiées : la page l'annonce. */
-  adresse: string | null;
+  adresse: string;
   site: string;
 }
 
 /** Hébergeur du site : sa mention est obligatoire. */
 export const HEBERGEUR: Hebergeur = {
-  nom: "Vercel",
-  adresse: null,
+  nom: "Vercel Inc.",
+  adresse: "440 N Barranca Ave #4133, Covina, CA 91723, États-Unis",
   site: "https://vercel.com",
 };
 
 export interface Concepteur {
   nom: string;
-  responsable: string;
-  statut: string;
   siren: string;
 }
 
 /** Prestataire qui a conçu et développé le site. */
 export const CONCEPTEUR: Concepteur = {
   nom: "MCB SERVICES",
-  responsable: "Mamadou BARRY",
-  statut: "Entrepreneur individuel",
   siren: "943 478 438",
 };
 

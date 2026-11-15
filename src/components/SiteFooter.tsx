@@ -57,7 +57,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-primary-foreground/15">
         <p className="mx-auto w-full max-w-4xl px-4 py-4 text-xs text-primary-foreground/55 sm:px-6">
-          © {new Date().getFullYear()} Globopadel. Tous droits réservés.
+          © {new Date().getFullYear()} GloboPadel. Tous droits réservés.
         </p>
       </div>
     </footer>

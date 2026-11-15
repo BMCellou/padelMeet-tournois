@@ -4,8 +4,8 @@ import { PageLegale, SectionLegale } from "@/components/PageLegale";
 import { CONTACT_GLOBOPADEL, DUREE_CONSERVATION_MOIS } from "@/lib/liste-attente/rgpd";
 
 export const metadata: Metadata = {
-  title: "Politique de confidentialité — Globopadel",
-  description: "Quelles données Globopadel collecte, pourquoi, combien de temps, et comment exercer tes droits.",
+  title: "Politique de confidentialité — GloboPadel",
+  description: "Quelles données GloboPadel collecte, pourquoi, combien de temps, et comment exercer tes droits.",
 };
 
 /** Une seule expression JSX : un retour à la ligne entre « 24 » et « mois » ferait disparaître l'espace. */
@@ -21,7 +21,7 @@ export default function ConfidentialitePage() {
     <PageLegale titre="Politique de confidentialité" misAJour="novembre 2026">
       <SectionLegale titre="Qui est responsable">
         <p>
-          Globopadel, éditeur du site app.globopadel.fr (voir les{" "}
+          GloboPadel, éditeur du site app.globopadel.fr (voir les{" "}
           <Link href="/mentions-legales" className="underline">
             mentions légales
           </Link>
@@ -65,7 +65,7 @@ export default function ConfidentialitePage() {
 
       <SectionLegale titre="Qui a accès à tes données">
         <p>
-          Globopadel et ses organisateurs habilités. Ses prestataires techniques, qui hébergent le site et les données et qui envoient
+          GloboPadel et ses organisateurs habilités. Ses prestataires techniques, qui hébergent le site et les données et qui envoient
           les messages, n&apos;agissent que sur ses instructions et n&apos;en font aucun autre usage. Certains de ces prestataires
           peuvent traiter des données en dehors de l&apos;Union européenne ; dans ce cas, des garanties adaptées prévues par le RGPD
           (notamment les clauses contractuelles types) encadrent le transfert.

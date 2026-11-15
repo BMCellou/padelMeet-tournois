@@ -9,7 +9,7 @@ import { ListeAttenteForm } from "./ListeAttenteForm";
 import { ListeAttenteConnecte } from "./ListeAttenteConnecte";
 
 export const metadata: Metadata = {
-  title: "Liste d'attente — Globopadel",
+  title: "Liste d'attente — GloboPadel",
   description: "Sois prévenu(e) dès que la date et le lieu du prochain tournoi sont connus.",
 };
 

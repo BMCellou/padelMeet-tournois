@@ -10,7 +10,7 @@ export const DUREE_CONSERVATION_MOIS = 24;
 export const CONTACT_GLOBOPADEL = "contact@globopadel.fr";
 
 export const LIBELLE_CONSENTEMENT =
-  "J'accepte que Globopadel utilise mes informations pour me prévenir du prochain tournoi.";
+  "J'accepte que GloboPadel utilise mes informations pour me prévenir du prochain tournoi.";
 
 export interface SectionRgpd {
   titre: string;
@@ -21,7 +21,7 @@ export function sectionsRgpd(contact: string = CONTACT_GLOBOPADEL): SectionRgpd[
   return [
     {
       titre: "Qui collecte tes données",
-      texte: `Globopadel, organisateur de tournois de padel et éditeur du site app.globopadel.fr, est responsable de ce traitement. Contact : ${contact}.`,
+      texte: `GloboPadel, organisateur de tournois de padel et éditeur du site app.globopadel.fr, est responsable de ce traitement. Contact : ${contact}.`,
     },
     {
       titre: "Pourquoi",
@@ -40,7 +40,7 @@ export function sectionsRgpd(contact: string = CONTACT_GLOBOPADEL): SectionRgpd[
     {
       titre: "Qui y a accès",
       texte:
-        "Globopadel uniquement. Ses prestataires techniques, qui hébergent les données et envoient les messages, n'agissent que sur ses instructions et n'en font aucun autre usage.",
+        "GloboPadel uniquement. Ses prestataires techniques, qui hébergent les données et envoient les messages, n'agissent que sur ses instructions et n'en font aucun autre usage.",
     },
     {
       titre: "Combien de temps",

@@ -135,10 +135,10 @@ describe("dossier d'organisation (14 équipes, 3 terrains)", async () => {
   });
 
   it("chaque page porte le bandeau de marque, sauf la couverture qui a le sien", () => {
-    const pagesAvecBandeau = new Set(doc.journal.filter((l) => l.texte === "Globopadel").map((l) => l.page));
+    const pagesAvecBandeau = new Set(doc.journal.filter((l) => l.texte === "GloboPadel").map((l) => l.page));
     expect(pagesAvecBandeau.has(1)).toBe(true); // le titre de couverture en porte aussi le nom
     for (let p = 2; p <= doc.nbPages; p++) expect(pagesAvecBandeau.has(p), `page ${p}`).toBe(true);
-    expect(doc.journal.filter((l) => l.texte === "Globopadel" && l.page === 1)).toHaveLength(1);
+    expect(doc.journal.filter((l) => l.texte === "GloboPadel" && l.page === 1)).toHaveLength(1);
   });
 
   it("tournoi pas encore joué : feuilles de score vierges (seuls les numéros de ligne), aucun classement", () => {

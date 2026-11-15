@@ -76,8 +76,8 @@ export class Rendu {
     const doc = await PDFDocument.create();
     doc.setTitle(titre);
     doc.setLanguage("fr-FR");
-    doc.setProducer("Globopadel");
-    doc.setCreator("Globopadel");
+    doc.setProducer("GloboPadel");
+    doc.setCreator("GloboPadel");
     const normal = await doc.embedFont(StandardFonts.Helvetica);
     const gras = await doc.embedFont(StandardFonts.HelveticaBold);
     return new Rendu(doc, normal, gras, pied);
@@ -263,7 +263,7 @@ export class Rendu {
     this.aplat(0, haut, l, BANDEAU, COULEURS.marine);
     this.aplat(MARGE, haut - 6, 12, 12, COULEURS.volt);
     this.texte(MARGE + 6, haut - 15.3, "G", { taille: 9, gras: true, couleur: COULEURS.marine, align: "centre" });
-    this.texte(MARGE + 19, haut - 15.5, "Globopadel", { taille: 9, gras: true, couleur: COULEURS.blanc });
+    this.texte(MARGE + 19, haut - 15.5, "GloboPadel", { taille: 9, gras: true, couleur: COULEURS.blanc });
     this.texte(l - MARGE, haut - 15.3, this.pied, { taille: 8, couleur: COULEURS.brume, align: "droite" });
   }
 

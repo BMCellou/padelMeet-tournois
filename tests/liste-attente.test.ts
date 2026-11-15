@@ -96,9 +96,9 @@ describe("information RGPD", () => {
     expect(texte).toContain("facultatif");
   });
 
-  it("désigne Globopadel comme responsable, avec son adresse de contact", () => {
+  it("désigne GloboPadel comme responsable, avec son adresse de contact", () => {
     expect(CONTACT_GLOBOPADEL).toBe("contact@globopadel.fr");
-    expect(texte).toContain("Globopadel");
+    expect(texte).toContain("GloboPadel");
     expect(texte).toContain("app.globopadel.fr");
     expect(texte).toContain("contact@globopadel.fr");
     expect(sectionsRgpd("autre@exemple.fr").map((s) => s.texte).join("\n")).toContain("autre@exemple.fr");
@@ -110,7 +110,7 @@ describe("information RGPD", () => {
   });
 
   it("la case de consentement est libre et précise", () => {
-    expect(LIBELLE_CONSENTEMENT).toContain("Globopadel");
+    expect(LIBELLE_CONSENTEMENT).toContain("GloboPadel");
     expect(LIBELLE_CONSENTEMENT).toContain("prochain tournoi");
   });
 
@@ -129,7 +129,7 @@ describe("message à la liste d'attente", () => {
     const lien = lienDesinscription("https://site.exemple/", "a".repeat(32));
     expect(lien).toBe(`https://site.exemple/liste-attente/desinscription/${"a".repeat(32)}`);
     expect(piedDeDesinscription(lien)).toContain(lien);
-    expect(piedDeDesinscription(lien)).toContain("liste d'attente de Globopadel");
+    expect(piedDeDesinscription(lien)).toContain("liste d'attente de GloboPadel");
   });
 
   it("chaque envoi ajoute le pied de page, et l'essai ne marque personne comme prévenu", () => {
@@ -212,19 +212,20 @@ describe("mentions légales", () => {
     expect(page).toContain("lignesEditeur(EDITEUR)");
     expect(page).toContain('href="/confidentialite"');
     expect(page).not.toContain("[à compléter]");
-    expect(HEBERGEUR.nom).toBe("Vercel");
+    expect(HEBERGEUR.nom).toBe("Vercel Inc.");
   });
 
-  it("annonce une société en cours de formation, le prestataire de conception et l'hébergeur dont l'adresse reste à publier", () => {
+  it("annonce une société en cours de formation, le prestataire de conception (nom et SIREN seulement) et l'hébergeur avec son adresse", () => {
     expect(EDITEUR.denomination).toBe("GloboPadel SASU");
     expect(EDITEUR.enFormation).toBe(true);
-    expect(CONCEPTEUR).toMatchObject({ nom: "MCB SERVICES", siren: "943 478 438" });
-    expect(HEBERGEUR.adresse).toBeNull();
+    expect(CONCEPTEUR).toEqual({ nom: "MCB SERVICES", siren: "943 478 438" });
+    expect(HEBERGEUR.adresse).toContain("Covina");
     const page = lire("src/app/mentions-legales/page.tsx");
     expect(page).toContain('titre="Conception et développement technique"');
     expect(page).toContain("société en cours de formation");
     expect(page).toContain("seront mises à jour après son immatriculation");
-    expect(page).toContain("seront indiquées dans cette rubrique");
+    expect(page).not.toContain("BARRY");
+    expect(page).not.toContain("seront indiquées dans cette rubrique");
   });
 
   it("ne publie jamais l'adresse e-mail personnelle de l'organisateur", () => {
@@ -263,7 +264,7 @@ describe("mentions légales", () => {
     for (const lien of ['href: "/mentions-legales"', 'href: "/confidentialite"', 'href: "/conditions"', "mailto:${CONTACT_GLOBOPADEL}"]) {
       expect(pied, lien).toContain(lien);
     }
-    expect(pied).toContain("Globopadel. Tous droits réservés");
+    expect(pied).toContain("GloboPadel. Tous droits réservés");
     for (const f of [
       "src/app/TournoisTabs.tsx",
       "src/app/t/[slug]/page.tsx",
