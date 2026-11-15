@@ -96,6 +96,17 @@ Le **numéro de téléphone est obligatoire** pour tout joueur : l'e-mail seul e
 - **Inscription en paire** : le **numéro du/de la partenaire** est requis au même titre que son e-mail ; il est enregistré sur sa fiche (s'il en a déjà un, on ne l'écrase jamais).
 - Côté organisateur (ajout d'un joueur depuis l'admin), le numéro reste facultatif.
 
+### 4.5 quinquies Liste d'attente publique
+
+Une page publique **`/liste-attente`** (lien à mettre en bio) permet de laisser ses coordonnées avant même qu'un tournoi existe, pour être prévenu quand la date et le lieu sont connus. Elle est **indépendante des tournois** : aucun compte, aucune fiche joueur, aucune date.
+
+- **Champs :** prénom, nom, **e-mail, téléphone et niveau obligatoires** (débutant, intermédiaire, confirmé, compétiteur), **ville facultative** (pour ne pas décourager quelqu'un d'une autre ville ; elle sert à prévenir en priorité les gens proches).
+- **Consentement et RGPD :** case à cocher obligatoire, avec l'information de l'article 13 dépliable sous le formulaire (responsable, finalité, base légale = consentement, données, destinataires, durée de 12 mois, droits, CNIL). La version du texte accepté et la date sont conservées avec chaque inscription (`consentement_version`, `consentement_at`). Une adresse de contact peut être affichée via `NEXT_PUBLIC_CONTACT_EMAIL` ; sans elle, rien n'est publié.
+- **Protections :** champ piège invisible, plafond de 60 inscriptions par heure, une seule ligne par adresse (casse ignorée). Une adresse déjà inscrite reçoit la même réponse qu'une nouvelle : on ne révèle jamais qui figure sur la liste, et on n'écrase jamais une ligne existante.
+- **Désinscription :** chaque message contient un lien personnel (`/liste-attente/desinscription/<jeton>`) ; un clic de confirmation supprime définitivement la ligne (droit à l'effacement), sans compte.
+- **Admin** (menu « Liste d'attente ») : liste avec niveau, ville, date d'inscription et de dernière annonce ; compteurs par niveau ; export CSV (cellules neutralisées contre l'injection de formules) ; retrait d'une personne ; **message d'annonce** avec `{prenom}`/`{nom}`, refusé tant qu'un « [à compléter] » subsiste, essai à soi-même, 100 personnes au plus par envoi, lien de désinscription ajouté automatiquement et non modifiable ; les personnes prévenues sont marquées et « Pas encore prévenus » évite de leur renvoyer l'annonce ; bouton de **purge** des inscriptions de plus de 12 mois.
+- **Données :** table `liste_attente`, protégée par RLS (aucun accès public, admins seulement) ; l'inscription publique passe par une action serveur.
+
 ### 4.5 ter Changer le format d'un tournoi (admin)
 
 Dans « Modifier » (vue d'ensemble du tournoi), un sélecteur **Format d'animation** permet de changer de format **tant que le tournoi n'a pas commencé** : statut Brouillon ou Publié et aucun match entamé (le serveur relit l'état en base, ce n'est pas le formulaire qui décide).

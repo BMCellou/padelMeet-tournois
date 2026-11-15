@@ -186,6 +186,51 @@ export type Database = {
           },
         ]
       }
+      liste_attente: {
+        Row: {
+          consentement_at: string
+          consentement_version: string
+          created_at: string
+          email: string
+          id: string
+          niveau: string
+          nom: string
+          notifie_at: string | null
+          prenom: string
+          telephone: string
+          token_desinscription: string
+          ville: string | null
+        }
+        Insert: {
+          consentement_at?: string
+          consentement_version: string
+          created_at?: string
+          email: string
+          id?: string
+          niveau: string
+          nom: string
+          notifie_at?: string | null
+          prenom: string
+          telephone: string
+          token_desinscription?: string
+          ville?: string | null
+        }
+        Update: {
+          consentement_at?: string
+          consentement_version?: string
+          created_at?: string
+          email?: string
+          id?: string
+          niveau?: string
+          nom?: string
+          notifie_at?: string | null
+          prenom?: string
+          telephone?: string
+          token_desinscription?: string
+          ville?: string | null
+        }
+        Relationships: []
+      }
       match_sets: {
         Row: {
           jeux_a: number

@@ -135,6 +135,15 @@ export function AdminSidebar({
         Joueurs
       </Link>
       <Link
+        href="/admin/liste-attente"
+        className={cn(
+          "shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap",
+          pathname === "/admin/liste-attente" ? "bg-primary/10 text-primary" : "hover:bg-accent",
+        )}
+      >
+        Liste d&apos;attente
+      </Link>
+      <Link
         href="/admin/sauvegardes"
         className={cn(
           "shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap",
