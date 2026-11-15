@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { LiensLegaux } from "@/components/LiensLegaux";
 import { BrandLogo } from "@/components/BrandLogo";
 import { cn } from "@/lib/utils";
 
@@ -143,6 +144,7 @@ export function TournoisTabs({ tournois }: { tournois: TournoiAffiche[] }) {
           </ul>
         )}
       </div>
+      <LiensLegaux />
     </div>
   );
 }

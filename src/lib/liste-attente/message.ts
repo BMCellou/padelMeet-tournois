@@ -7,7 +7,7 @@ export const MODELE_ANNONCE = {
   sujet: "Le prochain tournoi PadelMeet est annoncé",
   texte: `Bonjour {prenom},
 
-Tu t'étais inscrit(e) sur la liste d'attente de PadelMeet Tournois : le prochain tournoi est annoncé !
+Tu t'étais inscrit(e) sur la liste d'attente de Globopadel : le prochain tournoi est annoncé !
 
 Date : [à compléter]
 Lieu : [à compléter]
@@ -28,7 +28,7 @@ export function lienDesinscription(base: string, token: string): string {
  * moyen de se désinscrire en un clic (obligation d'information du RGPD).
  */
 export function piedDeDesinscription(lien: string): string {
-  return `\n\n--\nTu reçois ce message parce que tu t'es inscrit(e) sur la liste d'attente de PadelMeet Tournois.\nPour ne plus en recevoir et supprimer tes données : ${lien}`;
+  return `\n\n--\nTu reçois ce message parce que tu t'es inscrit(e) sur la liste d'attente de Globopadel.\nPour ne plus en recevoir et supprimer tes données : ${lien}`;
 }
 
 /** Message d'erreur si le message n'est pas envoyable, sinon null (mêmes règles que les messages aux inscrits). */

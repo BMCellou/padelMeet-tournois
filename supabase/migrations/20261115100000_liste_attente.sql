@@ -12,8 +12,8 @@ create table liste_attente (
   nom                   text not null,
   email                 text not null,
   telephone             text not null,
-  niveau                text not null
-                          check (niveau in ('debutant', 'intermediaire', 'confirme', 'competiteur')),
+  -- Échelle de 1 (initiation) à 8 (expert).
+  niveau                smallint not null check (niveau between 1 and 8),
   -- Facultative : on ne ferme pas la porte à quelqu'un d'une autre ville.
   ville                 text,
   consentement_at       timestamptz not null default now(),

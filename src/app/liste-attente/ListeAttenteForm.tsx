@@ -69,7 +69,7 @@ export function ListeAttenteForm({ rgpd }: { rgpd: SectionRgpd[] }) {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="niveau">Ton niveau</Label>
+            <Label htmlFor="niveau">Ton niveau (de 1 à 8)</Label>
             <select
               id="niveau"
               name="niveau"
@@ -81,8 +81,8 @@ export function ListeAttenteForm({ rgpd }: { rgpd: SectionRgpd[] }) {
                 Choisir…
               </option>
               {NIVEAUX_LISTE_ATTENTE.map((n) => (
-                <option key={n.code} value={n.code}>
-                  {n.libelle} : {n.aide}
+                <option key={n.niveau} value={n.niveau}>
+                  {n.niveau} – {n.libelle} : {n.aide}
                 </option>
               ))}
             </select>

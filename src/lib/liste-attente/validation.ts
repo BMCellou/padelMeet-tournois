@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { schemaTelephone } from "@/lib/inscriptions/telephone";
-import { CODES_NIVEAU } from "./niveaux";
+import { NIVEAU_MAX, NIVEAU_MIN } from "./niveaux";
 import { VERSION_RGPD } from "./rgpd";
 
 export { VERSION_RGPD };
@@ -13,7 +13,11 @@ export const inscriptionListeAttenteSchema = z.object({
   nom: z.string().trim().min(1, "Le nom est requis.").max(60, "Le nom est trop long."),
   email: z.string().trim().toLowerCase().min(1, "L'e-mail est requis.").email("E-mail invalide.").max(160, "L'e-mail est trop long."),
   telephone: schemaTelephone(),
-  niveau: z.enum(CODES_NIVEAU, { error: "Choisis ton niveau." }),
+  niveau: z.coerce
+    .number({ error: "Choisis ton niveau." })
+    .int("Choisis ton niveau.")
+    .min(NIVEAU_MIN, "Choisis ton niveau.")
+    .max(NIVEAU_MAX, "Choisis ton niveau."),
   // Facultative : on ne ferme pas la porte à quelqu'un d'une autre ville.
   ville: z
     .string()

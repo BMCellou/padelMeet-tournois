@@ -2,27 +2,26 @@
 // de consentement. La version est enregistrée avec chaque inscription : si ce texte change sur le fond,
 // incrémente-la pour savoir quel texte chaque personne a accepté.
 
-export const VERSION_RGPD = "2026-11";
+export const VERSION_RGPD = "2026-11-v2";
 
-export const DUREE_CONSERVATION_MOIS = 12;
+export const DUREE_CONSERVATION_MOIS = 24;
+
+/** Adresse de contact de l'organisateur, publiée dans l'information RGPD et les mentions légales. */
+export const CONTACT_GLOBOPADEL = "contact@globopadel.fr";
 
 export const LIBELLE_CONSENTEMENT =
-  "J'accepte que mes informations soient utilisées pour me prévenir du prochain tournoi PadelMeet Tournois.";
+  "J'accepte que Globopadel utilise mes informations pour me prévenir du prochain tournoi.";
 
 export interface SectionRgpd {
   titre: string;
   texte: string;
 }
 
-/** `contact` : adresse e-mail de contact de l'organisateur, affichée seulement si elle est renseignée. */
-export function sectionsRgpd(contact?: string | null): SectionRgpd[] {
-  const exercer = contact
-    ? `en cliquant sur le lien de désinscription présent dans chaque message (suppression immédiate), ou en écrivant à ${contact}`
-    : "en cliquant sur le lien de désinscription présent dans chaque message (suppression immédiate), ou en répondant à l'un de nos messages";
+export function sectionsRgpd(contact: string = CONTACT_GLOBOPADEL): SectionRgpd[] {
   return [
     {
       titre: "Qui collecte tes données",
-      texte: "PadelMeet Tournois, organisateur de tournois de padel, est responsable de ce traitement.",
+      texte: `Globopadel, organisateur de tournois de padel et éditeur du site app.globopadel.fr, est responsable de ce traitement. Contact : ${contact}.`,
     },
     {
       titre: "Pourquoi",
@@ -36,12 +35,12 @@ export function sectionsRgpd(contact?: string | null): SectionRgpd[] {
     {
       titre: "Quelles données",
       texte:
-        "Prénom, nom, e-mail, téléphone, niveau de jeu, et ta ville si tu la renseignes (facultatif). Ton e-mail et ton téléphone sont demandés pour pouvoir te joindre ; le niveau sert à te proposer un tournoi adapté.",
+        "Prénom, nom, e-mail, téléphone, niveau de jeu (de 1 à 8), et ta ville si tu la renseignes (facultatif). Ton e-mail et ton téléphone sont demandés pour pouvoir te joindre ; le niveau sert à te proposer un tournoi adapté.",
     },
     {
       titre: "Qui y a accès",
       texte:
-        "L'organisateur uniquement, ainsi que les prestataires techniques qui hébergent la base de données et envoient les e-mails, pour son compte et sur ses instructions.",
+        "Globopadel uniquement. Ses prestataires techniques, qui hébergent les données et envoient les messages, n'agissent que sur ses instructions et n'en font aucun autre usage.",
     },
     {
       titre: "Combien de temps",
@@ -49,7 +48,7 @@ export function sectionsRgpd(contact?: string | null): SectionRgpd[] {
     },
     {
       titre: "Tes droits",
-      texte: `Tu peux accéder à tes données, les faire corriger, les faire effacer, limiter leur usage ou t'opposer à leur traitement, et retirer ton consentement ${exercer}. Tu peux aussi saisir la CNIL (cnil.fr) si tu estimes que tes droits ne sont pas respectés.`,
+      texte: `Tu peux accéder à tes données, les faire corriger, les faire effacer, limiter leur usage ou t'opposer à leur traitement, et retirer ton consentement, en cliquant sur le lien de désinscription présent dans chaque message (suppression immédiate) ou en écrivant à ${contact}. Tu peux aussi saisir la CNIL (cnil.fr) si tu estimes que tes droits ne sont pas respectés.`,
     },
   ];
 }

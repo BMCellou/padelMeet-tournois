@@ -13,6 +13,7 @@ import type { MatchTableauStructure } from "@/lib/engine/tableauLibelles";
 import { getFormat, type ConfigAnimation } from "@/lib/engine/formats";
 import { ClassementJoueursTable, type LigneClassementJoueur } from "@/components/tournoi/ClassementJoueursTable";
 import { getParticipantConnecte } from "@/lib/participant/session";
+import { LiensLegaux } from "@/components/LiensLegaux";
 import { aUnTelephoneValide } from "@/lib/inscriptions/telephone";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargerStatutInscription } from "./inscriptionStatus";
@@ -440,6 +441,7 @@ export default async function PageTournoiPublic({
           </Card>
         ) : null}
       </div>
+      <LiensLegaux />
     </div>
   );
 }

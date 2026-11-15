@@ -15,7 +15,7 @@ export interface Inscrit {
   nom: string;
   email: string;
   telephone: string;
-  niveau: string;
+  niveau: number;
   ville: string | null;
   inscritLe: string;
   notifieLe: string | null;
@@ -48,7 +48,7 @@ export function ListeAttentePanel({
   const [info, setInfo] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
 
-  const parNiveau = NIVEAUX_LISTE_ATTENTE.map((n) => ({ ...n, nb: inscrits.filter((i) => i.niveau === n.code).length }));
+  const parNiveau = NIVEAUX_LISTE_ATTENTE.map((n) => ({ ...n, nb: inscrits.filter((i) => i.niveau === n.niveau).length }));
 
   function choisir(ids: string[]) {
     setConfirmation(false);
@@ -114,8 +114,8 @@ export function ListeAttentePanel({
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
             {parNiveau.map((n) => (
-              <Badge key={n.code} variant="outline">
-                {n.libelle} : {n.nb}
+              <Badge key={n.niveau} variant="outline">
+                Niveau {n.niveau} : {n.nb}
               </Badge>
             ))}
           </div>

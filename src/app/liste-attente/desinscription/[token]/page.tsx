@@ -4,7 +4,7 @@ import { DesinscriptionForm } from "./DesinscriptionForm";
 
 // Le lien figure dans un e-mail : jamais indexé, et la suppression exige un clic (pas de suppression par simple visite,
 // qu'un antivirus ou un aperçu de messagerie pourrait déclencher).
-export const metadata: Metadata = { title: "Désinscription — PadelMeet Tournois", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Désinscription — Globopadel", robots: { index: false, follow: false } };
 
 export default async function DesinscriptionPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

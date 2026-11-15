@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { estAdmin } from "@/lib/staff/session";
-import { libelleNiveau } from "@/lib/liste-attente/niveaux";
 import { versCsv } from "@/lib/liste-attente/csv";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +16,7 @@ export async function GET() {
 
   const csv = versCsv(
     ["Prénom", "Nom", "E-mail", "Téléphone", "Niveau", "Ville", "Inscrit le", "Prévenu le"],
-    (data ?? []).map((r) => [r.prenom, r.nom, r.email, r.telephone, libelleNiveau(r.niveau), r.ville ?? "", r.created_at.slice(0, 10), r.notifie_at?.slice(0, 10) ?? ""]),
+    (data ?? []).map((r) => [r.prenom, r.nom, r.email, r.telephone, String(r.niveau), r.ville ?? "", r.created_at.slice(0, 10), r.notifie_at?.slice(0, 10) ?? ""]),
   );
   return new Response(`﻿${csv}`, {
     headers: {

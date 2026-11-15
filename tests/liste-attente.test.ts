@@ -5,7 +5,9 @@ import { inscriptionListeAttenteSchema } from "@/lib/liste-attente/validation";
 import { DUREE_CONSERVATION_MOIS, LIBELLE_CONSENTEMENT, sectionsRgpd } from "@/lib/liste-attente/rgpd";
 import { lienDesinscription, MODELE_ANNONCE, piedDeDesinscription, verifierMessageListe } from "@/lib/liste-attente/message";
 import { versCsv } from "@/lib/liste-attente/csv";
-import { CODES_NIVEAU, libelleNiveau } from "@/lib/liste-attente/niveaux";
+import { libelleNiveau, NIVEAUX_LISTE_ATTENTE } from "@/lib/liste-attente/niveaux";
+import { CONTACT_GLOBOPADEL } from "@/lib/liste-attente/rgpd";
+import { EDITEUR, HEBERGEUR, lignesEditeur } from "@/lib/legal/editeur";
 
 const lire = (chemin: string) => readFileSync(join(__dirname, "..", chemin), "utf-8");
 
@@ -14,7 +16,7 @@ const valide = {
   nom: "Durand",
   email: "Camille.Durand@Exemple.fr",
   telephone: "06 12 34 56 78",
-  niveau: "intermediaire",
+  niveau: "4",
   ville: "",
   consentement: "on",
 };
@@ -31,6 +33,7 @@ describe("inscription à la liste d'attente", () => {
     if (r.success) {
       expect(r.data.email).toBe("camille.durand@exemple.fr");
       expect(r.data.ville).toBeNull();
+      expect(r.data.niveau).toBe(4);
     }
   });
 
@@ -46,6 +49,7 @@ describe("inscription à la liste d'attente", () => {
     expect(premiereErreur({ ...valide, telephone: "abc" })).toContain("invalide");
     expect(premiereErreur({ ...valide, niveau: undefined })).toBe("Choisis ton niveau.");
     expect(premiereErreur({ ...valide, niveau: "dieu" })).toBe("Choisis ton niveau.");
+    expect(premiereErreur({ ...valide, niveau: "" })).toBe("Choisis ton niveau.");
   });
 
   it("prénom et nom sont requis", () => {
@@ -58,11 +62,16 @@ describe("inscription à la liste d'attente", () => {
     expect(premiereErreur({ ...valide, consentement: "" })).toContain("Coche la case");
   });
 
-  it("les niveaux de la base et ceux du formulaire sont les mêmes", () => {
-    expect(CODES_NIVEAU).toEqual(["debutant", "intermediaire", "confirme", "competiteur"]);
-    expect(libelleNiveau("confirme")).toBe("Confirmé");
-    const migration = lire("supabase/migrations/20261115100000_liste_attente.sql");
-    for (const code of CODES_NIVEAU) expect(migration).toContain(`'${code}'`);
+  it("le niveau suit l'échelle de 1 à 8 : 1 et 8 acceptés, 0, 9 et les décimales refusés", () => {
+    for (const n of ["1", "8", 5]) expect(premiereErreur({ ...valide, niveau: n }), String(n)).toBeNull();
+    for (const n of ["0", "9", "4.5", "-1"]) expect(premiereErreur({ ...valide, niveau: n }), n).toBe("Choisis ton niveau.");
+  });
+
+  it("le formulaire propose exactement les niveaux 1 à 8 et la base les accepte", () => {
+    expect(NIVEAUX_LISTE_ATTENTE.map((n) => n.niveau)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(libelleNiveau(4)).toBe("4 – Intermédiaire");
+    expect(libelleNiveau(99)).toBe("99");
+    expect(lire("supabase/migrations/20261115100000_liste_attente.sql")).toContain("check (niveau between 1 and 8)");
   });
 });
 
@@ -83,16 +92,25 @@ describe("information RGPD", () => {
     expect(texte).toContain("ni vendues ni cédées");
     expect(texte).toContain("CNIL");
     expect(texte).toContain(`${DUREE_CONSERVATION_MOIS} mois`);
+    expect(DUREE_CONSERVATION_MOIS).toBe(24);
     expect(texte).toContain("facultatif");
   });
 
-  it("ne publie une adresse de contact que si elle est configurée", () => {
-    expect(texte).not.toContain("@");
-    const avec = sectionsRgpd("contact@exemple.fr").map((s) => s.texte).join("\n");
-    expect(avec).toContain("contact@exemple.fr");
+  it("désigne Globopadel comme responsable, avec son adresse de contact", () => {
+    expect(CONTACT_GLOBOPADEL).toBe("contact@globopadel.fr");
+    expect(texte).toContain("Globopadel");
+    expect(texte).toContain("app.globopadel.fr");
+    expect(texte).toContain("contact@globopadel.fr");
+    expect(sectionsRgpd("autre@exemple.fr").map((s) => s.texte).join("\n")).toContain("autre@exemple.fr");
+  });
+
+  it("parle de prestataires techniques sans jamais citer la pile technique", () => {
+    expect(texte).toContain("prestataires techniques");
+    expect(texte).not.toMatch(/supabase|vercel|make\b|gmail|resend|google|amazon|aws/i);
   });
 
   it("la case de consentement est libre et précise", () => {
+    expect(LIBELLE_CONSENTEMENT).toContain("Globopadel");
     expect(LIBELLE_CONSENTEMENT).toContain("prochain tournoi");
   });
 
@@ -111,7 +129,7 @@ describe("message à la liste d'attente", () => {
     const lien = lienDesinscription("https://site.exemple/", "a".repeat(32));
     expect(lien).toBe(`https://site.exemple/liste-attente/desinscription/${"a".repeat(32)}`);
     expect(piedDeDesinscription(lien)).toContain(lien);
-    expect(piedDeDesinscription(lien)).toContain("liste d'attente");
+    expect(piedDeDesinscription(lien)).toContain("liste d'attente de Globopadel");
   });
 
   it("chaque envoi ajoute le pied de page, et l'essai ne marque personne comme prévenu", () => {
@@ -164,5 +182,48 @@ describe("sécurité", () => {
     const page = lire("src/app/liste-attente/desinscription/[token]/page.tsx");
     expect(page).not.toContain("seDesinscrire");
     expect(page).toContain("index: false");
+  });
+});
+
+describe("mentions légales", () => {
+  it("n'affiche que les informations connues de l'éditeur, jamais un champ vide", () => {
+    expect(lignesEditeur(EDITEUR).map(([l]) => l)).toEqual(["Éditeur", "E-mail"]);
+    const complet = lignesEditeur({
+      ...EDITEUR,
+      formeJuridique: "SAS",
+      capitalSocial: "1 000 €",
+      siegeSocial: "1 rue Exemple, 69000 Lyon",
+      immatriculation: "123 456 789",
+      tvaIntracommunautaire: "FR00123456789",
+      telephone: "04 00 00 00 00",
+    });
+    expect(complet.map(([l]) => l)).toEqual([
+      "Éditeur", "Forme juridique", "Capital social", "Siège social", "Immatriculation", "TVA intracommunautaire", "Téléphone", "E-mail",
+    ]);
+    expect(lignesEditeur({ ...EDITEUR, siegeSocial: "   " }).map(([l]) => l)).not.toContain("Siège social");
+  });
+
+  it("publie l'éditeur, l'hébergeur, les données personnelles, les cookies, la propriété intellectuelle et le droit applicable", () => {
+    const page = lire("src/app/mentions-legales/page.tsx");
+    for (const titre of ["Éditeur du site", "Hébergeur", "Données personnelles", "Cookies", "Propriété intellectuelle", "Responsabilité", "Droit applicable"]) {
+      expect(page, titre).toContain(`titre="${titre}"`);
+    }
+    expect(page).toContain("HEBERGEUR");
+    expect(page).toContain("lignesEditeur(EDITEUR)");
+    expect(page).toContain("CNIL");
+    expect(page).not.toContain("[à compléter]");
+    expect(HEBERGEUR.nom).toBe("Vercel Inc.");
+  });
+
+  it("les pages publiques renvoient aux mentions légales", () => {
+    for (const f of ["src/app/liste-attente/page.tsx", "src/app/t/[slug]/page.tsx", "src/app/TournoisTabs.tsx"]) {
+      expect(lire(f), f).toContain("<LiensLegaux />");
+    }
+    expect(lire("src/components/LiensLegaux.tsx")).toContain('href="/mentions-legales"');
+  });
+
+  it("ne déclare aucun cookie de mesure : le site n'embarque aucun outil d'audience", () => {
+    const paquet = lire("package.json");
+    expect(paquet).not.toMatch(/analytics|gtag|plausible|matomo|hotjar|segment/i);
   });
 });

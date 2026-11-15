@@ -193,7 +193,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
-          niveau: string
+          niveau: number
           nom: string
           notifie_at: string | null
           prenom: string
@@ -207,7 +207,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
-          niveau: string
+          niveau: number
           nom: string
           notifie_at?: string | null
           prenom: string
@@ -221,7 +221,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
-          niveau?: string
+          niveau?: number
           nom?: string
           notifie_at?: string | null
           prenom?: string
