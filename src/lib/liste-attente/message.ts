@@ -4,7 +4,7 @@
 import { verifierMessage } from "@/lib/messages/inscrits";
 
 export const MODELE_ANNONCE = {
-  sujet: "Le prochain tournoi PadelMeet est annoncé",
+  sujet: "Le prochain tournoi Globopadel est annoncé",
   texte: `Bonjour {prenom},
 
 Tu t'étais inscrit(e) sur la liste d'attente de Globopadel : le prochain tournoi est annoncé !

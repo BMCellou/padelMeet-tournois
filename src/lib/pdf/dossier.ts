@@ -61,9 +61,8 @@ function bandeauTitre(r: Rendu, d: DonneesTournoi, etiquette: string): void {
   r.aplat(0, haut, r.largeur, hauteur, COULEURS.marine);
   r.aplat(0, haut - hauteur + 5, r.largeur, 5, COULEURS.volt);
   r.aplat(MARGE, haut - 30, 20, 20, COULEURS.volt);
-  r.texte(MARGE + 10, haut - 45, "P", { taille: 14, gras: true, couleur: COULEURS.marine, align: "centre" });
-  const w = r.texte(MARGE + 28, haut - 44, "PadelMeet", { taille: 13, gras: true, couleur: COULEURS.blanc });
-  r.texte(MARGE + 28 + w + 4, haut - 44, "Tournois", { taille: 13, couleur: COULEURS.brume });
+  r.texte(MARGE + 10, haut - 45, "G", { taille: 14, gras: true, couleur: COULEURS.marine, align: "centre" });
+  r.texte(MARGE + 28, haut - 44, "Globopadel", { taille: 13, gras: true, couleur: COULEURS.blanc });
   r.texte(r.largeur - MARGE, haut - 43, etiquette.toUpperCase(), { taille: 9, gras: true, couleur: COULEURS.volt, align: "droite" });
 
   titre.forEach((l, i) => r.texte(MARGE, haut - 92 - i * 32, l, { taille: 26, gras: true, couleur: COULEURS.blanc }));

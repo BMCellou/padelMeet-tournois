@@ -1,10 +1,10 @@
-# PadelMeet Tournois — Spécifications fonctionnelles
+# Globopadel — Spécifications fonctionnelles
 
 Dernière mise à jour : 6 octobre 2026. Ce document décrit l'application **telle qu'elle est aujourd'hui** : ce qu'un utilisateur peut faire, les règles de gestion appliquées, et ce qui n'est pas (encore) disponible.
 
 ## 1. Objet
 
-PadelMeet Tournois permet à un club de padel français d'organiser des tournois par paires : inscriptions en ligne, tirage des poules, calendrier des matchs sur les terrains, saisie des scores en direct, classements, tableau final et rappels aux joueurs. Les joueurs suivent le tournoi en direct depuis une page publique.
+Globopadel permet à un club de padel français d'organiser des tournois par paires : inscriptions en ligne, tirage des poules, calendrier des matchs sur les terrains, saisie des scores en direct, classements, tableau final et rappels aux joueurs. Les joueurs suivent le tournoi en direct depuis une page publique.
 
 ## 2. Acteurs et droits
 
@@ -74,7 +74,7 @@ Vue de **tous les joueurs du système**, tous tournois confondus, avec leurs aff
 
 ### 4.5 bis Documents PDF à imprimer
 
-Sur la vue d'ensemble d'un tournoi, deux boutons génèrent un PDF **A4, en français, heures de Paris**, produit côté serveur sans service externe. Réservés aux admins. Les documents sont **aux couleurs du site** : bandeau marine avec la puce « P » volt en haut de chaque page, titres soulignés, en-têtes de tableau marine, volt en simple accent (jamais en grand aplat) ; les contrastes restent lisibles imprimés en noir et blanc. Les valeurs de la palette (`src/lib/pdf/marque.ts`) reprennent celles de la feuille de style, un test vérifie la parité.
+Sur la vue d'ensemble d'un tournoi, deux boutons génèrent un PDF **A4, en français, heures de Paris**, produit côté serveur sans service externe. Réservés aux admins. Les documents sont **aux couleurs du site** : bandeau marine avec la puce « G » volt en haut de chaque page, titres soulignés, en-têtes de tableau marine, volt en simple accent (jamais en grand aplat) ; les contrastes restent lisibles imprimés en noir et blanc. Les valeurs de la palette (`src/lib/pdf/marque.ts`) reprennent celles de la feuille de style, un test vérifie la parité.
 
 - **Dossier d'organisation (PDF)**, disponible à tout moment. **Il n'imprime que les sections qui ont de la matière** et y inscrit **les scores des matchs déjà joués** ; il peut donc être régénéré en cours de journée. La couverture, elle, est toujours là et liste, sous « Pas encore dans ce dossier », les pages absentes et la raison (tirage non fait, calendrier non généré) ; une rubrique n'est évoquée que si le format du tournoi la comporte (pas de « poules » pour un Americano).
   1. **Couverture** : nom du tournoi, club, date en lettres, format de match en toutes lettres (par défaut et par phase), nombre d'équipes, poules, qualifiés, terrains utilisés, ordre de départage. Les lignes sans donnée sont omises.

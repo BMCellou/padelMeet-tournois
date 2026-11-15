@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PadelMeet Tournois",
+  title: "Globopadel",
   description:
     "Gestion de tournois de padel pour les clubs : inscriptions, poules, calendrier, scores et classements.",
 };
