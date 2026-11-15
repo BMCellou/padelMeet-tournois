@@ -7,7 +7,7 @@ import { lienDesinscription, MODELE_ANNONCE, piedDeDesinscription, verifierMessa
 import { versCsv } from "@/lib/liste-attente/csv";
 import { libelleNiveau, NIVEAUX_LISTE_ATTENTE } from "@/lib/liste-attente/niveaux";
 import { CONTACT_GLOBOPADEL } from "@/lib/liste-attente/rgpd";
-import { EDITEUR, HEBERGEUR, lignesEditeur } from "@/lib/legal/editeur";
+import { CONCEPTEUR, EDITEUR, HEBERGEUR, lignesEditeur } from "@/lib/legal/editeur";
 
 const lire = (chemin: string) => readFileSync(join(__dirname, "..", chemin), "utf-8");
 
@@ -212,7 +212,25 @@ describe("mentions légales", () => {
     expect(page).toContain("lignesEditeur(EDITEUR)");
     expect(page).toContain('href="/confidentialite"');
     expect(page).not.toContain("[à compléter]");
-    expect(HEBERGEUR.nom).toBe("Vercel Inc.");
+    expect(HEBERGEUR.nom).toBe("Vercel");
+  });
+
+  it("annonce une société en cours de formation, le prestataire de conception et l'hébergeur dont l'adresse reste à publier", () => {
+    expect(EDITEUR.denomination).toBe("GloboPadel SASU");
+    expect(EDITEUR.enFormation).toBe(true);
+    expect(CONCEPTEUR).toMatchObject({ nom: "MCB SERVICES", siren: "943 478 438" });
+    expect(HEBERGEUR.adresse).toBeNull();
+    const page = lire("src/app/mentions-legales/page.tsx");
+    expect(page).toContain('titre="Conception et développement technique"');
+    expect(page).toContain("société en cours de formation");
+    expect(page).toContain("seront mises à jour après son immatriculation");
+    expect(page).toContain("seront indiquées dans cette rubrique");
+  });
+
+  it("ne publie jamais l'adresse e-mail personnelle de l'organisateur", () => {
+    for (const f of ["src/lib/legal/editeur.ts", "src/app/mentions-legales/page.tsx"]) {
+      expect(lire(f), f).not.toMatch(/gmail\.com/);
+    }
   });
 
   it("la politique de confidentialité couvre les traitements, la visibilité publique, les durées, les cookies, les droits et la CNIL", () => {

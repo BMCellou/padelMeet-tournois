@@ -6,6 +6,8 @@ import { CONTACT_GLOBOPADEL } from "@/lib/liste-attente/rgpd";
 
 export interface Editeur {
   denomination: string;
+  /** Société pas encore immatriculée : la page l'indique et annonce la mise à jour des informations définitives. */
+  enFormation: boolean;
   formeJuridique: string | null;
   capitalSocial: string | null;
   siegeSocial: string | null;
@@ -19,7 +21,8 @@ export interface Editeur {
 }
 
 export const EDITEUR: Editeur = {
-  denomination: "Globopadel",
+  denomination: "GloboPadel SASU",
+  enFormation: true,
   formeJuridique: null,
   capitalSocial: null,
   siegeSocial: null,
@@ -32,15 +35,31 @@ export const EDITEUR: Editeur = {
 
 export interface Hebergeur {
   nom: string;
-  adresse: string;
+  /** null tant que les coordonnées juridiques complètes ne sont pas publiées : la page l'annonce. */
+  adresse: string | null;
   site: string;
 }
 
 /** Hébergeur du site : sa mention est obligatoire. */
 export const HEBERGEUR: Hebergeur = {
-  nom: "Vercel Inc.",
-  adresse: "440 N Barranca Ave #4133, Covina, CA 91723, États-Unis",
+  nom: "Vercel",
+  adresse: null,
   site: "https://vercel.com",
+};
+
+export interface Concepteur {
+  nom: string;
+  responsable: string;
+  statut: string;
+  siren: string;
+}
+
+/** Prestataire qui a conçu et développé le site. */
+export const CONCEPTEUR: Concepteur = {
+  nom: "MCB SERVICES",
+  responsable: "Mamadou BARRY",
+  statut: "Entrepreneur individuel",
+  siren: "943 478 438",
 };
 
 export const URL_SITE = "https://app.globopadel.fr";

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageLegale, SectionLegale } from "@/components/PageLegale";
-import { EDITEUR, HEBERGEUR, URL_SITE, lignesEditeur } from "@/lib/legal/editeur";
+import { CONCEPTEUR, EDITEUR, HEBERGEUR, URL_SITE, lignesEditeur } from "@/lib/legal/editeur";
 
 export const metadata: Metadata = {
   title: "Mentions légales — Globopadel",
@@ -12,9 +12,16 @@ export default function MentionsLegalesPage() {
   return (
     <PageLegale titre="Mentions légales" misAJour="novembre 2026">
       <SectionLegale titre="Éditeur du site">
-        <p>
-          Le site <strong>{URL_SITE.replace("https://", "")}</strong> est édité par :
-        </p>
+        {EDITEUR.enFormation ? (
+          <p>
+            Le site <strong>{URL_SITE.replace("https://", "")}</strong> est édité dans le cadre du projet de création de la
+            société <strong>{EDITEUR.denomination}, société en cours de formation</strong>.
+          </p>
+        ) : (
+          <p>
+            Le site <strong>{URL_SITE.replace("https://", "")}</strong> est édité par :
+          </p>
+        )}
         <dl className="space-y-1">
           {lignesEditeur(EDITEUR).map(([libelle, valeur]) => (
             <div key={libelle} className="flex gap-2">
@@ -23,6 +30,9 @@ export default function MentionsLegalesPage() {
             </div>
           ))}
         </dl>
+        {EDITEUR.enFormation ? (
+          <p>Les informations définitives relatives à la société seront mises à jour après son immatriculation.</p>
+        ) : null}
       </SectionLegale>
 
       {EDITEUR.directeurPublication ? (
@@ -31,9 +41,24 @@ export default function MentionsLegalesPage() {
         </SectionLegale>
       ) : null}
 
+      <SectionLegale titre="Conception et développement technique">
+        <p>Le site a été conçu et développé par :</p>
+        <p>
+          <strong>{CONCEPTEUR.nom}</strong>
+          <br />
+          {CONCEPTEUR.responsable} – {CONCEPTEUR.statut}
+          <br />
+          SIREN : {CONCEPTEUR.siren}
+        </p>
+        <p>Prestataire indépendant chargé de la conception et du développement technique du site.</p>
+      </SectionLegale>
+
       <SectionLegale titre="Hébergeur">
         <p>
-          Le site est hébergé par {HEBERGEUR.nom}, {HEBERGEUR.adresse} ({HEBERGEUR.site.replace("https://", "")}).
+          Le site est hébergé par {HEBERGEUR.nom} ({HEBERGEUR.site.replace("https://", "")}).
+          {HEBERGEUR.adresse
+            ? ` Adresse : ${HEBERGEUR.adresse}.`
+            : " Les coordonnées juridiques complètes de l'entité Vercel assurant l'hébergement seront indiquées dans cette rubrique."}
         </p>
       </SectionLegale>
 
