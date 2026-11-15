@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   description: "Quelles données Globopadel collecte, pourquoi, combien de temps, et comment exercer tes droits.",
 };
 
+/** Une seule expression JSX : un retour à la ligne entre « 24 » et « mois » ferait disparaître l'espace. */
+const DUREE = `${DUREE_CONSERVATION_MOIS} mois`;
+
 export default function ConfidentialitePage() {
   const contact = (
     <a className="underline" href={`mailto:${CONTACT_GLOBOPADEL}`}>
@@ -46,7 +49,7 @@ export default function ConfidentialitePage() {
           <li>
             <strong className="text-foreground">Liste d&apos;attente :</strong> prénom, nom, e-mail, téléphone, niveau (de 1 à 8) et
             ville (facultative), pour te prévenir du prochain tournoi. Base légale : ton consentement, que tu peux retirer à tout
-            moment ; conservation de {DUREE_CONSERVATION_MOIS} mois au plus après l&apos;inscription.
+            moment ; conservation de {DUREE} au plus après l&apos;inscription.
           </li>
         </ul>
         <p>Nous n&apos;utilisons ces données ni pour de la publicité, ni pour du profilage, et nous ne les vendons ni ne les cédons.</p>
@@ -72,7 +75,7 @@ export default function ConfidentialitePage() {
       <SectionLegale titre="Combien de temps">
         <ul className="list-disc space-y-1 pl-5">
           <li>Compte joueur et historique : tant que ton compte existe, ou jusqu&apos;à ta demande de suppression.</li>
-          <li>Liste d&apos;attente : au plus {DUREE_CONSERVATION_MOIS} mois après l&apos;inscription, ou jusqu&apos;à ta désinscription.</li>
+          <li>Liste d&apos;attente : au plus {DUREE} après l&apos;inscription, ou jusqu&apos;à ta désinscription.</li>
           <li>Sauvegardes techniques : chiffrées, elles sont renouvelées régulièrement et ne servent qu&apos;à restaurer le service.</li>
         </ul>
       </SectionLegale>
