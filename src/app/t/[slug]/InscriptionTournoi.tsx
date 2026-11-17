@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { LegendeObligatoire, Obligatoire } from "@/components/Obligatoire";
 
 export function BadgePlaces({ libelle, complet }: { libelle: string | null; complet: boolean }) {
   if (!libelle) return null;
@@ -201,15 +202,21 @@ export function InscriptionFormulaire({
             <input type="hidden" name="slug" value={slug} />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="prenomPartenaire">Prénom du/de la partenaire</Label>
+                <Label htmlFor="prenomPartenaire">
+                  Prénom du/de la partenaire <Obligatoire />
+                </Label>
                 <Input id="prenomPartenaire" name="prenomPartenaire" required />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="nomPartenaire">Nom du/de la partenaire</Label>
+                <Label htmlFor="nomPartenaire">
+                  Nom du/de la partenaire <Obligatoire />
+                </Label>
                 <Input id="nomPartenaire" name="nomPartenaire" required />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label htmlFor="telephonePartenaire">Téléphone du/de la partenaire</Label>
+                <Label htmlFor="telephonePartenaire">
+                  Téléphone du/de la partenaire <Obligatoire />
+                </Label>
                 <Input
                   id="telephonePartenaire"
                   name="telephonePartenaire"
@@ -220,7 +227,9 @@ export function InscriptionFormulaire({
                 />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label htmlFor="emailPartenaire">E-mail du/de la partenaire</Label>
+                <Label htmlFor="emailPartenaire">
+                  E-mail du/de la partenaire <Obligatoire />
+                </Label>
                 <Input id="emailPartenaire" name="emailPartenaire" type="email" required />
                 <p className="text-xs text-muted-foreground">
                   S&apos;il/elle a déjà un compte, ça relie directement son profil — son historique
@@ -229,6 +238,7 @@ export function InscriptionFormulaire({
                 </p>
               </div>
             </div>
+            <LegendeObligatoire />
             {statePaire && "error" in statePaire ? (
               <p className="text-sm text-destructive">{statePaire.error}</p>
             ) : null}

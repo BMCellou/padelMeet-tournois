@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LegendeObligatoire, Obligatoire } from "@/components/Obligatoire";
 
 export function ListeAttenteConnecte({
   prenom,
@@ -24,6 +25,7 @@ export function ListeAttenteConnecte({
   rgpd: SectionRgpd[];
 }) {
   const [state, formAction, isPending] = useActionState(sInscrireListeAttenteConnecte, null);
+  const v = state && "error" in state ? state.valeurs : undefined;
 
   if (state && "success" in state) {
     return (
@@ -32,7 +34,8 @@ export function ListeAttenteConnecte({
           <CardTitle>Tu es sur la liste</CardTitle>
           <CardDescription>
             Merci {prenom} ! On te prévient dès que la date et le lieu du prochain tournoi sont connus. Ton compte est
-            prêt : le jour J, tu n&apos;auras plus qu&apos;à t&apos;inscrire depuis le lien reçu.
+            prêt : le jour J, tu n&apos;auras plus qu&apos;à t&apos;inscrire depuis le lien reçu. Un e-mail de confirmation vient de
+            t&apos;être envoyé (regarde dans tes courriers indésirables s&apos;il n&apos;arrive pas).
           </CardDescription>
         </CardHeader>
       </Card>
@@ -52,15 +55,18 @@ export function ListeAttenteConnecte({
         <form action={formAction} className="space-y-4">
           {telephone === null ? (
             <div className="space-y-1">
-              <Label htmlFor="telephone">Téléphone</Label>
-              <Input id="telephone" name="telephone" type="tel" required autoComplete="tel" placeholder="06 12 34 56 78" />
+              <Label htmlFor="telephone">
+                Téléphone <Obligatoire />
+              </Label>
+              <Input id="telephone" name="telephone" type="tel" required autoComplete="tel" placeholder="06 12 34 56 78" defaultValue={v?.telephone} />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Téléphone : {telephone}</p>
           )}
-          <ChampNiveau />
-          <ChampVille />
-          <BlocConsentement rgpd={rgpd} />
+          <ChampNiveau valeur={v?.niveau} />
+          <ChampVille valeur={v?.ville} />
+          <BlocConsentement rgpd={rgpd} coche={v?.consentement === "on"} />
+          <LegendeObligatoire />
           {state && "error" in state ? <p className="text-sm text-destructive">{state.error}</p> : null}
           <Button type="submit" variant="volt" className="w-full" disabled={isPending}>
             {isPending ? "Inscription…" : "Me prévenir"}

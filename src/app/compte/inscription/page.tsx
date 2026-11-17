@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { LegendeObligatoire, Obligatoire } from "@/components/Obligatoire";
 
 export default function InscriptionParticipantPage() {
   return (
@@ -104,7 +105,9 @@ function FormulaireInscription() {
             <div hidden={!!confirmation} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="prenom">Prénom</Label>
+                  <Label htmlFor="prenom">
+                    Prénom <Obligatoire />
+                  </Label>
                   <Input
                     id="prenom"
                     name="prenom"
@@ -114,7 +117,9 @@ function FormulaireInscription() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="nom">Nom</Label>
+                  <Label htmlFor="nom">
+                    Nom <Obligatoire />
+                  </Label>
                   <Input
                     id="nom"
                     name="nom"
@@ -136,7 +141,9 @@ function FormulaireInscription() {
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <Label htmlFor="telephone">Téléphone</Label>
+                  <Label htmlFor="telephone">
+                    Téléphone <Obligatoire />
+                  </Label>
                   <Input
                     id="telephone"
                     name="telephone"
@@ -153,7 +160,9 @@ function FormulaireInscription() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="email">
+                  E-mail <Obligatoire />
+                </Label>
                 <Input
                   id="email"
                   name="email"
@@ -165,7 +174,9 @@ function FormulaireInscription() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
+                <Label htmlFor="password">
+                  Mot de passe <Obligatoire />
+                </Label>
                 <Input
                   id="password"
                   name="password"
@@ -188,6 +199,7 @@ function FormulaireInscription() {
                 </Link>
                 .
               </p>
+              <LegendeObligatoire />
               {state && "error" in state ? (
                 <p className="text-sm text-destructive">{state.error}</p>
               ) : null}

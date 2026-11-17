@@ -9,9 +9,12 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LegendeObligatoire, Obligatoire } from "@/components/Obligatoire";
 
 export function ListeAttenteForm({ rgpd }: { rgpd: SectionRgpd[] }) {
   const [state, formAction, isPending] = useActionState(sInscrireListeAttente, null);
+  // Après une erreur, on remet ce que la personne avait saisi : React vide le formulaire à chaque envoi.
+  const v = state && "error" in state ? state.valeurs : undefined;
 
   if (state && "success" in state) {
     return (
@@ -20,7 +23,8 @@ export function ListeAttenteForm({ rgpd }: { rgpd: SectionRgpd[] }) {
           <CardTitle>Tu es sur la liste</CardTitle>
           <CardDescription>
             Merci ! On te prévient par e-mail, et au besoin par téléphone, dès que la date et le lieu du prochain
-            tournoi sont connus.
+            tournoi sont connus. Un e-mail de confirmation vient de t&apos;être envoyé : s&apos;il n&apos;arrive pas,
+            regarde dans tes courriers indésirables.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -70,20 +74,28 @@ export function ListeAttenteForm({ rgpd }: { rgpd: SectionRgpd[] }) {
   
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="prenom">Prénom</Label>
-                <Input id="prenom" name="prenom" required autoComplete="given-name" maxLength={60} />
+                <Label htmlFor="prenom">
+                Prénom <Obligatoire />
+              </Label>
+                <Input id="prenom" name="prenom" required autoComplete="given-name" maxLength={60} defaultValue={v?.prenom} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="nom">Nom</Label>
-                <Input id="nom" name="nom" required autoComplete="family-name" maxLength={60} />
+                <Label htmlFor="nom">
+                Nom <Obligatoire />
+              </Label>
+                <Input id="nom" name="nom" required autoComplete="family-name" maxLength={60} defaultValue={v?.nom} />
               </div>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="email">E-mail</Label>
-              <Input id="email" name="email" type="email" required autoComplete="email" maxLength={160} />
+              <Label htmlFor="email">
+              E-mail <Obligatoire />
+            </Label>
+              <Input id="email" name="email" type="email" required autoComplete="email" maxLength={160} defaultValue={v?.email} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="telephone">Téléphone</Label>
+              <Label htmlFor="telephone">
+              Téléphone <Obligatoire />
+            </Label>
               <Input
                 id="telephone"
                 name="telephone"
@@ -91,12 +103,14 @@ export function ListeAttenteForm({ rgpd }: { rgpd: SectionRgpd[] }) {
                 required
                 autoComplete="tel"
                 placeholder="06 12 34 56 78"
+                defaultValue={v?.telephone}
               />
             </div>
-            <ChampNiveau />
-            <ChampVille />
-            <BlocConsentement rgpd={rgpd} />
+            <ChampNiveau valeur={v?.niveau} />
+            <ChampVille valeur={v?.ville} />
+            <BlocConsentement rgpd={rgpd} coche={v?.consentement === "on"} />
   
+            <LegendeObligatoire />
             {state && "error" in state ? <p className="text-sm text-destructive">{state.error}</p> : null}
             <Button type="submit" variant="volt" className="w-full" disabled={isPending}>
               {isPending ? "Inscription…" : "Rejoindre la liste d'attente"}

@@ -15,7 +15,7 @@ const valide = {
   prenom: "Camille",
   nom: "Durand",
   email: "Camille.Durand@Exemple.fr",
-  telephone: "06 12 34 56 78",
+  telephone: "06 42 17 93 58",
   niveau: "4",
   ville: "",
   consentement: "on",
@@ -172,7 +172,7 @@ describe("sécurité", () => {
     const source = lire("src/app/liste-attente/actions.ts");
     expect(source).toContain('formData.get("site")');
     expect(source).toContain("INSCRIPTIONS_MAX_PAR_HEURE");
-    expect(source).toContain('error.code !== "23505"');
+    expect(source).toContain('error.code === "23505"');
     expect(source).not.toContain(".select(\"prenom");
     expect(source).not.toContain("select(\"*\")");
   });

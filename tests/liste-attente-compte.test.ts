@@ -6,18 +6,18 @@ import { inscriptionListeAttenteSchema } from "@/lib/liste-attente/validation";
 
 const lire = (chemin: string) => readFileSync(join(__dirname, "..", chemin), "utf-8");
 
-const profil = { prenom: "Camille", nom: "Durand", email: "camille@exemple.fr", telephone: "06 12 34 56 78" };
+const profil = { prenom: "Camille", nom: "Durand", email: "camille@exemple.fr", telephone: "06 42 17 93 58" };
 const saisie = { telephone: "", niveau: "5", ville: "", consentement: "on" };
 
 describe("inscription en un clic d'une personne connectée", () => {
   it("l'identité vient du profil : prénom, nom, e-mail et téléphone saisis dans le formulaire sont ignorés", () => {
     const d = donneesDepuisProfil(profil, { ...saisie, telephone: "07 00 00 00 00" });
-    expect(d).toMatchObject({ prenom: "Camille", nom: "Durand", email: "camille@exemple.fr", telephone: "06 12 34 56 78" });
+    expect(d).toMatchObject({ prenom: "Camille", nom: "Durand", email: "camille@exemple.fr", telephone: "06 42 17 93 58" });
   });
 
   it("sans numéro au profil, le téléphone saisi est utilisé, et il reste obligatoire", () => {
     const sansNumero = { ...profil, telephone: null };
-    expect(donneesDepuisProfil(sansNumero, { ...saisie, telephone: "06 98 76 54 32" }).telephone).toBe("06 98 76 54 32");
+    expect(donneesDepuisProfil(sansNumero, { ...saisie, telephone: "06 58 31 47 29" }).telephone).toBe("06 58 31 47 29");
     expect(inscriptionListeAttenteSchema.safeParse(donneesDepuisProfil(sansNumero, saisie)).success).toBe(false);
   });
 
@@ -37,7 +37,7 @@ describe("inscription en un clic d'une personne connectée", () => {
 
   it("les deux inscriptions passent par le même plafond et la même insertion", () => {
     const actions = lire("src/app/liste-attente/actions.ts");
-    expect(actions.match(/return enregistrer\(parsed\.data\)/g)).toHaveLength(2);
+    expect(actions.match(/return enregistrer\(parsed\.data, valeurs\)/g)).toHaveLength(2);
     expect(actions.match(/\.insert\(/g)).toHaveLength(1);
   });
 });
